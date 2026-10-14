@@ -1,0 +1,57 @@
+[
+  {
+    "id": "rep-9ar-001",
+    "dayLabel": "Heute, 13. Oktober",
+    "period": "1. Std",
+    "subject": "Mathematik",
+    "className": "9aR",
+    "type": "Vertretung",
+    "details": "Vertretung durch Hr. Schneider (für Fr. Weber)",
+    "roomInfo": "Raum 204 | Stillarbeit: Buch S. 42 Nr. 3-6",
+    "time": "07:35"
+  },
+  {
+    "id": "rep-9ar-002",
+    "dayLabel": "Heute, 13. Oktober",
+    "period": "3. Std",
+    "subject": "Physik",
+    "className": "9aR",
+    "type": "Verlegung",
+    "details": "Verlegt von der 6. Std auf die 3. Std",
+    "roomInfo": "Physiksaal 1 (PH1)",
+    "time": "07:45"
+  },
+  {
+    "id": "rep-9ar-003",
+    "dayLabel": "Heute, 13. Oktober",
+    "period": "6. Std",
+    "subject": "Geschichte",
+    "className": "9aR",
+    "type": "Entfall",
+    "details": "Fr. Keller abwesend – Unterricht entfällt",
+    "roomInfo": "Entfall (früherer Unterrichtsschluss)",
+    "time": "Gestern"
+  },
+  {
+    "id": "rep-9ar-004",
+    "dayLabel": "Morgen, 14. Oktober",
+    "period": "2. Std",
+    "subject": "Deutsch",
+    "className": "9aR",
+    "type": "Vertretung",
+    "details": "Vertretung durch Fr. Becker (für Hr. Meyer)",
+    "roomInfo": "Raum 204 | Lektüre mitbringen",
+    "time": "11:15"
+  },
+  {
+    "id": "rep-9ar-005",
+    "dayLabel": "Morgen, 14. Oktober",
+    "period": "5. Std",
+    "subject": "Sport",
+    "className": "9aR",
+    "type": "Entfall",
+    "details": "Hr. Hoffmann erkrankt",
+    "roomInfo": "Sporthalle B entfällt",
+    "time": "12:00"
+  }
+]
