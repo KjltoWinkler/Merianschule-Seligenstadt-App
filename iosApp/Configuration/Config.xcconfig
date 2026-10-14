@@ -1,7 +1,0 @@
-TEAM_ID=
-
-PRODUCT_NAME=Merianschule Seligenstadt App
-PRODUCT_BUNDLE_IDENTIFIER=de.kjltowinkler.msapp.MerianschuleSeligenstadtApp$(TEAM_ID)
-
-CURRENT_PROJECT_VERSION=1
-MARKETING_VERSION=1.0
