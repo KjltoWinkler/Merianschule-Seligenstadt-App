@@ -1,5 +1,7 @@
 package de.kjltowinkler.msapp.data.substitution
 
+import kotlinx.serialization.Serializable
+
 /**
  * Modell für einen Vertretungsplan-Eintrag entsprechend dem Figma-Design:
  * `FigmaDesigns/vertretungsplan#alle.png`
@@ -17,6 +19,7 @@ package de.kjltowinkler.msapp.data.substitution
  * @param isNew Zeigt an, ob der Eintrag neu ist (hellgrüner Statusindikator-Punkt)
  * @param isMarked Ob der Eintrag mit Stern markiert/favorisiert ist
  */
+@Serializable
 data class SubstitutionEntry(
     val id: String,
     val date: String,

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.desktop.DesktopTwoFactorAuthScreen
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -36,17 +37,29 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun OnboardingTwoFactorAuthScreen(
     accountName: String = "Sebastian Wagner",
-    avatarPainter: Painter? = painterResource(Res.drawable.avatar_sample),
+    avatarPainter: Painter? = null,
     onBackClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
     onSkipClicked: () -> Unit = {},
     onNextClicked: () -> Unit = {}
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
+        if (maxWidth >= 840.dp) {
+            DesktopTwoFactorAuthScreen(
+                accountName = accountName,
+                avatarPainter = avatarPainter,
+                onNextClicked = onNextClicked,
+                onSkipClicked = onSkipClicked,
+                onChangeAccountClicked = onChangeAccountClicked
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -65,14 +78,8 @@ fun OnboardingTwoFactorAuthScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilledTonalButton(
+                    IconButton(
                         onClick = onBackClicked,
-                        shapes = ButtonDefaults.shapes(),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier
                             .size(44.dp)
                             .semantics { contentDescription = "Zurück" }
@@ -152,7 +159,7 @@ fun OnboardingTwoFactorAuthScreen(
                 // Outlined Button "Nein danke"
                 OutlinedButton(
                     onClick = onSkipClicked,
-                    shapes = ButtonDefaults.shapes(),
+                    shape = CircleShape,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = Color.Transparent,
@@ -177,7 +184,7 @@ fun OnboardingTwoFactorAuthScreen(
                 // Filled Primary Button "Weiter" mit Pfeil
                 Button(
                     onClick = onNextClicked,
-                    shapes = ButtonDefaults.shapes(),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -215,6 +222,8 @@ fun OnboardingTwoFactorAuthScreen(
             }
         }
     }
+}
+}
 }
 
 @Preview

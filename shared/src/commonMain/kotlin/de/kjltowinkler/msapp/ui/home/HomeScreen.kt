@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.kjltowinkler.msapp.PlatformBackHandler
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
 import kotlinx.coroutines.delay
@@ -44,11 +45,85 @@ import org.jetbrains.compose.resources.painterResource
  *    mit Reitern: Startseite, Stundenpl., Vertretugspl., Aufgaben.
  * 3. Platzhalterbereich für den Hauptinhalt des gewählten Tabs.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     accountName: String = "Sebastian Wagner",
-    onProfileClicked: () -> Unit = {}
+    accountEmail: String = "sebastian.wagner@mssof.onmicrosoft.com",
+    className: String = "9aR",
+    schoolType: String = "Realschule",
+    classTeacher: String = "Hr. Thomas",
+    avatarType: String = "initials",
+    avatarColorHex: Long = 0xFF395A3CL,
+    onAvatarChanged: (avatarType: String, avatarColorHex: Long) -> Unit = { _, _ -> },
+    onProfileClicked: () -> Unit = {},
+    onSettingsClicked: () -> Unit = {},
+    onLogoutClicked: () -> Unit = {},
+    useMaterialYou: Boolean = true
+) {
+    var showAccountBottomSheet by rememberSaveable { mutableStateOf(false) }
+
+    val handleProfileClick: () -> Unit = {
+        showAccountBottomSheet = true
+        onProfileClicked()
+    }
+
+    LaunchedEffect(Unit) {
+        de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.startPeriodicSync(intervalMinutes = 15)
+    }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        if (maxWidth >= 840.dp) {
+            de.kjltowinkler.msapp.ui.desktop.DesktopHomeScreen(
+                accountName = accountName,
+                gradeAndSchool = "Klasse $className • $schoolType",
+                avatarType = avatarType,
+                avatarColorHex = avatarColorHex,
+                onProfileClicked = handleProfileClick
+            )
+        } else {
+            MobileHomeScreen(
+                accountName = accountName,
+                avatarType = avatarType,
+                avatarColorHex = avatarColorHex,
+                onProfileClicked = handleProfileClick,
+                useMaterialYou = useMaterialYou
+            )
+        }
+    }
+
+    if (showAccountBottomSheet) {
+        de.kjltowinkler.msapp.ui.account.AccountBottomSheet(
+            onDismissRequest = { showAccountBottomSheet = false },
+            accountName = accountName,
+            accountEmail = accountEmail,
+            className = className,
+            schoolType = schoolType,
+            classTeacher = classTeacher,
+            avatarType = avatarType,
+            avatarColorHex = avatarColorHex,
+            onAvatarChanged = onAvatarChanged,
+            onSettingsClicked = {
+                showAccountBottomSheet = false
+                onSettingsClicked()
+            },
+            onLogoutClicked = {
+                showAccountBottomSheet = false
+                onLogoutClicked()
+            },
+            useMaterialYou = useMaterialYou
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun MobileHomeScreen(
+    accountName: String = "Sebastian Wagner",
+    avatarType: String = "initials",
+    avatarColorHex: Long = 0xFF395A3CL,
+    onProfileClicked: () -> Unit = {},
+    useMaterialYou: Boolean = true
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(3) }
 
@@ -104,10 +179,10 @@ fun HomeScreen(
                         .clickable(onClick = onProfileClicked),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(Res.drawable.avatar_sample),
-                        contentDescription = "Profil",
-                        contentScale = ContentScale.Crop,
+                    de.kjltowinkler.msapp.ui.account.AccountAvatar(
+                        accountName = accountName,
+                        avatarType = avatarType,
+                        avatarColorHex = avatarColorHex,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -122,6 +197,25 @@ fun HomeScreen(
     }
 
     var showNewTaskBottomSheet by remember { mutableStateOf(false) }
+    var isNewTaskStarred by remember { mutableStateOf(false) }
+    var showNewListScreen by remember { mutableStateOf(false) }
+
+    // Bei ausgeklappter Suche schließt die Zurück-Geste die Suche
+    PlatformBackHandler(
+        enabled = searchBarState.currentValue == SearchBarValue.Expanded
+    ) {
+        scope.launch { searchBarState.animateToCollapsed() }
+    }
+
+    // Wenn ein Unter-Tab (1, 2 oder 3) aktiv ist, führt die Zurück-Geste zurück zur Startseite (Tab 0)
+    PlatformBackHandler(
+        enabled = selectedTab != 0 &&
+            searchBarState.currentValue != SearchBarValue.Expanded &&
+            !showNewTaskBottomSheet &&
+            !showNewListScreen
+    ) {
+        selectedTab = 0
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -235,42 +329,14 @@ fun HomeScreen(
                             }
                         }
                         1 -> {
-                            var isTimetableRefreshing by remember { mutableStateOf(false) }
-                            val timetablePullState = rememberPullToRefreshState()
-                            PullToRefreshBox(
-                                isRefreshing = isTimetableRefreshing,
-                                onRefresh = {
-                                    isTimetableRefreshing = true
-                                    scope.launch {
-                                        delay(1000)
-                                        isTimetableRefreshing = false
-                                    }
-                                },
-                                state = timetablePullState,
+                            de.kjltowinkler.msapp.ui.timetable.TimetableScreen(
                                 modifier = Modifier.fillMaxSize(),
-                                indicator = {
-                                    PullToRefreshDefaults.Indicator(
-                                        state = timetablePullState,
-                                        isRefreshing = isTimetableRefreshing,
-                                        modifier = Modifier.align(Alignment.TopCenter),
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                useMaterialYou = useMaterialYou,
+                                onAddTaskForSubject = { subjectName ->
+                                    selectedTab = 3
+                                    showNewTaskBottomSheet = true
                                 }
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(rememberScrollState()),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Stundenplan",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        fontSize = 16.sp
-                                    )
-                                }
-                            }
+                            )
                         }
                         2 -> {
                             de.kjltowinkler.msapp.ui.substitution.SubstitutionPlanScreen(
@@ -280,7 +346,13 @@ fun HomeScreen(
                         else -> {
                             de.kjltowinkler.msapp.ui.tasks.TasksScreen(
                                 modifier = Modifier.fillMaxSize(),
-                                onAddTaskClicked = { showNewTaskBottomSheet = true }
+                                onAddTaskClicked = { isStarred ->
+                                    isNewTaskStarred = isStarred
+                                    showNewTaskBottomSheet = true
+                                },
+                                onNewListClicked = {
+                                    showNewListScreen = true
+                                }
                             )
                         }
                     }
@@ -348,9 +420,20 @@ fun HomeScreen(
 
         if (showNewTaskBottomSheet) {
             de.kjltowinkler.msapp.ui.tasks.NewTaskBottomSheet(
+                initialIsStarred = isNewTaskStarred,
                 onDismissRequest = { showNewTaskBottomSheet = false },
                 onSaveTask = { newTask ->
                     de.kjltowinkler.msapp.data.task.TasksRepository.addTask(newTask)
+                }
+            )
+        }
+
+        if (showNewListScreen) {
+            de.kjltowinkler.msapp.ui.tasks.NewListScreen(
+                onDismissRequest = { showNewListScreen = false },
+                onSaveList = { newTitle ->
+                    de.kjltowinkler.msapp.data.task.TasksRepository.createPrivateList(newTitle)
+                    showNewListScreen = false
                 }
             )
         }

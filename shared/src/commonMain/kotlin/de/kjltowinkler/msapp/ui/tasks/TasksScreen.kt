@@ -46,12 +46,36 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import de.kjltowinkler.msapp.data.task.TaskCategory
+import de.kjltowinkler.msapp.data.task.TaskList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import de.kjltowinkler.msapp.data.task.TasksRepository
+import de.kjltowinkler.msapp.PlatformBackHandler
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.traversalIndex
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+
+private sealed class TasksTab {
+    data object Starred : TasksTab()
+    data object School : TasksTab()
+    data class Private(val list: TaskList) : TasksTab()
+}
 
 private enum class TaskListContentState {
     EMPTY,
@@ -59,22 +83,43 @@ private enum class TaskListContentState {
     HAS_ACTIVE
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalFoundationApi::class
+)
 @Composable
 fun TasksScreen(
     modifier: Modifier = Modifier,
-    onAddTaskClicked: (() -> Unit)? = null
+    onAddTaskClicked: ((Boolean) -> Unit)? = null,
+    onNewListClicked: (() -> Unit)? = null
 ) {
-    val categories = remember {
-        listOf(TaskCategory.STARRED, TaskCategory.SCHOOL, TaskCategory.MY_TASKS)
+    val privateLists = TasksRepository.privateLists
+    val tabs: List<TasksTab> = remember(privateLists.toList()) {
+        listOf(TasksTab.Starred, TasksTab.School) + privateLists.map { TasksTab.Private(it) }
     }
 
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { categories.size })
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
+
+    var previousListsSize by remember { mutableIntStateOf(privateLists.size) }
+    LaunchedEffect(privateLists.size) {
+        if (privateLists.size > previousListsSize) {
+            val newIndex = tabs.size - 1
+            if (newIndex >= 0) {
+                pagerState.animateScrollToPage(newIndex)
+            }
+        }
+        previousListsSize = privateLists.size
+    }
 
     var showNewTaskBottomSheet by remember { mutableStateOf(false) }
     var selectedTaskForEdit by remember { mutableStateOf<de.kjltowinkler.msapp.data.task.TaskItem?>(null) }
     var showEditListSheet by remember { mutableStateOf(false) }
+    var selectedListForEdit by remember { mutableStateOf<TaskList?>(null) }
+    var showSchoolTasksSheet by remember { mutableStateOf(false) }
+    var showStarredTasksSheet by remember { mutableStateOf(false) }
+    var showNewListSheet by remember { mutableStateOf(false) }
     var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var activeBursts by remember { mutableStateOf(listOf<ConfettiBurst>()) }
     var burstCounter by remember { mutableStateOf(0L) }
@@ -91,11 +136,9 @@ fun TasksScreen(
 
     val allTasks = TasksRepository.tasks
     val schoolTasks = allTasks.filter { it.isSchoolTask }
-    val myTasks = allTasks.filter { !it.isSchoolTask }
     val starredTasks = allTasks.filter { it.isStarred }
 
     val schoolTasksCount = schoolTasks.count { !it.isCompleted }
-    val myTasksCount = myTasks.count { !it.isCompleted }
 
     val colorScheme = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
@@ -121,9 +164,16 @@ fun TasksScreen(
                         pagerState.animateScrollToPage(pageIndex)
                     }
                 },
+                onNewListClicked = {
+                    if (onNewListClicked != null) {
+                        onNewListClicked()
+                    } else {
+                        showNewListSheet = true
+                    }
+                },
                 schoolTasksCount = schoolTasksCount,
-                myTasksCount = myTasksCount,
-                myTasksTitle = TasksRepository.myTasksTitle
+                tabs = tabs,
+                allTasks = allTasks
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -150,7 +200,7 @@ fun TasksScreen(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
-                val category = categories[page]
+                val tab = tabs.getOrElse(page) { TasksTab.Starred }
 
                 Column(
                     modifier = Modifier
@@ -163,16 +213,18 @@ fun TasksScreen(
                             )
                         )
                 ) {
-                    val currentTabTasks = when (category) {
-                        TaskCategory.STARRED -> starredTasks
-                        TaskCategory.SCHOOL -> schoolTasks
-                        TaskCategory.MY_TASKS -> myTasks
+                    val currentTabTasks = when (tab) {
+                        TasksTab.Starred -> starredTasks
+                        TasksTab.School -> schoolTasks
+                        is TasksTab.Private -> allTasks.filter {
+                            !it.isSchoolTask && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
+                        }
                     }
                     val activeTasks = currentTabTasks.filter { !it.isCompleted }
                     val completedTasks = currentTabTasks.filter { it.isCompleted }
 
                     val contentState = when {
-                        category == TaskCategory.STARRED -> {
+                        tab is TasksTab.Starred -> {
                             if (activeTasks.isEmpty()) TaskListContentState.EMPTY
                             else TaskListContentState.HAS_ACTIVE
                         }
@@ -214,10 +266,10 @@ fun TasksScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = when (category) {
-                                        TaskCategory.STARRED -> "Markiert"
-                                        TaskCategory.SCHOOL -> "Schul-Aufgaben"
-                                        TaskCategory.MY_TASKS -> TasksRepository.myTasksTitle
+                                    text = when (tab) {
+                                        TasksTab.Starred -> "Markiert"
+                                        TasksTab.School -> "Schul-Aufgaben"
+                                        is TasksTab.Private -> tab.list.title
                                     },
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
@@ -240,18 +292,25 @@ fun TasksScreen(
                                         )
                                     }
 
-                                    if (category == TaskCategory.MY_TASKS) {
-                                        IconButton(
-                                            onClick = { showEditListSheet = true },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(Res.drawable.ic_more_vert),
-                                                contentDescription = "Weitere Optionen",
-                                                tint = colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
+                                    IconButton(
+                                        onClick = {
+                                            when (tab) {
+                                                TasksTab.Starred -> showStarredTasksSheet = true
+                                                TasksTab.School -> showSchoolTasksSheet = true
+                                                is TasksTab.Private -> {
+                                                    selectedListForEdit = tab.list
+                                                    showEditListSheet = true
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(Res.drawable.ic_more_vert),
+                                            contentDescription = "Weitere Optionen",
+                                            tint = colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
                             }
@@ -276,22 +335,22 @@ fun TasksScreen(
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
                                             Spacer(modifier = Modifier.height(24.dp))
-                                            when (category) {
-                                                TaskCategory.STARRED -> {
+                                            when (tab) {
+                                                TasksTab.Starred -> {
                                                     TaskEmptyState(
                                                         imageDrawable = Res.drawable.tasks_starred_empty,
                                                         title = "Keine markierten\nAufgaben",
                                                         subtitle = "Markieren Sie wichtige Aufgaben mit einem Stern, damit Sie sie hier leichter wiederfinden"
                                                     )
                                                 }
-                                                TaskCategory.SCHOOL -> {
+                                                TasksTab.School -> {
                                                     TaskEmptyState(
                                                         imageDrawable = Res.drawable.tasks_school_empty,
                                                         title = "Keine Schul-\nAufgaben",
                                                         subtitle = "Hier werden dir deine Hausaufgaben/Aufgaben von deinen Lehrkräfte aus deiner Schule angezeigt"
                                                     )
                                                 }
-                                                TaskCategory.MY_TASKS -> {
+                                                is TasksTab.Private -> {
                                                     TaskEmptyState(
                                                         imageDrawable = Res.drawable.tasks_my_empty,
                                                         title = "Noch keine aufgaben",
@@ -377,7 +436,7 @@ fun TasksScreen(
 
                     // --- 2. ERLEDIGT-DROPDOWN-KARTE (sanftes Einblenden/Aufklappen ohne Bouncing) ---
                     AnimatedVisibility(
-                        visible = category != TaskCategory.STARRED && completedTasks.isNotEmpty(),
+                        visible = tab !is TasksTab.Starred && completedTasks.isNotEmpty(),
                         enter = expandVertically(
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioNoBouncy,
@@ -397,7 +456,7 @@ fun TasksScreen(
                         Column {
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            var isErledigtExpanded by rememberSaveable(category) { mutableStateOf(false) }
+                            var isErledigtExpanded by rememberSaveable(page) { mutableStateOf(false) }
 
                             Card(
                                 modifier = Modifier
@@ -496,34 +555,151 @@ fun TasksScreen(
         }
         }
 
-        // --- FLOATING ACTION BUTTON (FAB) unten rechts ---
-        FloatingActionButton(
-            onClick = {
-                if (onAddTaskClicked != null) {
-                    onAddTaskClicked()
-                } else {
-                    showNewTaskBottomSheet = true
-                }
-            },
+        val currentTab = tabs.getOrNull(pagerState.currentPage) ?: TasksTab.Starred
+        val isCurrentTabStarred = currentTab is TasksTab.Starred
+        val currentTargetListId = (currentTab as? TasksTab.Private)?.list?.id ?: "my_tasks"
+
+        val focusRequester = remember { FocusRequester() }
+        var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
+
+        PlatformBackHandler(enabled = fabMenuExpanded) {
+            fabMenuExpanded = false
+        }
+
+        // Klick außerhalb schließt das FAB-Menü
+        if (fabMenuExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        fabMenuExpanded = false
+                    }
+            )
+        }
+
+        // --- FLOATING ACTION BUTTON MENU (FAB-Menü) unten rechts ---
+        FloatingActionButtonMenu(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 18.dp, bottom = 18.dp)
-                .size(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            containerColor = colorScheme.primaryContainer,
-            contentColor = colorScheme.onPrimaryContainer,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
+                .padding(end = 18.dp, bottom = 18.dp),
+            expanded = fabMenuExpanded,
+            button = {
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                        if (fabMenuExpanded) {
+                            TooltipAnchorPosition.Start
+                        } else {
+                            TooltipAnchorPosition.Above
+                        }
+                    ),
+                    tooltip = {
+                        PlainTooltip(
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Assertive
+                                paneTitle = "Toggle menu"
+                            }
+                        ) {
+                            Text("Aktionsmenü")
+                        }
+                    },
+                    state = rememberTooltipState(),
+                ) {
+                    ToggleFloatingActionButton(
+                        modifier = Modifier
+                            .semantics {
+                                traversalIndex = -1f
+                                stateDescription = if (fabMenuExpanded) "Expanded" else "Collapsed"
+                                contentDescription = "Aktionsmenü umschalten"
+                            }
+                            .animateFloatingActionButton(
+                                visible = true,
+                                alignment = Alignment.BottomEnd,
+                            )
+                            .focusRequester(focusRequester),
+                        checked = fabMenuExpanded,
+                        onCheckedChange = { fabMenuExpanded = !fabMenuExpanded },
+                    ) {
+                        Icon(
+                            painter = painterResource(if (checkedProgress > 0.5f) Res.drawable.ic_close else Res.drawable.ic_add),
+                            contentDescription = null,
+                            modifier = Modifier.animateIcon({ checkedProgress }),
+                        )
+                    }
+                }
+            },
         ) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_add),
-                contentDescription = "Aufgabe hinzufügen",
-                modifier = Modifier.size(26.dp)
+            FloatingActionButtonMenuItem(
+                modifier = Modifier.semantics {
+                    isTraversalGroup = true
+                },
+                onClick = {
+                    fabMenuExpanded = false
+                    if (onNewListClicked != null) {
+                        onNewListClicked()
+                    } else {
+                        showNewListSheet = true
+                    }
+                },
+                icon = {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_edit_note),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Neue Liste",
+                        fontWeight = FontWeight.Medium
+                    )
+                },
+            )
+
+            FloatingActionButtonMenuItem(
+                modifier = Modifier.semantics {
+                    isTraversalGroup = true
+                    customActions = listOf(
+                        CustomAccessibilityAction(
+                            label = "Menü schließen",
+                            action = {
+                                fabMenuExpanded = false
+                                true
+                            },
+                        )
+                    )
+                },
+                onClick = {
+                    fabMenuExpanded = false
+                    if (onAddTaskClicked != null) {
+                        onAddTaskClicked(isCurrentTabStarred)
+                    } else {
+                        showNewTaskBottomSheet = true
+                    }
+                },
+                icon = {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_add_task),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Neue Aufgabe",
+                        fontWeight = FontWeight.Medium
+                    )
+                },
             )
         }
 
         // --- BOTTOM SHEET FÜR NEUE AUFGABEN (tasks#neu+detail.png) ---
         if (onAddTaskClicked == null && showNewTaskBottomSheet) {
             NewTaskBottomSheet(
+                initialIsStarred = isCurrentTabStarred,
+                targetListId = currentTargetListId,
                 onDismissRequest = { showNewTaskBottomSheet = false },
                 onSaveTask = { newTask ->
                     TasksRepository.addTask(newTask)
@@ -541,24 +717,127 @@ fun TasksScreen(
                     TasksRepository.updateTask(updatedTask)
                 },
                 onDeleteTask = { taskId ->
-                    TasksRepository.deleteTask(taskId)
+                    val task = allTasks.find { it.id == taskId }
+                    if (task?.isSchoolTask != true) {
+                        TasksRepository.deleteTask(taskId)
+                    }
                 }
             )
         }
 
         // --- BOTTOM SHEET FÜR LISTE BEARBEITEN (tasks#editlistesheet.png) ---
-        if (showEditListSheet) {
+        if (showEditListSheet && selectedListForEdit != null) {
+            val list = selectedListForEdit!!
+            val isCustomList = list.id != "my_tasks"
+            val listTasks = allTasks.filter {
+                !it.isSchoolTask && (it.listId == list.id || (list.id == "my_tasks" && it.listId.isEmpty()))
+            }
+            val areAllListCompleted = listTasks.isNotEmpty() && listTasks.all { it.isCompleted }
+            val areAllListStarred = listTasks.isNotEmpty() && listTasks.all { it.isStarred }
             EditListBottomSheet(
-                listTitle = TasksRepository.myTasksTitle,
-                onDismissRequest = { showEditListSheet = false },
+                listTitle = list.title,
+                areAllCompleted = areAllListCompleted,
+                areAllStarred = areAllListStarred,
+                onDismissRequest = {
+                    showEditListSheet = false
+                    selectedListForEdit = null
+                },
                 onRenameList = { newTitle ->
-                    TasksRepository.myTasksTitle = newTitle
+                    TasksRepository.renamePrivateList(list.id, newTitle)
+                },
+                onMarkAllCompleted = {
+                    TasksRepository.markAllTasksInListCompleted(list.id)
+                },
+                onMarkAllUncompleted = {
+                    TasksRepository.markAllTasksInListUncompleted(list.id)
+                },
+                onMarkAllStarred = {
+                    TasksRepository.markAllTasksInListStarred(list.id)
+                },
+                onUnstarAll = {
+                    TasksRepository.unstarAllTasksInList(list.id)
                 },
                 onDeleteCompletedTasks = {
-                    TasksRepository.deleteCompletedTasks(isSchoolTask = false)
+                    TasksRepository.deleteCompletedTasksInList(list.id)
                 },
                 onDeleteAllTasks = {
-                    TasksRepository.deleteAllMyTasks()
+                    TasksRepository.deleteAllTasksInList(list.id)
+                },
+                onDeleteList = if (isCustomList) {
+                    {
+                        TasksRepository.deletePrivateList(list.id)
+                        coroutineScope.launch {
+                            val newPageIndex = (pagerState.currentPage - 1).coerceAtLeast(0)
+                            pagerState.animateScrollToPage(newPageIndex)
+                        }
+                    }
+                } else null
+            )
+        }
+
+        // --- VOLLBILD-SCREEN FÜR NEUE LISTE ERSTELLEN (tasks#neueliste.png) ---
+        if (onNewListClicked == null && showNewListSheet) {
+            NewListScreen(
+                onDismissRequest = { showNewListSheet = false },
+                onSaveList = { newTitle ->
+                    val created = TasksRepository.createPrivateList(newTitle)
+                    showNewListSheet = false
+                    coroutineScope.launch {
+                        delay(120)
+                        val newIndex = tabs.indexOfFirst { (it as? TasksTab.Private)?.list?.id == created.id }
+                        if (newIndex >= 0) {
+                            pagerState.animateScrollToPage(newIndex)
+                        } else {
+                            pagerState.animateScrollToPage(tabs.size.coerceAtLeast(1) - 1)
+                        }
+                    }
+                }
+            )
+        }
+
+        // --- BOTTOM SHEET FÜR SCHUL-AUFGABEN OPTIONEN ---
+        if (showSchoolTasksSheet) {
+            val areAllSchoolCompleted = schoolTasks.isNotEmpty() && schoolTasks.all { it.isCompleted }
+            val areAllSchoolStarred = schoolTasks.isNotEmpty() && schoolTasks.all { it.isStarred }
+            SchoolTasksBottomSheet(
+                onDismissRequest = { showSchoolTasksSheet = false },
+                areAllCompleted = areAllSchoolCompleted,
+                areAllStarred = areAllSchoolStarred,
+                onMarkAllCompleted = {
+                    TasksRepository.markAllSchoolTasksCompleted()
+                },
+                onMarkAllUncompleted = {
+                    TasksRepository.markAllSchoolTasksUncompleted()
+                },
+                onMarkAllStarred = {
+                    TasksRepository.markAllSchoolTasksStarred()
+                },
+                onUnstarAll = {
+                    TasksRepository.unstarAllSchoolTasks()
+                }
+            )
+        }
+
+        // --- BOTTOM SHEET FÜR MARKIERT OPTIONEN ---
+        if (showStarredTasksSheet) {
+            val areAllStarredCompleted = starredTasks.isNotEmpty() && starredTasks.all { it.isCompleted }
+            StarredTasksBottomSheet(
+                onDismissRequest = { showStarredTasksSheet = false },
+                areAllCompleted = areAllStarredCompleted,
+                onMarkAllCompleted = {
+                    TasksRepository.markAllStarredTasksCompleted()
+                },
+                onMarkAllUncompleted = {
+                    TasksRepository.markAllStarredTasksUncompleted()
+                },
+                onUnstarAll = {
+                    TasksRepository.unstarAllTasks()
+                },
+                onDeleteCompletedStarred = {
+                    TasksRepository.deleteCompletedStarredTasks()
+                },
+                onDeleteAllStarred = {
+                    TasksRepository.deleteAllStarredTasks()
                 }
             )
         }
@@ -573,6 +852,270 @@ fun TasksScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun TasksTabRow(
+    currentPage: Int,
+    onTabSelected: (Int) -> Unit,
+    onNewListClicked: () -> Unit,
+    schoolTasksCount: Int,
+    tabs: List<TasksTab>,
+    allTasks: List<de.kjltowinkler.msapp.data.task.TaskItem>
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val activeColor = colorScheme.primary
+    val inactiveColor = colorScheme.onSurfaceVariant
+    val indicatorColor = colorScheme.primary
+
+    val density = LocalDensity.current
+    val scrollState = rememberScrollState()
+    var tabRowCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    // Map von Tab-Index zu LayoutCoordinates
+    val tabCoordsMap = remember { mutableStateMapOf<Int, LayoutCoordinates>() }
+
+    // Dynamisch gemessene Positionen und Breiten der Tabs für die sanfte Animation
+    val tabOffsets = remember { mutableStateMapOf<Int, Dp>() }
+    val tabWidths = remember { mutableStateMapOf<Int, Dp>() }
+    var isMeasured by remember { mutableStateOf(false) }
+
+    fun updateMeasurements() {
+        val root = tabRowCoordinates ?: return
+        if (!root.isAttached) return
+        with(density) {
+            tabCoordsMap.forEach { (index, coords) ->
+                if (coords.isAttached) {
+                    val pos = root.localPositionOf(coords, Offset.Zero)
+                    tabOffsets[index] = pos.x.toDp()
+                    tabWidths[index] = coords.size.width.toDp()
+                }
+            }
+            if (tabOffsets.isNotEmpty()) {
+                isMeasured = true
+            }
+        }
+    }
+
+    LaunchedEffect(currentPage, schoolTasksCount, tabs, allTasks.size) {
+        updateMeasurements()
+    }
+
+    // Auto-scroll to keep active tab visible when currentPage changes
+    LaunchedEffect(currentPage, tabOffsets[currentPage]) {
+        val offset = tabOffsets[currentPage]
+        if (offset != null) {
+            with(density) {
+                val px = offset.toPx().toInt()
+                scrollState.animateScrollTo((px - 72).coerceAtLeast(0))
+            }
+        }
+    }
+
+    val targetOffset = when (currentPage) {
+        0 -> ((tabOffsets[0] ?: 0.dp) - 2.dp).coerceAtLeast(0.dp)
+        else -> tabOffsets[currentPage] ?: 0.dp
+    }
+
+    val targetWidth = when (currentPage) {
+        0 -> 24.dp
+        else -> tabWidths[currentPage] ?: 60.dp
+    }
+
+    // Sanfte, flüssige Animation beim Wechseln der Tabs ohne Bouncing
+    val animatedOffset: Dp by animateDpAsState(
+        targetValue = targetOffset,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = 2500f
+        ),
+        label = "indicatorOffset"
+    )
+
+    val animatedWidth: Dp by animateDpAsState(
+        targetValue = targetWidth,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = 2500f
+        ),
+        label = "indicatorWidth"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .onGloballyPositioned { coords ->
+                tabRowCoordinates = coords
+                updateMeasurements()
+            }
+    ) {
+        Row(
+            modifier = Modifier.wrapContentWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(22.dp, Alignment.Start)
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                val isSelected = currentPage == index
+                when (tab) {
+                    TasksTab.Starred -> {
+                        // Tab 0: Stern (Markiert)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { onTabSelected(index) }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_star_filled),
+                                contentDescription = "Markiert",
+                                tint = if (isSelected) activeColor else inactiveColor,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .onGloballyPositioned { coords ->
+                                        tabCoordsMap[index] = coords
+                                        updateMeasurements()
+                                    }
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            // Unsichtbarer Platzhalter für die Indikator-Höhe
+                            Spacer(modifier = Modifier.height(3.dp))
+                        }
+                    }
+                    TasksTab.School -> {
+                        // Tab: Schul-Aufgaben
+                        Column(
+                            horizontalAlignment = Alignment.Start,
+                            modifier = Modifier
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { onTabSelected(index) }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Schul-Aufgaben",
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) activeColor else inactiveColor,
+                                    maxLines = 1,
+                                    modifier = Modifier.onGloballyPositioned { coords ->
+                                        tabCoordsMap[index] = coords
+                                        updateMeasurements()
+                                    }
+                                )
+                                if (schoolTasksCount > 0) {
+                                    TaskCountBadge(
+                                        count = schoolTasksCount,
+                                        backgroundColor = colorScheme.surfaceContainerHighest,
+                                        textColor = colorScheme.onSurface
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
+                        }
+                    }
+                    is TasksTab.Private -> {
+                        val count = allTasks.count {
+                            !it.isSchoolTask && !it.isCompleted && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.Start,
+                            modifier = Modifier
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { onTabSelected(index) }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = tab.list.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) activeColor else inactiveColor,
+                                    maxLines = 1,
+                                    modifier = Modifier.onGloballyPositioned { coords ->
+                                        tabCoordsMap[index] = coords
+                                        updateMeasurements()
+                                    }
+                                )
+                                if (count > 0) {
+                                    TaskCountBadge(
+                                        count = count,
+                                        backgroundColor = colorScheme.surfaceContainerHighest,
+                                        textColor = colorScheme.onSurface
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
+                        }
+                    }
+                }
+            }
+
+            // Tab: + Neue Liste
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onNewListClicked() }
+                    .padding(vertical = 4.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "+ Neue Liste",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = inactiveColor,
+                        maxLines = 1
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(3.dp))
+            }
+
+            // Ausreichend Abstand am Ende, damit "+ Neue Liste" beim Weiterscrollen nicht am Bildschirmrand klebt
+            Spacer(modifier = Modifier.width(44.dp))
+        }
+
+        // Gleitender Indikator-Strich (flüssige Animation, oben abgerundet, unten gerade gemäß Design)
+        if (isMeasured && animatedWidth > 0.dp) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .offset(x = animatedOffset)
+                    .width(animatedWidth)
+                    .height(3.dp)
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = 3.dp,
+                            topEnd = 3.dp,
+                            bottomStart = 0.dp,
+                            bottomEnd = 0.dp
+                        )
+                    )
+                    .background(indicatorColor)
+            )
         }
     }
 }
@@ -604,232 +1147,6 @@ private fun TaskCountBadge(
     }
 }
 
-@Composable
-private fun TasksTabRow(
-    currentPage: Int,
-    onTabSelected: (Int) -> Unit,
-    schoolTasksCount: Int,
-    myTasksCount: Int,
-    myTasksTitle: String = TasksRepository.myTasksTitle
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val activeColor = colorScheme.primary
-    val inactiveColor = colorScheme.onSurfaceVariant
-    val indicatorColor = colorScheme.primary
-
-    val density = LocalDensity.current
-    var tabRowCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    var tab0Coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var tab1Coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    var tab2Coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    // Dynamisch gemessene Positionen und Breiten der 3 Tabs für die sanfte Animation
-    var tab0Offset by remember { mutableStateOf(0.dp) }
-    var tab0Width by remember { mutableStateOf(24.dp) }
-
-    var tab1Offset by remember { mutableStateOf(0.dp) }
-    var tab1Width by remember { mutableStateOf(80.dp) }
-
-    var tab2Offset by remember { mutableStateOf(0.dp) }
-    var tab2Width by remember { mutableStateOf(80.dp) }
-    var isMeasured by remember { mutableStateOf(false) }
-
-    fun updateMeasurements() {
-        val root = tabRowCoordinates ?: return
-        if (!root.isAttached) return
-        with(density) {
-            tab0Coords?.let { c ->
-                if (c.isAttached) {
-                    val pos = root.localPositionOf(c, Offset.Zero)
-                    tab0Offset = pos.x.toDp()
-                    tab0Width = c.size.width.toDp()
-                }
-            }
-            tab1Coords?.let { c ->
-                if (c.isAttached) {
-                    val pos = root.localPositionOf(c, Offset.Zero)
-                    tab1Offset = pos.x.toDp()
-                    tab1Width = c.size.width.toDp()
-                }
-            }
-            tab2Coords?.let { c ->
-                if (c.isAttached) {
-                    val pos = root.localPositionOf(c, Offset.Zero)
-                    tab2Offset = pos.x.toDp()
-                    tab2Width = c.size.width.toDp()
-                }
-            }
-            isMeasured = true
-        }
-    }
-
-    LaunchedEffect(currentPage, schoolTasksCount, myTasksCount, myTasksTitle) {
-        updateMeasurements()
-    }
-
-    val targetOffset = when (currentPage) {
-        0 -> (tab0Offset - 2.dp).coerceAtLeast(0.dp)
-        1 -> tab1Offset
-        else -> tab2Offset
-    }
-
-    val targetWidth = when (currentPage) {
-        0 -> 24.dp
-        1 -> tab1Width
-        else -> tab2Width
-    }
-
-    // Sanfte, flüssige Animation beim Wechseln der Tabs ohne Bouncing
-    val animatedOffset: Dp by animateDpAsState(
-        targetValue = targetOffset,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = 2500f
-        ),
-        label = "indicatorOffset"
-    )
-
-    val animatedWidth: Dp by animateDpAsState(
-        targetValue = targetWidth,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = 2500f
-        ),
-        label = "indicatorWidth"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .onGloballyPositioned { coords ->
-                tabRowCoordinates = coords
-                updateMeasurements()
-            }
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(22.dp, Alignment.Start)
-        ) {
-            // Tab 0: Stern (Markiert)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onTabSelected(0) }
-                    .padding(vertical = 4.dp)
-            ) {
-                val isSelected = currentPage == 0
-                Icon(
-                    painter = painterResource(Res.drawable.ic_star_filled),
-                    contentDescription = "Markiert",
-                    tint = if (isSelected) activeColor else inactiveColor,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .onGloballyPositioned { coords ->
-                            tab0Coords = coords
-                            updateMeasurements()
-                        }
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                // Unsichtbarer Platzhalter für die Indikator-Höhe
-                Spacer(modifier = Modifier.height(3.dp))
-            }
-
-            // Tab 1: Schul-Aufgaben
-            Column(
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onTabSelected(1) }
-                    .padding(vertical = 4.dp)
-            ) {
-                val isSelected = currentPage == 1
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "Schul-Aufgaben",
-                        fontSize = 14.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) activeColor else inactiveColor,
-                        maxLines = 1,
-                        modifier = Modifier.onGloballyPositioned { coords ->
-                            tab1Coords = coords
-                            updateMeasurements()
-                        }
-                    )
-                    if (schoolTasksCount > 0) {
-                        TaskCountBadge(
-                            count = schoolTasksCount,
-                            backgroundColor = colorScheme.surfaceContainerHighest,
-                            textColor = colorScheme.onSurface
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Spacer(modifier = Modifier.height(3.dp))
-            }
-
-            // Tab 2: Meine Aufgaben
-            Column(
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onTabSelected(2) }
-                    .padding(vertical = 4.dp)
-            ) {
-                val isSelected = currentPage == 2
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = myTasksTitle,
-                        fontSize = 14.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) activeColor else inactiveColor,
-                        maxLines = 1,
-                        modifier = Modifier.onGloballyPositioned { coords ->
-                            tab2Coords = coords
-                            updateMeasurements()
-                        }
-                    )
-                    if (myTasksCount > 0) {
-                        TaskCountBadge(
-                            count = myTasksCount,
-                            backgroundColor = colorScheme.surfaceContainerHighest,
-                            textColor = colorScheme.onSurface
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Spacer(modifier = Modifier.height(3.dp))
-            }
-        }
-
-        // Gleitender Indikator-Strich (flüssige Animation)
-        if (isMeasured && animatedWidth > 0.dp) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = animatedOffset)
-                    .width(animatedWidth)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(indicatorColor)
-            )
-        }
-    }
-}
 
 @Composable
 private fun TaskEmptyState(

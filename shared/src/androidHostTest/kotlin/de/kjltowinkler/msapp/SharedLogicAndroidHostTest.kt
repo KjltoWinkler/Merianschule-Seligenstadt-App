@@ -50,11 +50,10 @@ class SharedLogicAndroidHostTest {
         val fileContent = java.io.File("src/commonMain/composeResources/files/substitutions.json").readText()
         val parsed = SubstitutionRepository.parseJsonEntries(fileContent)
         println("TEST LOG: disk JSON parsed count = ${parsed.size}")
-        assertEquals(5, parsed.size)
-        assertEquals("rep-9ar-001", parsed[0].id)
-        assertEquals("rep-9ar-002", parsed[1].id)
-        assertEquals("rep-9ar-003", parsed[2].id)
-        assertEquals("rep-9ar-004", parsed[3].id)
-        assertEquals("rep-9ar-005", parsed[4].id)
+        assertEquals(12, parsed.size)
+        assertEquals("sph_2026-10-22_1", parsed[0].id)
+        assertEquals("2. Std", parsed[0].period)
+        assertEquals("Biologie", parsed[0].subject)
+        assertEquals("09AR", parsed[0].className)
     }
 }

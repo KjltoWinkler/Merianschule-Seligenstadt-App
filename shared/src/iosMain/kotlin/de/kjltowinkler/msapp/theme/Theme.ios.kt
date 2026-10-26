@@ -9,7 +9,11 @@ actual fun AppTheme(
     dynamicColor: Boolean,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) FigmaDarkColorScheme else FigmaLightColorScheme
+    val colorScheme = if (dynamicColor) {
+        if (darkTheme) MaterialYouDarkColorScheme else MaterialYouLightColorScheme
+    } else {
+        if (darkTheme) FigmaDarkColorScheme else FigmaLightColorScheme
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,

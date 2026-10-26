@@ -27,5 +27,11 @@ dependencyResolutionManagement {
     }
 }
 
-include(":androidApp")
+if (file("androidApp").exists()) {
+    include(":androidApp")
+}
+if (file("desktopApp").exists()) {
+    include(":desktopApp")
+}
 include(":shared")
+include(":server")

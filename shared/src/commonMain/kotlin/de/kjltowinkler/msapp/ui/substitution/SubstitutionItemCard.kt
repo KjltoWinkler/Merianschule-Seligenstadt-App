@@ -24,18 +24,6 @@ import merianschuleseligenstadtapp.shared.generated.resources.ic_star_filled
 import merianschuleseligenstadtapp.shared.generated.resources.ic_star_outline
 import org.jetbrains.compose.resources.painterResource
 
-/**
- * Einzelne Vertretungskarte entsprechend `FigmaDesigns/vertretungsplan#alle.png`.
- *
- * Eigenschaften:
- * - Hintergrund: `#0C0F0B`, abgerundete Ecken: 28dp
- * - Kopfzeile: "3. Std - Mathematik - 9aR"
- * - Zeitangabe rechts oben: z.B. "7:41" oder "Gestern"
- * - Grüner Neu-Indikator: kleiner Kreis (#B8CCB5), wenn isNew = true
- * - Details: z.B. "Hr. Müller statt Fr. Schmidt"
- * - Raum / Info: z.B. "Raum 204 (statt 102) - Aufgaben..."
- * - Stern-Icon rechts unten: gefüllt wenn markiert, sonst Outline
- */
 @Composable
 fun SubstitutionItemCard(
     entry: SubstitutionEntry,
@@ -74,7 +62,7 @@ fun SubstitutionItemCard(
                 }
                 Text(
                     text = headerTitle,
-                    fontSize = 15.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFFE0E8DC),
                     maxLines = 1,

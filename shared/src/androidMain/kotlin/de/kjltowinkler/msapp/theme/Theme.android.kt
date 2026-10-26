@@ -21,9 +21,10 @@ actual fun AppTheme(
             try {
                 if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             } catch (_: Throwable) {
-                if (darkTheme) FigmaDarkColorScheme else FigmaLightColorScheme
+                if (darkTheme) MaterialYouDarkColorScheme else MaterialYouLightColorScheme
             }
         }
+        dynamicColor -> if (darkTheme) MaterialYouDarkColorScheme else MaterialYouLightColorScheme
         darkTheme -> FigmaDarkColorScheme
         else -> FigmaLightColorScheme
     }

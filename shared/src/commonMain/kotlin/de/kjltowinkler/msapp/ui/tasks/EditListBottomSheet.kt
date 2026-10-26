@@ -28,11 +28,6 @@ import org.jetbrains.compose.resources.painterResource
 /**
  * BottomSheet zum Verwalten der Liste "Meine Aufgaben"
  * entsprechend Figma-Design: `tasks#editlistesheet.png`.
- *
- * Enthält Optionen:
- * - Liste umbenennen
- * - Alle erledigten Aufgaben löschen
- * - Alle Aufgaben löschen
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,14 +35,22 @@ fun EditListBottomSheet(
     listTitle: String = "Meine Aufgaben",
     onDismissRequest: () -> Unit,
     onRenameList: (String) -> Unit = {},
+    onMarkAllCompleted: () -> Unit = {},
+    onMarkAllUncompleted: () -> Unit = {},
+    onMarkAllStarred: () -> Unit = {},
+    onUnstarAll: () -> Unit = {},
     onDeleteCompletedTasks: () -> Unit = {},
     onDeleteAllTasks: () -> Unit = {},
+    onDeleteList: (() -> Unit)? = null,
+    areAllCompleted: Boolean = false,
+    areAllStarred: Boolean = false,
     useMaterialYou: Boolean = true,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
     var showRenameDialog by remember { mutableStateOf(false) }
     var showDeleteCompletedConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteAllConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteListConfirmDialog by remember { mutableStateOf(false) }
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -58,7 +61,7 @@ fun EditListBottomSheet(
     }
 
     val brickBackgroundColor = if (useMaterialYou) {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+        MaterialTheme.colorScheme.surfaceContainer
     } else {
         Color(0xFF202820)
     }
@@ -82,7 +85,8 @@ fun EditListBottomSheet(
     }
 
     val topBrickShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 3.dp, bottomEnd = 3.dp)
-    val bottomBrickShape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
+    val middleBrickShape = RoundedCornerShape(3.dp)
+    val bottomBrickShape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
     val singleBrickShape = RoundedCornerShape(20.dp)
 
     // Dialog: Liste umbenennen
@@ -223,6 +227,43 @@ fun EditListBottomSheet(
         )
     }
 
+    // Dialog: Liste löschen
+    if (showDeleteListConfirmDialog && onDeleteList != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteListConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Liste löschen?",
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Möchtest du die Liste „$listTitle“ und alle darin enthaltenen Aufgaben wirklich unwiderruflich löschen?",
+                    color = colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteListConfirmDialog = false
+                        onDeleteList()
+                        onDismissRequest()
+                    }
+                ) {
+                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteListConfirmDialog = false }) {
+                    Text("Abbrechen", color = colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = colorScheme.surfaceContainerHigh
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -260,43 +301,125 @@ fun EditListBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 1. BLOCK: Liste umbenennen & Alle erledigten Aufgaben löschen ---
+            // --- 1. BLOCK: Liste umbenennen ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(singleBrickShape)
+                    .background(brickBackgroundColor)
+                    .clickable { showRenameDialog = true }
+                    .defaultMinSize(minHeight = 54.dp)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_edit),
+                    contentDescription = null,
+                    tint = actionIconTint,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = "Liste umbenennen",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // --- 2. BLOCK: Status- & Markierungs-Aktionen ---
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // Option 1: Liste umbenennen (oberer Brick)
+                // Aktion 1: Erledigt / Unerledigt markieren (oberer Brick)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(topBrickShape)
                         .background(brickBackgroundColor)
-                        .clickable { showRenameDialog = true }
+                        .clickable {
+                            if (areAllCompleted) {
+                                onMarkAllUncompleted()
+                            } else {
+                                onMarkAllCompleted()
+                            }
+                            onDismissRequest()
+                        }
+                        .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Icon(
-                        painter = painterResource(Res.drawable.ic_edit),
+                        painter = painterResource(
+                            if (areAllCompleted) Res.drawable.ic_event_busy else Res.drawable.ic_check
+                        ),
                         contentDescription = null,
                         tint = actionIconTint,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        text = "Liste umbenennen",
+                        text = if (areAllCompleted) "Alle als unerledigt markieren" else "Alle als erledigt markieren",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = colorScheme.onSurface
                     )
                 }
 
-                // Option 2: Alle erledigten Aufgaben löschen (unterer Brick)
+                // Aktion 2: Alle mit Stern markieren / Markierungen entfernen (unterer Brick)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(bottomBrickShape)
                         .background(brickBackgroundColor)
+                        .clickable {
+                            if (areAllStarred) {
+                                onUnstarAll()
+                            } else {
+                                onMarkAllStarred()
+                            }
+                            onDismissRequest()
+                        }
+                        .defaultMinSize(minHeight = 54.dp)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            if (areAllStarred) Res.drawable.ic_star_filled else Res.drawable.ic_star_outline
+                        ),
+                        contentDescription = null,
+                        tint = if (areAllStarred) colorScheme.primary else actionIconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = if (areAllStarred) "Alle Markierungen entfernen" else "Alle mit Stern markieren",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colorScheme.onSurface
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // --- 3. BLOCK: Lösch- & Aufräum-Aktionen ---
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                // Aktion 1: Erledigte Aufgaben löschen (oberer Brick)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(topBrickShape)
+                        .background(brickBackgroundColor)
                         .clickable { showDeleteCompletedConfirmDialog = true }
+                        .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -305,43 +428,69 @@ fun EditListBottomSheet(
                         painter = painterResource(Res.drawable.ic_event_busy),
                         contentDescription = null,
                         tint = actionIconTint,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        text = "Alle erledigten Aufgaben löschen",
+                        text = "Erledigte Aufgaben löschen",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = colorScheme.onSurface
                     )
                 }
 
-            }
+                // Aktion 2: Alle Aufgaben löschen (mittlerer Brick wenn onDeleteList != null, sonst unterer)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(if (onDeleteList != null) middleBrickShape else bottomBrickShape)
+                        .background(brickBackgroundColor)
+                        .clickable { showDeleteAllConfirmDialog = true }
+                        .defaultMinSize(minHeight = 54.dp)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_delete),
+                        contentDescription = null,
+                        tint = destructiveIconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Alle Aufgaben löschen",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = destructiveIconTint
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // --- 2. BLOCK: Alle Aufgaben löschen (Rot akzentuiert) ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(singleBrickShape)
-                    .background(brickBackgroundColor)
-                    .clickable { showDeleteAllConfirmDialog = true }
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_delete),
-                    contentDescription = null,
-                    tint = destructiveIconTint,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Alle Aufgaben löschen",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = destructiveIconTint
-                )
+                // Aktion 3: Liste löschen (nur bei benutzerdefinierten Listen, unterer Brick)
+                if (onDeleteList != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(bottomBrickShape)
+                            .background(brickBackgroundColor)
+                            .clickable { showDeleteListConfirmDialog = true }
+                            .defaultMinSize(minHeight = 54.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_delete),
+                            contentDescription = null,
+                            tint = destructiveIconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            text = "Liste löschen",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = destructiveIconTint
+                        )
+                    }
+                }
             }
         }
     }

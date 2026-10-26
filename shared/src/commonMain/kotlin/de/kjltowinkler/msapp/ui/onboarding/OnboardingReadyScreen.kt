@@ -18,6 +18,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.AppTheme
+import de.kjltowinkler.msapp.ui.components.ButtonWithAnimatedShape
+import de.kjltowinkler.msapp.ui.desktop.DesktopReadyScreen
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -38,11 +40,22 @@ fun OnboardingReadyScreen(
     val cardBackground = MaterialTheme.colorScheme.surfaceContainerHighest
     val cardContentColor = MaterialTheme.colorScheme.onSurface
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
+        if (maxWidth >= 840.dp) {
+            DesktopReadyScreen(
+                accountName = accountName,
+                gradeAndSchoolType = gradeAndSchoolType,
+                schoolName = schoolName,
+                onFinishClicked = onFinishClicked
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -181,10 +194,9 @@ fun OnboardingReadyScreen(
                 }
             }
 
-            // 5. "Los geht's!" Button am unteren Rand (69 dp hoch)
-            Button(
+            // 5. "Los geht's!" Button am unteren Rand (Hero CTA / Final Completion Trigger)
+            ButtonWithAnimatedShape(
                 onClick = onFinishClicked,
-                shapes = ButtonDefaults.shapes(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -221,6 +233,8 @@ fun OnboardingReadyScreen(
             }
         }
     }
+}
+}
 }
 
 @Preview

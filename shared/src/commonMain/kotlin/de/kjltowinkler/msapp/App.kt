@@ -41,6 +41,10 @@ object AppRoutes {
 
     // Hauptseite
     const val HOME = "home"
+
+    // Einstellungen
+    const val SETTINGS = "settings"
+    const val SETTINGS_SCHOOL_WAY = "settings_school_way"
 }
 
 /**
@@ -50,26 +54,107 @@ object AppRoutes {
  */
 data class MockAccountState(
     val username: String = "Sebastian Wagner",
+    val email: String = "sebastian.wagner@mssof.onmicrosoft.com",
+    val className: String = "9aR",
+    val schoolType: String = "Realschule",
+    val classTeacher: String = "Hr. Thomas",
+    val avatarType: String = "initials",
+    val avatarColorHex: Long = 0xFF395A3CL,
     val hasCustomPassword: Boolean = false,
     val isTwoFactorEnabled: Boolean = false
 )
 
+fun createMockAccount(
+    enteredUsername: String,
+    hasCustomPassword: Boolean,
+    isTwoFactorEnabled: Boolean
+): MockAccountState {
+    val clean = enteredUsername.trim()
+    val lower = clean.lowercase()
+    return when {
+        lower.contains("anna") || lower.contains("becker") -> {
+            MockAccountState(
+                username = if (clean.isNotBlank()) clean else "Anna Becker",
+                email = "anna.becker@mssof.onmicrosoft.com",
+                className = "7bG",
+                schoolType = "Gymnasium",
+                classTeacher = "Fr. Schneider",
+                avatarType = "initials",
+                avatarColorHex = 0xFF6B4FA2L,
+                hasCustomPassword = hasCustomPassword,
+                isTwoFactorEnabled = isTwoFactorEnabled
+            )
+        }
+        lower.contains("leon") || lower.contains("schmidt") -> {
+            MockAccountState(
+                username = if (clean.isNotBlank()) clean else "Leon Schmidt",
+                email = "leon.schmidt@mssof.onmicrosoft.com",
+                className = "10aH",
+                schoolType = "Hauptschule",
+                classTeacher = "Hr. Weber",
+                avatarType = "mascot_clean",
+                avatarColorHex = 0xFF007A78L,
+                hasCustomPassword = hasCustomPassword,
+                isTwoFactorEnabled = isTwoFactorEnabled
+            )
+        }
+        lower.contains("thomas") || lower.contains("lehrer") -> {
+            MockAccountState(
+                username = if (clean.isNotBlank()) clean else "Hr. Thomas",
+                email = "thomas@merianschule.de",
+                className = "9aR (Leitung)",
+                schoolType = "Realschule",
+                classTeacher = "Hr. Thomas (Selbst)",
+                avatarType = "app_icon",
+                avatarColorHex = 0xFF395A3CL,
+                hasCustomPassword = hasCustomPassword,
+                isTwoFactorEnabled = isTwoFactorEnabled
+            )
+        }
+        lower.contains("wagner") || lower.contains("sebastian") -> {
+            MockAccountState(
+                username = if (clean.isNotBlank()) clean else "Sebastian Wagner",
+                email = "sebastian.wagner@mssof.onmicrosoft.com",
+                className = "9aR",
+                schoolType = "Realschule",
+                classTeacher = "Hr. Thomas",
+                avatarType = "initials",
+                avatarColorHex = 0xFF395A3CL,
+                hasCustomPassword = hasCustomPassword,
+                isTwoFactorEnabled = isTwoFactorEnabled
+            )
+        }
+        else -> {
+            val name = if (clean.isNotBlank()) clean else "Sebastian Wagner"
+            val emailPrefix = name.lowercase().replace("\\s+".toRegex(), ".")
+            MockAccountState(
+                username = name,
+                email = "$emailPrefix@mssof.onmicrosoft.com",
+                className = "8bR",
+                schoolType = "Realschule",
+                classTeacher = "Fr. Hoffmann",
+                avatarType = "initials",
+                avatarColorHex = 0xFF1B65A4L,
+                hasCustomPassword = hasCustomPassword,
+                isTwoFactorEnabled = isTwoFactorEnabled
+            )
+        }
+    }
+}
+
 @Composable
 @Preview
 fun App() {
-    AppTheme(darkTheme = true) {
+    var isDarkTheme by remember { mutableStateOf(true) }
+    var isDynamicColor by remember { mutableStateOf(true) }
+
+    AppTheme(darkTheme = isDarkTheme, dynamicColor = isDynamicColor) {
         val navController = rememberNavController()
 
-        // Beispiel-Status für Demozwecke (kann später leicht durch ein ViewModel / Backend ersetzt werden):
-        // Standardmäßig startet ein Ersteinrichter (hasCustomPassword = false, isTwoFactorEnabled = false).
-        // Wenn man einen bestimmten Nutzernamen eingibt (z. B. "user" oder "login"), kann direkt der reguläre Login getestet werden.
+        // Beispiel-Status für Demozwecke (später durch Backend / Admin-Verwaltung ersetzt)
         var currentAccount by androidx.compose.runtime.remember {
             androidx.compose.runtime.mutableStateOf(
-                MockAccountState(
-                    username = "Sebastian Wagner",
-                    hasCustomPassword = false,
-                    isTwoFactorEnabled = false
-                )
+                MockAccountState()
             )
         }
 
@@ -80,10 +165,10 @@ fun App() {
         //    die Geste mit popExitTransition & popEnterTransition in Echtzeit.
         NavHost(
             navController = navController,
-            startDestination = AppRoutes.HOME,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
+            startDestination = AppRoutes.WELCOME,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
             enterTransition = {
                 slideInHorizontally(
                     initialOffsetX = { fullWidth -> fullWidth },
@@ -103,11 +188,13 @@ fun App() {
                 ) + fadeIn(animationSpec = tween(durationMillis = 300))
             },
             popExitTransition = {
-                // Predictive Back Übergangsanimation gemäß Android Developers Dokumentation:
-                // https://developer.android.com/develop/ui/compose/system/predictive-back-setup
-                scaleOut(
+                // Predictive Back Übergangsanimation: Horizontales Ausgleiten mit subtiler Skalierung und Verblassen
+                slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> fullWidth },
+                    animationSpec = tween(durationMillis = 300)
+                ) + scaleOut(
                     targetScale = 0.9f,
-                    transformOrigin = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0.5f),
+                    transformOrigin = TransformOrigin(pivotFractionX = 0f, pivotFractionY = 0.5f),
                     animationSpec = tween(durationMillis = 300)
                 ) + fadeOut(animationSpec = tween(durationMillis = 300))
             }
@@ -134,8 +221,8 @@ fun App() {
                         // Prüfen ob 2FA aktiv ist (z. B. wenn "2fa" im Namen steht)
                         val has2Fa = enteredUsername.contains("2fa", ignoreCase = true)
 
-                        currentAccount = currentAccount.copy(
-                            username = if (enteredUsername.isNotBlank()) enteredUsername else "Sebastian Wagner",
+                        currentAccount = createMockAccount(
+                            enteredUsername = enteredUsername,
                             hasCustomPassword = hasCustomPwd,
                             isTwoFactorEnabled = has2Fa
                         )
@@ -237,7 +324,7 @@ fun App() {
             composable(AppRoutes.READY) {
                 de.kjltowinkler.msapp.ui.onboarding.OnboardingReadyScreen(
                     accountName = currentAccount.username,
-                    gradeAndSchoolType = "Klasse 9aR • Realschule",
+                    gradeAndSchoolType = "Klasse ${currentAccount.className} • ${currentAccount.schoolType}",
                     schoolName = "Merianschule-Seligenstadt",
                     onFinishClicked = {
                         // Onboarding vollständig abgeschlossen -> Hauptscreen
@@ -259,6 +346,10 @@ fun App() {
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
                     onNextClicked = { password ->
+                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedSchoolId = "4322"
+                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedUsername = currentAccount.username
+                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedPassword = password
+
                         // Nach Passworteingabe: Prüfen ob 2FA an ist
                         if (currentAccount.isTwoFactorEnabled) {
                             // Wenn 2FA an ist -> Willkommen zurück Screen
@@ -273,7 +364,7 @@ fun App() {
             composable(AppRoutes.LOGIN_READY) {
                 de.kjltowinkler.msapp.ui.login.LoginReadyScreen(
                     accountName = currentAccount.username,
-                    gradeAndSchoolType = "Klasse 9aR • Realschule",
+                    gradeAndSchoolType = "Klasse ${currentAccount.className} • ${currentAccount.schoolType}",
                     schoolName = "Merianschule-Seligenstadt",
                     onNextClicked = {
                         // Weiter zum Hauptscreen
@@ -288,9 +379,53 @@ fun App() {
             composable(AppRoutes.HOME) {
                 de.kjltowinkler.msapp.ui.home.HomeScreen(
                     accountName = currentAccount.username,
-                    onProfileClicked = {
-                        // Profil-Aktion
+                    accountEmail = currentAccount.email,
+                    className = currentAccount.className,
+                    schoolType = currentAccount.schoolType,
+                    classTeacher = currentAccount.classTeacher,
+                    avatarType = currentAccount.avatarType,
+                    avatarColorHex = currentAccount.avatarColorHex,
+                    onAvatarChanged = { type, colorHex ->
+                        currentAccount = currentAccount.copy(
+                            avatarType = type,
+                            avatarColorHex = colorHex
+                        )
+                    },
+                    onSettingsClicked = {
+                        navController.navigate(AppRoutes.SETTINGS)
+                    },
+                    onLogoutClicked = {
+                        navController.navigate(AppRoutes.WELCOME) {
+                            popUpTo(AppRoutes.WELCOME) { inclusive = true }
+                        }
+                    },
+                    useMaterialYou = isDynamicColor
+                )
+            }
+
+            // --- EINSTELLUNGEN ---
+            composable(AppRoutes.SETTINGS) {
+                de.kjltowinkler.msapp.ui.settings.SettingsScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    },
+                    useMaterialYou = isDynamicColor,
+                    onMaterialYouChanged = { isDynamicColor = it },
+                    initialDarkTheme = isDarkTheme,
+                    onDarkThemeChanged = { isDarkTheme = it },
+                    onSchoolWayClicked = {
+                        navController.navigate(AppRoutes.SETTINGS_SCHOOL_WAY)
                     }
+                )
+            }
+
+            // --- EINSTELLUNGEN: MEIN SCHULWEG ---
+            composable(AppRoutes.SETTINGS_SCHOOL_WAY) {
+                de.kjltowinkler.msapp.ui.settings.SchoolWayScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    },
+                    useMaterialYou = isDynamicColor
                 )
             }
         }

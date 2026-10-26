@@ -54,7 +54,7 @@ fun SubstitutionDetailBottomSheet(
     }
 
     val brickBackgroundColor = if (useMaterialYou) {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+        MaterialTheme.colorScheme.surfaceContainer
     } else {
         Color(0xFF1E241E)
     }
@@ -402,6 +402,7 @@ fun SubstitutionDetailBottomSheet(
                         .clip(topBrickShape)
                         .background(brickBackgroundColor)
                         .clickable { onToggleMark() }
+                        .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -444,6 +445,7 @@ fun SubstitutionDetailBottomSheet(
                             }
                             onShare()
                         }
+                        .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -469,6 +471,7 @@ fun SubstitutionDetailBottomSheet(
                         .clip(bottomBrickShape)
                         .background(brickBackgroundColor)
                         .clickable { onSaveAsTask() }
+                        .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)

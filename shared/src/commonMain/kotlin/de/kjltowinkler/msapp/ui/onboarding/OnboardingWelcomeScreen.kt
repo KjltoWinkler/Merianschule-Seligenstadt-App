@@ -273,7 +273,7 @@ fun OnboardingWelcomeScreen(
                         showAccessibilityDialog = true
                         onAccessibilityClicked()
                     },
-                    shapes = ButtonDefaults.shapes(),
+                    shape = CircleShape,
                     colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -294,7 +294,7 @@ fun OnboardingWelcomeScreen(
 
                 Button(
                     onClick = onNextClicked,
-                    shapes = ButtonDefaults.shapes(),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary

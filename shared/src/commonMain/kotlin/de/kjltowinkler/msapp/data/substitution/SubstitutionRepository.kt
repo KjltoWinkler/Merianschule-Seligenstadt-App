@@ -13,87 +13,242 @@ object SubstitutionRepository {
      */
     val defaultEntries: List<SubstitutionEntry> = listOf(
         SubstitutionEntry(
-            id = "sub_1",
-            date = "2026-10-12",
-            dayLabel = "Heute, 12. Oktober",
-            period = "3. Std",
-            subject = "Mathematik",
-            className = "9aR",
-            type = "Vertretung",
-            details = "Hr. Müller statt Fr. Schmidt",
-            roomInfo = "Raum 204 (statt 102) - Aufgaben...",
-            time = "7:41",
-            isNew = true,
-            isMarked = false
-        ),
-        SubstitutionEntry(
-            id = "sub_2",
-            date = "2026-10-12",
-            dayLabel = "Heute, 12. Oktober",
-            period = "5. Std",
-            subject = "Deutsch",
-            className = "9aR",
+            id = "sph_2026-10-22_1",
+            date = "2026-10-22",
+            dayLabel = "Heute, 22. Oktober",
+            period = "2. Std",
+            subject = "Biologie",
+            className = "09AR",
             type = "Entfall",
-            details = "Fr. Becker entfällt ersatzlos",
-            roomInfo = "Entfall - Aufgaben im Schulportal...",
-            time = "6:50",
+            details = "Tho entfällt ersatzlos",
+            roomInfo = "Entfall (geplant C202) - fällt aus",
+            time = "22.10.2026",
             isNew = true,
             isMarked = false
         ),
         SubstitutionEntry(
-            id = "sub_3",
-            date = "2026-10-12",
-            dayLabel = "Heute, 12. Oktober",
-            period = "3. Std",
-            subject = "Mathematik",
-            className = "9aR",
-            type = "Vertretung",
-            details = "Hr. Müller statt Fr. Schmidt",
-            roomInfo = "Raum 204 (statt 102) - Aufgaben...",
-            time = "Gestern",
-            isNew = false,
-            isMarked = true
-        ),
-        SubstitutionEntry(
-            id = "sub_4",
-            date = "2026-10-11",
-            dayLabel = "Gestern, 11. Oktober",
-            period = "3. Std",
-            subject = "Mathematik",
-            className = "9aR",
-            type = "Vertretung",
-            details = "Hr. Müller statt Fr. Schmidt",
-            roomInfo = "Raum 204 (statt 102) - Aufgaben...",
-            time = "7:41",
-            isNew = true,
-            isMarked = false
-        ),
-        SubstitutionEntry(
-            id = "sub_5",
-            date = "2026-10-11",
-            dayLabel = "Gestern, 11. Oktober",
-            period = "5. Std",
+            id = "sph_2026-10-22_2",
+            date = "2026-10-22",
+            dayLabel = "Heute, 22. Oktober",
+            period = "3 - 4. Std",
             subject = "Deutsch",
-            className = "9aR",
+            className = "09AR",
             type = "Entfall",
-            details = "Fr. Becker entfällt ersatzlos",
-            roomInfo = "Entfall - Aufgaben im Schulportal...",
-            time = "6:50",
+            details = "Af entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "22.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-22_3",
+            date = "2026-10-22",
+            dayLabel = "Heute, 22. Oktober",
+            period = "5. Std",
+            subject = "Klassenlehrerstunde",
+            className = "09AR",
+            type = "Entfall",
+            details = "Tho entfällt ersatzlos",
+            roomInfo = "Entfall (geplant D209) - fällt aus",
+            time = "22.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-22_4",
+            date = "2026-10-22",
+            dayLabel = "Heute, 22. Oktober",
+            period = "6. Std",
+            subject = "Geschichte",
+            className = "09AR",
+            type = "Entfall",
+            details = "Za entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "22.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-22_5",
+            date = "2026-10-22",
+            dayLabel = "Heute, 22. Oktober",
+            period = "7. Std",
+            subject = "Französisch",
+            className = "09AR, 09BR, 09CR",
+            type = "Entfall",
+            details = "Hol entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "22.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_6",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "1. Std",
+            subject = "Politik & Wirtschaft",
+            className = "09AR",
+            type = "Entfall",
+            details = "Hv entfällt ersatzlos",
+            roomInfo = "Entfall (geplant D209) - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_7",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "2. Std",
+            subject = "Chemie",
+            className = "09AR",
+            type = "Entfall",
+            details = "Tho entfällt ersatzlos",
+            roomInfo = "Entfall (geplant D209) - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_8",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "3. Std",
+            subject = "Mathematik",
+            className = "09AR",
+            type = "Entfall",
+            details = "Kne entfällt ersatzlos",
+            roomInfo = "Entfall (geplant D209) - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_9",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "4. Std",
+            subject = "Ethik",
+            className = "09AR, 09BR, 09CR",
+            type = "Entfall",
+            details = "Car entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_10",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "4. Std",
+            subject = "Ethik",
+            className = "09AR, 09BR, 09CR",
+            type = "Entfall",
+            details = "Web entfällt ersatzlos",
+            roomInfo = "Entfall (geplant D210) - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_11",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "4. Std",
+            subject = "Religion",
+            className = "09AR, 09BR, 09CR",
+            type = "Entfall",
+            details = "Sr entfällt ersatzlos",
+            roomInfo = "Entfall (geplant D211) - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_12",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "5 - 6. Std",
+            subject = "Kunst",
+            className = "09AR",
+            type = "Entfall",
+            details = "Bü entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "23.10.2026",
             isNew = true,
             isMarked = false
         )
     )
 
+    private var cachedLiveEntries: List<SubstitutionEntry>? = null
+
     /**
-     * Lädt Vertretungsplan-Einträge aus `substitutions.json`.
+     * Liefert sofort verfügbare Einträge aus dem Speicher (Cache oder Fallback-Daten),
+     * ohne eine Netzwerk- oder I/O-Verzögerung.
      */
-    suspend fun loadSubstitutions(): List<SubstitutionEntry> {
+    fun getInitialOrCachedEntries(): List<SubstitutionEntry> {
+        return cachedLiveEntries ?: defaultEntries
+    }
+
+    /**
+     * Zuletzt vom Schulportal übermittelter Zeitstempel der Aktualisierung.
+     */
+    var lastUpdatedText: String = "Letzte Aktualisierung: 22.10.2026 um 10:25:48 Uhr"
+        private set
+
+    /**
+     * Lädt Vertretungsplan-Einträge:
+     * 1. Versucht Live-Abruf über Schulportal Hessen, falls Zugangsdaten vorliegen.
+     * 2. Fallback auf `substitutions.json` (lokale Assets).
+     * 3. Fallback auf `defaultEntries`.
+     */
+    suspend fun loadSubstitutions(forceRefresh: Boolean = false): List<SubstitutionEntry> {
+        if (!forceRefresh && cachedLiveEntries != null) {
+            return cachedLiveEntries!!
+        }
+
+        // 1. Versuche Abruf vom selbst gehosteten Backend-Server
+        try {
+            val backendResult = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchSubstitutions(forceRefresh = forceRefresh)
+            if (backendResult.isSuccess) {
+                val serverEntries = backendResult.getOrNull()
+                if (!serverEntries.isNullOrEmpty()) {
+                    cachedLiveEntries = serverEntries
+                    de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
+                        lastUpdatedText = it
+                    }
+                    return serverEntries
+                }
+            }
+        } catch (_: Exception) {
+            // Backend offline oder nicht erreichbar -> Fallback
+        }
+
+        // 2. Versucht Live-Abruf über Schulportal Hessen, falls Zugangsdaten vorliegen
+        if (de.kjltowinkler.msapp.data.schulportal.SchulportalClient.hasCredentials) {
+            val liveResult = de.kjltowinkler.msapp.data.schulportal.SchulportalClient.fetchSubstitutionPlan()
+            if (liveResult.isSuccess) {
+                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.lastUpdated?.let {
+                    lastUpdatedText = it
+                }
+                val liveEntries = liveResult.getOrNull()
+                if (!liveEntries.isNullOrEmpty()) {
+                    cachedLiveEntries = liveEntries
+                    return liveEntries
+                }
+            }
+        }
+
+        // 3. Fallback auf lokale substitutions.json Assets
         return try {
             val bytes = Res.readBytes("files/substitutions.json")
             val jsonString = bytes.decodeToString()
-            parseJsonEntries(jsonString)
+            val parsed = parseJsonEntries(jsonString)
+            if (parsed.isNotEmpty()) parsed else defaultEntries
         } catch (_: Exception) {
-            emptyList()
+            defaultEntries
         }
     }
 

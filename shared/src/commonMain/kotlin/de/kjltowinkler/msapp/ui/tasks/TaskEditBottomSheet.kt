@@ -83,7 +83,7 @@ fun TaskEditBottomSheet(
     }
 
     val brickBackgroundColor = if (useMaterialYou) {
-        MaterialTheme.colorScheme.surfaceContainerHigh
+        MaterialTheme.colorScheme.surfaceContainer
     } else {
         Color(0xFF202820)
     }
@@ -281,6 +281,7 @@ fun TaskEditBottomSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { isDetailsExpanded = !isDetailsExpanded }
+                                .defaultMinSize(minHeight = 54.dp)
                                 .padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -289,7 +290,7 @@ fun TaskEditBottomSheet(
                                 painter = painterResource(Res.drawable.ic_subject),
                                 contentDescription = null,
                                 tint = actionIconTint,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                             Text(
                                 text = if (description.isNotBlank()) "Details bearbeiten" else "Details hinzufügen",
@@ -341,6 +342,7 @@ fun TaskEditBottomSheet(
                             .clip(middleBrickShape)
                             .background(brickBackgroundColor)
                             .clickable { showDatePicker = true }
+                            .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -354,7 +356,7 @@ fun TaskEditBottomSheet(
                                 painter = painterResource(Res.drawable.ic_today),
                                 contentDescription = null,
                                 tint = actionIconTint,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                             Text(
                                 text = if (dueDate.isNotBlank()) "Datum: $dueDate" else "Datum hinzufügen",
@@ -391,6 +393,7 @@ fun TaskEditBottomSheet(
                             .clip(bottomBrickShape)
                             .background(brickBackgroundColor)
                             .clickable { showTimePicker = true }
+                            .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -404,7 +407,7 @@ fun TaskEditBottomSheet(
                                 painter = painterResource(Res.drawable.ic_schedule),
                                 contentDescription = null,
                                 tint = actionIconTint,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                             Text(
                                 text = if (dueTime.isNotBlank()) "Zeit: $dueTime Uhr" else "Zeit hinzufügen",
@@ -453,6 +456,7 @@ fun TaskEditBottomSheet(
                                 isStarred = newStarred
                                 saveChanges(newIsStarred = newStarred)
                             }
+                            .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -463,7 +467,7 @@ fun TaskEditBottomSheet(
                             ),
                             contentDescription = null,
                             tint = if (isStarred) colorScheme.primary else actionIconTint,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                         Text(
                             text = if (isStarred) "Markierung entfernen" else "Aufgabe markieren",
@@ -482,6 +486,7 @@ fun TaskEditBottomSheet(
                             .clickable {
                                 // Teilen - Backend-Integration folgt
                             }
+                            .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -490,7 +495,7 @@ fun TaskEditBottomSheet(
                             painter = painterResource(Res.drawable.ic_share),
                             contentDescription = null,
                             tint = actionIconTint,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                         Text(
                             text = "Teilen",
@@ -520,6 +525,7 @@ fun TaskEditBottomSheet(
                                 completedDate = newCompletedDate
                                 saveChanges(newIsCompleted = newCompleted, newCompletedDate = newCompletedDate)
                             }
+                            .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -530,7 +536,7 @@ fun TaskEditBottomSheet(
                             ),
                             contentDescription = null,
                             tint = actionIconTint,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                         Text(
                             text = if (isCompleted) "Als nicht erledigt markieren" else "Als erledigt markieren",
@@ -541,39 +547,42 @@ fun TaskEditBottomSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                // --- 6. BUTTON: Löschen (Rot akzentuiert - nur für eigene Aufgaben, nicht für Schulaufgaben) ---
+                if (!task.isSchoolTask) {
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                // --- 6. BUTTON: Löschen (Rot akzentuiert) ---
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(singleBrickShape)
-                        .background(brickBackgroundColor)
-                        .clickable {
-                            showDeleteConfirmDialog = true
-                        }
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_delete),
-                        contentDescription = null,
-                        tint = destructiveIconTint,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "Löschen",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = destructiveIconTint
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(singleBrickShape)
+                            .background(brickBackgroundColor)
+                            .clickable {
+                                showDeleteConfirmDialog = true
+                            }
+                            .defaultMinSize(minHeight = 54.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_delete),
+                            contentDescription = null,
+                            tint = destructiveIconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            text = "Löschen",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = destructiveIconTint
+                        )
+                    }
                 }
         }
     }
 
     // --- BESTÄTIGUNGSDIALOG: Aufgabe löschen ---
-    if (showDeleteConfirmDialog) {
+    if (showDeleteConfirmDialog && !task.isSchoolTask) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             icon = {
@@ -607,7 +616,9 @@ fun TaskEditBottomSheet(
                         coroutineScope.launch {
                             sheetState.hide()
                         }.invokeOnCompletion {
-                            onDeleteTask(task.id)
+                            if (!task.isSchoolTask) {
+                                onDeleteTask(task.id)
+                            }
                             onDismissRequest()
                         }
                     }

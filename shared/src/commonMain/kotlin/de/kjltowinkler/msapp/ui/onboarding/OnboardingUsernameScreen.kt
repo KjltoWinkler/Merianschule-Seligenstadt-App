@@ -3,6 +3,7 @@ package de.kjltowinkler.msapp.ui.onboarding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -22,6 +23,7 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,11 +54,23 @@ fun OnboardingUsernameScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
+        if (maxWidth >= 840.dp) {
+            DesktopUsernameScreen(
+                initialUsername = initialUsername,
+                textFieldState = textFieldState,
+                onNextClicked = onNextClicked,
+                onAccountInfoClicked = onAccountInfoClicked,
+                onForgotPasswordClicked = onForgotPasswordClicked
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -70,14 +84,8 @@ fun OnboardingUsernameScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilledTonalButton(
+                IconButton(
                     onClick = onBackClicked,
-                    shapes = ButtonDefaults.shapes(),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    ),
-                    contentPadding = PaddingValues(0.dp),
                     modifier = Modifier
                         .size(44.dp)
                         .semantics { contentDescription = "Zurück" }
@@ -159,8 +167,9 @@ fun OnboardingUsernameScreen(
                     }
                 } else null,
                 keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Text,
+                    keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Done
                 ),
                 onKeyboardAction = {
@@ -211,7 +220,7 @@ fun OnboardingUsernameScreen(
                         isError = true
                     }
                 },
-                shapes = ButtonDefaults.shapes(),
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -319,6 +328,9 @@ fun OnboardingUsernameScreen(
         }
     }
 }
+}
+}
+
 
 @Preview
 @Composable

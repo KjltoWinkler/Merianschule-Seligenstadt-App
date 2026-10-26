@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.desktop.DesktopNewPasswordScreen
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -50,7 +52,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun OnboardingNewPasswordScreen(
     accountName: String = "Sebastian Wagner",
-    avatarPainter: Painter? = painterResource(Res.drawable.avatar_sample),
+    avatarPainter: Painter? = null,
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
     confirmPasswordState: TextFieldState = rememberTextFieldState(),
@@ -114,11 +116,26 @@ fun OnboardingNewPasswordScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
+        if (maxWidth >= 840.dp) {
+            DesktopNewPasswordScreen(
+                accountName = accountName,
+                avatarPainter = avatarPainter,
+                initialPassword = initialPassword,
+                passwordState = passwordState,
+                confirmPasswordState = confirmPasswordState,
+                onFinishClicked = onFinishClicked,
+                onChangeAccountClicked = onChangeAccountClicked,
+                onPasswordInfoClicked = onPasswordInfoClicked
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -139,14 +156,8 @@ fun OnboardingNewPasswordScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilledTonalButton(
+                    IconButton(
                         onClick = onBackClicked,
-                        shapes = ButtonDefaults.shapes(),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier
                             .size(44.dp)
                             .semantics { contentDescription = "Zurück" }
@@ -241,8 +252,9 @@ fun OnboardingNewPasswordScreen(
                     } else null,
                     textObfuscationMode = if (passwordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
                     keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
                         autoCorrectEnabled = false,
-                        keyboardType = if (passwordHidden) KeyboardType.Password else KeyboardType.PasswordVisible,
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
                     ),
                     onKeyboardAction = {
@@ -289,8 +301,9 @@ fun OnboardingNewPasswordScreen(
                     } else null,
                     textObfuscationMode = if (confirmPasswordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
                     keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
                         autoCorrectEnabled = false,
-                        keyboardType = if (confirmPasswordHidden) KeyboardType.Password else KeyboardType.PasswordVisible,
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
                     onKeyboardAction = {
@@ -345,7 +358,7 @@ fun OnboardingNewPasswordScreen(
             // 9. "Weiter" Button unten
             Button(
                 onClick = { validateAndSubmit() },
-                shapes = ButtonDefaults.shapes(),
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -421,6 +434,8 @@ fun OnboardingNewPasswordScreen(
             )
         }
     }
+}
+}
 }
 
 @Preview

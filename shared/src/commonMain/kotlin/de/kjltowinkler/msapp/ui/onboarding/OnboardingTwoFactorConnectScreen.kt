@@ -31,6 +31,7 @@ import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
 import de.kjltowinkler.msapp.ui.components.MerianQrCode
 import de.kjltowinkler.msapp.ui.components.MerianQrCodeStyle
+import de.kjltowinkler.msapp.ui.desktop.DesktopTwoFactorConnectScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -44,7 +45,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun OnboardingTwoFactorConnectScreen(
     accountName: String = "Sebastian Wagner",
-    avatarPainter: Painter? = painterResource(Res.drawable.avatar_sample),
+    avatarPainter: Painter? = null,
     // Standard TOTP-URI oder Secret, lässt sich direkt vom Backend übergeben
     totpUri: String = "otpauth://totp/Merianschule:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
     backupCode: String = "ABCD EFGH 1234 5678",
@@ -62,11 +63,25 @@ fun OnboardingTwoFactorConnectScreen(
     val googleAuthUrl = "https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=de"
     val twoFasUrl = "https://play.google.com/store/apps/details?id=com.twofasapp&hl=de"
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize()
     ) {
+        if (maxWidth >= 840.dp) {
+            DesktopTwoFactorConnectScreen(
+                accountName = accountName,
+                avatarPainter = avatarPainter,
+                totpUri = totpUri,
+                backupCode = backupCode,
+                onNextClicked = onNextClicked,
+                onChangeAccountClicked = onChangeAccountClicked,
+                onHelpClicked = onHelpClicked
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -87,14 +102,8 @@ fun OnboardingTwoFactorConnectScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilledTonalButton(
+                    IconButton(
                         onClick = onBackClicked,
-                        shapes = ButtonDefaults.shapes(),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier
                             .size(44.dp)
                             .semantics { contentDescription = "Zurück" }
@@ -228,7 +237,7 @@ fun OnboardingTwoFactorConnectScreen(
             // 7. Weiter-Button unten (69 dp hoch)
             Button(
                 onClick = onNextClicked,
-                shapes = ButtonDefaults.shapes(),
+                shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -350,6 +359,8 @@ fun OnboardingTwoFactorConnectScreen(
             )
         }
     }
+}
+}
 }
 
 @Preview

@@ -42,12 +42,14 @@ import org.jetbrains.compose.resources.painterResource
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewTaskBottomSheet(
+    initialIsStarred: Boolean = false,
+    targetListId: String = "my_tasks",
     onDismissRequest: () -> Unit,
     onSaveTask: (TaskItem) -> Unit
 ) {
     var taskTitle by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
-    var isStarred by remember { mutableStateOf(false) }
+    var isStarred by remember(initialIsStarred) { mutableStateOf(initialIsStarred) }
 
     var selectedDate by remember { mutableStateOf<SimpleDate?>(null) }
     var selectedHour by remember { mutableStateOf<Int?>(null) }
@@ -348,7 +350,8 @@ fun NewTaskBottomSheet(
                                     dueDate = dueDateString,
                                     dueTime = dueTimeString,
                                     isStarred = isStarred,
-                                    isSchoolTask = false
+                                    isSchoolTask = false,
+                                    listId = targetListId
                                 )
                                 onSaveTask(newTask)
                                 keyboardController?.hide()

@@ -30,6 +30,30 @@ data class SimpleDate(
         val m = months.getOrElse(monthNumber) { "" }
         return "$w, $dayOfMonth. $m"
     }
+
+    fun toIsoString(): String = "$year-${monthNumber.toString().padStart(2, '0')}-${dayOfMonth.toString().padStart(2, '0')}"
+
+    fun plusDays(days: Int): SimpleDate {
+        var d = dayOfMonth + days
+        var m = monthNumber
+        var y = year
+        while (true) {
+            val daysInMonth = when (m) {
+                1, 3, 5, 7, 8, 10, 12 -> 31
+                4, 6, 9, 11 -> 30
+                2 -> if (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) 29 else 28
+                else -> 31
+            }
+            if (d <= daysInMonth) break
+            d -= daysInMonth
+            m++
+            if (m > 12) {
+                m = 1
+                y++
+            }
+        }
+        return SimpleDate(y, m, d)
+    }
 }
 
 expect fun getTodayDate(): SimpleDate

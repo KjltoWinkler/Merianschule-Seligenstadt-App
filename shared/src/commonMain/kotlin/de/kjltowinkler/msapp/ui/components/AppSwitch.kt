@@ -61,20 +61,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import merianschuleseligenstadtapp.shared.generated.resources.Res
+import merianschuleseligenstadtapp.shared.generated.resources.ic_check
 import merianschuleseligenstadtapp.shared.generated.resources.ic_event_upcoming
 import merianschuleseligenstadtapp.shared.generated.resources.ic_today
 import org.jetbrains.compose.resources.painterResource
 
-/**
- * Farb-Definitionen für den Switch exakt abgeleitet aus Figma Designs:
- * (FigmaDesigns/other/toggleswitch.png)
- *
- * - Track: #2F402F (Dunkelgrüner Container)
- * - Thumb (Checked / An): #93DBAD (Heller Mint-Ton)
- * - Thumb (Unchecked / Aus): #1B281F (Sehr dunkles Waldgrün)
- * - Icon (Checked / An): #1B281F (Dunkles Icon auf hellem Thumb)
- * - Icon (Unchecked / Aus): #93DBAD (Helles Mint-Icon auf dunklem Thumb)
- */
 object AppSwitchDefaults {
     val TrackColor = Color(0xFF2F402F)
     val CheckedThumbColor = Color(0xFF93DBAD)
@@ -82,21 +73,6 @@ object AppSwitchDefaults {
     val CheckedIconColor = Color(0xFF1B281F)
     val UncheckedIconColor = Color(0xFF93DBAD)
 
-    /**
-     * Erstellt [SwitchColors] mit vollständiger Material You-Unterstützung:
-     *
-     * Wenn [useMaterialYou] = true (Standard):
-     * - Checked Thumb: [MaterialTheme.colorScheme.primary] (Dynamische Akzentfarbe des Systems/Themes)
-     * - Checked Track: [MaterialTheme.colorScheme.surfaceContainerHighest]
-     * - Checked Icon: [MaterialTheme.colorScheme.onPrimary]
-     * - Unchecked Thumb: [MaterialTheme.colorScheme.surfaceContainerHigh]
-     * - Unchecked Track: [MaterialTheme.colorScheme.surfaceContainerHighest]
-     * - Unchecked Icon: [MaterialTheme.colorScheme.primary]
-     *
-     * Wenn [useMaterialYou] = false:
-     * - Exakte Figma Farben: Track: #2F402F, CheckedThumb: #93DBAD, CheckedIcon: #2A3E31,
-     *   UncheckedThumb: #1B281F, UncheckedIcon: #93DBAD.
-     */
     @Composable
     fun colors(
         useMaterialYou: Boolean = true,
@@ -127,9 +103,6 @@ object AppSwitchDefaults {
         disabledUncheckedTrackColor = disabledUncheckedTrackColor,
     )
 
-    /**
-     * Google Material Symbol: 'event_upcoming' (für den AN-Zustand).
-     */
     val EventUpcomingIcon: ImageVector by lazy {
         ImageVector.Builder(
             name = "EventUpcoming",
@@ -192,9 +165,6 @@ object AppSwitchDefaults {
         }.build()
     }
 
-    /**
-     * Google Material Symbol: 'today' (für den AUS-Zustand).
-     */
     val TodayIcon: ImageVector by lazy {
         ImageVector.Builder(
             name = "Today",
@@ -239,28 +209,6 @@ object AppSwitchDefaults {
     }
 }
 
-/**
- * Switch-Komponente im exakten Stil des Figma-Designs (`toggleswitch.png`):
- * - Track: Kapselform (Höhe: 32.dp, Breite: 60.dp) mit abgerundetem Container
- * - Thumb: Kreisförmiger Button (26.dp) mit zentriertem Icon (18.dp)
- * - Wenn an (checked / rechts):
- *   - Thumb: [MaterialTheme.colorScheme.primary] (z. B. leuchtendes Mint / dynamisches Blau)
- *   - Icon: [MaterialTheme.colorScheme.onPrimary]
- *   - Icon: 'ic_event_upcoming'
- * - Wenn aus (unchecked / links):
- *   - Thumb: Eigener runder Hintergrund [MaterialTheme.colorScheme.surfaceContainerHigh]
- *   - Icon: [MaterialTheme.colorScheme.primary]
- *   - Icon: 'ic_today'
- *
- * @param checked Ob der Schalter aktuell aktiv (an) ist.
- * @param onCheckedChange Callback, wenn sich der Status ändert.
- * @param modifier Optionaler Modifikator.
- * @param scale Skalierungsfaktor für die Gesamtgröße (Standard: 1.0f).
- * @param enabled Ob der Switch interaktiv ist.
- * @param colors Angepasste Farben; standardmäßig [AppSwitchDefaults.colors].
- * @param showThumbIcon Ob die Status-Icons im Thumb gerendert werden sollen (Standard: true).
- * @param interactionSource Optionaler [MutableInteractionSource].
- */
 @Composable
 fun AppSwitch(
     checked: Boolean,
@@ -270,6 +218,7 @@ fun AppSwitch(
     enabled: Boolean = true,
     colors: SwitchColors = AppSwitchDefaults.colors(),
     showThumbIcon: Boolean = true,
+    useCheckmarkIcon: Boolean = false,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
     val trackWidth = 52.dp
@@ -328,25 +277,33 @@ fun AppSwitch(
             contentAlignment = Alignment.Center
         ) {
             if (showThumbIcon) {
-                val painter = if (checked) {
-                    painterResource(Res.drawable.ic_event_upcoming)
+                if (useCheckmarkIcon) {
+                    if (checked) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_check),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = iconColor
+                        )
+                    }
                 } else {
-                    painterResource(Res.drawable.ic_today)
+                    val painter = if (checked) {
+                        painterResource(Res.drawable.ic_event_upcoming)
+                    } else {
+                        painterResource(Res.drawable.ic_today)
+                    }
+                    Icon(
+                        painter = painter,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = iconColor
+                    )
                 }
-                Icon(
-                    painter = painter,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = iconColor
-                )
             }
         }
     }
 }
 
-/**
- * M3 Sample: Einfacher Switch ohne Icons.
- */
 @Preview
 @Composable
 fun SwitchSample() {
@@ -359,9 +316,6 @@ fun SwitchSample() {
     )
 }
 
-/**
- * M3 Sample: Switch mit Design-Icons (event_upcoming wenn an, today wenn aus).
- */
 @Preview
 @Composable
 fun SwitchWithThumbIconSample() {
@@ -374,9 +328,6 @@ fun SwitchWithThumbIconSample() {
     )
 }
 
-/**
- * Preview zur visuellen Gegenüberstellung des AN- und AUS-Zustands entsprechend `toggleswitch.png`.
- */
 @Preview
 @Composable
 fun FigmaToggleSwitchPreview() {
