@@ -31,7 +31,7 @@ import org.jetbrains.compose.resources.painterResource
 
 /**
  * Einstellungen-Screen für "Mein Schulweg" exakt nach Figma-Design `settings#meinschulweg.png`:
- * 
+ *
  * - Top-Bar mit Zurück-Pfeil, Titel "Mein Schulweg" und 3-Punkte-Menü
  * - Bereich 1: "Hinfahrt (Morgens)" mit Einstiegshaltestelle & Zielhaltestelle
  *   -> Beim Klick auf "Einstiegshaltestelle" oder "Zielhaltestelle" öffnet sich

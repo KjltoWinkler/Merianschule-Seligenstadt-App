@@ -1,4 +1,4 @@
-package de.kjltowinkler.msapp.ui.settings
+ package de.kjltowinkler.msapp.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,16 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
-
-/**
- * Einstellungen-Screen mit voller Unterstützung für Material You (Dynamic Colors):
- * 
- * - Nutzt die dynamischen Systemfarben von MaterialTheme.colorScheme (Hintergrund, Karten, Switches, Akzente).
- * - Enthält in der Sektion "Darstellung" Umschalter für:
- *   1. "Dunkles Design"
- *   2. "Material You" (Dynamische Farben)
- * - Switch-Design nach Material 3 ohne Thumb-Icons.
- */
+ 
 @Composable
 fun SettingsScreen(
     onBackClicked: () -> Unit,

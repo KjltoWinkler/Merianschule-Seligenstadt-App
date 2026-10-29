@@ -55,19 +55,7 @@ import de.kjltowinkler.msapp.data.task.TaskList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import de.kjltowinkler.msapp.data.task.TasksRepository
-import de.kjltowinkler.msapp.PlatformBackHandler
-import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.traversalIndex
+
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -84,7 +72,6 @@ private enum class TaskListContentState {
 }
 
 @OptIn(
-    ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalMaterial3Api::class,
     ExperimentalFoundationApi::class
 )
@@ -559,139 +546,27 @@ fun TasksScreen(
         val isCurrentTabStarred = currentTab is TasksTab.Starred
         val currentTargetListId = (currentTab as? TasksTab.Private)?.list?.id ?: "my_tasks"
 
-        val focusRequester = remember { FocusRequester() }
-        var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
-
-        PlatformBackHandler(enabled = fabMenuExpanded) {
-            fabMenuExpanded = false
-        }
-
-        // Klick außerhalb schließt das FAB-Menü
-        if (fabMenuExpanded) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        fabMenuExpanded = false
-                    }
-            )
-        }
-
-        // --- FLOATING ACTION BUTTON MENU (FAB-Menü) unten rechts ---
-        FloatingActionButtonMenu(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 18.dp, bottom = 18.dp),
-            expanded = fabMenuExpanded,
-            button = {
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                        if (fabMenuExpanded) {
-                            TooltipAnchorPosition.Start
-                        } else {
-                            TooltipAnchorPosition.Above
-                        }
-                    ),
-                    tooltip = {
-                        PlainTooltip(
-                            modifier = Modifier.semantics {
-                                liveRegion = LiveRegionMode.Assertive
-                                paneTitle = "Toggle menu"
-                            }
-                        ) {
-                            Text("Aktionsmenü")
-                        }
-                    },
-                    state = rememberTooltipState(),
-                ) {
-                    ToggleFloatingActionButton(
-                        modifier = Modifier
-                            .semantics {
-                                traversalIndex = -1f
-                                stateDescription = if (fabMenuExpanded) "Expanded" else "Collapsed"
-                                contentDescription = "Aktionsmenü umschalten"
-                            }
-                            .animateFloatingActionButton(
-                                visible = true,
-                                alignment = Alignment.BottomEnd,
-                            )
-                            .focusRequester(focusRequester),
-                        checked = fabMenuExpanded,
-                        onCheckedChange = { fabMenuExpanded = !fabMenuExpanded },
-                    ) {
-                        Icon(
-                            painter = painterResource(if (checkedProgress > 0.5f) Res.drawable.ic_close else Res.drawable.ic_add),
-                            contentDescription = null,
-                            modifier = Modifier.animateIcon({ checkedProgress }),
-                        )
-                    }
+        FloatingActionButton(
+            onClick = {
+                if (onAddTaskClicked != null) {
+                    onAddTaskClicked(isCurrentTabStarred)
+                } else {
+                    showNewTaskBottomSheet = true
                 }
             },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 18.dp, bottom = 18.dp)
+                .size(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            containerColor = colorScheme.primaryContainer,
+            contentColor = colorScheme.onPrimaryContainer,
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
         ) {
-            FloatingActionButtonMenuItem(
-                modifier = Modifier.semantics {
-                    isTraversalGroup = true
-                },
-                onClick = {
-                    fabMenuExpanded = false
-                    if (onNewListClicked != null) {
-                        onNewListClicked()
-                    } else {
-                        showNewListSheet = true
-                    }
-                },
-                icon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_edit_note),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Neue Liste",
-                        fontWeight = FontWeight.Medium
-                    )
-                },
-            )
-
-            FloatingActionButtonMenuItem(
-                modifier = Modifier.semantics {
-                    isTraversalGroup = true
-                    customActions = listOf(
-                        CustomAccessibilityAction(
-                            label = "Menü schließen",
-                            action = {
-                                fabMenuExpanded = false
-                                true
-                            },
-                        )
-                    )
-                },
-                onClick = {
-                    fabMenuExpanded = false
-                    if (onAddTaskClicked != null) {
-                        onAddTaskClicked(isCurrentTabStarred)
-                    } else {
-                        showNewTaskBottomSheet = true
-                    }
-                },
-                icon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_add_task),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Neue Aufgabe",
-                        fontWeight = FontWeight.Medium
-                    )
-                },
+            Icon(
+                painter = painterResource(Res.drawable.ic_add),
+                contentDescription = "Aufgabe hinzufügen",
+                modifier = Modifier.size(26.dp)
             )
         }
 
