@@ -33,5 +33,8 @@ if (file("androidApp").exists()) {
 if (file("desktopApp").exists()) {
     include(":desktopApp")
 }
+if (file("webApp").exists()) {
+    include(":webApp")
+}
 include(":shared")
 include(":server")

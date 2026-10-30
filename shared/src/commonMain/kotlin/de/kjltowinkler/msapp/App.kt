@@ -151,6 +151,8 @@ fun App() {
     AppTheme(darkTheme = isDarkTheme, dynamicColor = isDynamicColor) {
         val navController = rememberNavController()
 
+        PlatformNavigationBackHandler(navController)
+
         // Beispiel-Status für Demozwecke (später durch Backend / Admin-Verwaltung ersetzt)
         var currentAccount by androidx.compose.runtime.remember {
             androidx.compose.runtime.mutableStateOf(
@@ -166,9 +168,10 @@ fun App() {
         NavHost(
             navController = navController,
             startDestination = AppRoutes.WELCOME,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .platformEdgeBackGesture(),
             enterTransition = {
                 slideInHorizontally(
                     initialOffsetX = { fullWidth -> fullWidth },

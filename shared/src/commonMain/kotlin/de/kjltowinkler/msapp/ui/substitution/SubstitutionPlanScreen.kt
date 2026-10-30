@@ -659,11 +659,12 @@ fun SubstitutionPlanScreen(
                             val focusEntries = remember(entriesForTab, targetDate, isUpcoming) {
                                 entriesForTab.filter { it.date == targetDate || (it.date.isBlank() && !isUpcoming) }
                             }
-                            val pastDays = remember(entriesForTab, heuteDate) {
+                            val pastDays: List<Pair<String, List<SubstitutionEntry>>> = remember(entriesForTab, heuteDate) {
                                 entriesForTab
                                     .filter { it.date.isNotBlank() && it.date < heuteDate }
                                     .groupBy { it.date }
-                                    .toSortedMap(compareByDescending { it })
+                                    .toList()
+                                    .sortedByDescending { it.first }
                             }
 
                             if (focusEntries.isEmpty() && pastDays.isEmpty()) {

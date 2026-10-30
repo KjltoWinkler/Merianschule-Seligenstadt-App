@@ -20,6 +20,11 @@ kotlin {
     }
 
     jvm("desktop")
+
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+    }
     
     android {
        namespace = "de.kjltowinkler.msapp.shared"

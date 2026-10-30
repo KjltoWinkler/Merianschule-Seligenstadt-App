@@ -15,3 +15,9 @@ actual fun PlatformPredictiveBackHandler(
 ) {
     // Auf iOS gibt es kein systemweites Zurück-Tasten-Event
 }
+
+@Composable
+actual fun PlatformNavigationBackHandler(navController: androidx.navigation.NavHostController) {
+}
+
+actual fun androidx.compose.ui.Modifier.platformEdgeBackGesture(): androidx.compose.ui.Modifier = this

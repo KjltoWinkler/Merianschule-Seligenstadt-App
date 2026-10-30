@@ -17,6 +17,8 @@ This is a Kotlin Multiplatform project targeting Android, iOS.
 Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and options:
 
 - Android app: `./gradlew :androidApp:assembleDebug`
+- Desktop app: `./gradlew :desktopApp:run`
+- Web app: `./gradlew :webApp:wasmJsBrowserDevelopmentRun` (Development Server mit Hot-Reload) oder `./gradlew :webApp:wasmJsBrowserDistribution` (Produktions-Bundle)
 - iOS app: open the [/iosApp](./iosApp) directory in Xcode and run it from there.
 
 ### Running tests

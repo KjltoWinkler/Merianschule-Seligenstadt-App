@@ -35,3 +35,10 @@ actual fun PlatformPredictiveBackHandler(
         onBack(mappedFlow)
     }
 }
+
+@Composable
+actual fun PlatformNavigationBackHandler(navController: androidx.navigation.NavHostController) {
+    // Android NavHost kümmert sich nativ über den OnBackPressedDispatcher um Back-Gesten
+}
+
+actual fun androidx.compose.ui.Modifier.platformEdgeBackGesture(): androidx.compose.ui.Modifier = this

@@ -15,3 +15,9 @@ actual fun PlatformPredictiveBackHandler(
 ) {
     // Auf Desktop gibt es keinen nativen System-Back-Button/Geste wie bei Android
 }
+
+@Composable
+actual fun PlatformNavigationBackHandler(navController: androidx.navigation.NavHostController) {
+}
+
+actual fun androidx.compose.ui.Modifier.platformEdgeBackGesture(): androidx.compose.ui.Modifier = this

@@ -22,4 +22,5 @@ node_modules/
 *.db-wal
 server/data/*.db*
 data/*.db*
+kotlin-js-store/
 

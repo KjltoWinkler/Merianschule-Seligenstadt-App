@@ -1,6 +1,8 @@
 package de.kjltowinkler.msapp
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -18,7 +20,7 @@ data class PredictiveBackProgress(
 )
 
 /**
- * Erlaubt das Abfangen von Zurück-Gesten auf Plattformen mit System-Zurück-Unterstützung (Android).
+ * Erlaubt das Abfangen von Zurück-Gesten auf Plattformen mit System-Zurück-Unterstützung (Android/Web).
  * Nutzt auf Android intern die moderne Predictive-Back-API (PredictiveBackHandler),
  * sodass vorausschauende Wischgesten nahtlos unterstützt werden.
  * Ist [enabled] false (z.B. auf dem Root-Screen), wird die Zurück-Geste nicht abgefangen,
@@ -36,4 +38,15 @@ expect fun PlatformPredictiveBackHandler(
     enabled: Boolean = true,
     onBack: suspend (progress: Flow<PredictiveBackProgress>) -> Unit
 )
+
+/**
+ * Synchronisiert den NavController auf Plattformen wie Web mit der Browser-History und Zurück-Gesten.
+ */
+@Composable
+expect fun PlatformNavigationBackHandler(navController: NavHostController)
+
+/**
+ * Registriert Touch-Wischgesten von den Bildschirmrändern (links/rechts) für Zurück-Navigation.
+ */
+expect fun Modifier.platformEdgeBackGesture(): Modifier
 

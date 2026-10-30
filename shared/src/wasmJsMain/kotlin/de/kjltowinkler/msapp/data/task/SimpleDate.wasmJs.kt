@@ -1,18 +1,18 @@
 package de.kjltowinkler.msapp.data.task
 
-import kotlin.js.JsFun
+import kotlin.js.ExperimentalWasmJsInterop
 
-@JsFun("() => new Date().getFullYear()")
-private external fun jsGetFullYear(): Int
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun jsGetFullYear(): Int = js("new Date().getFullYear()")
 
-@JsFun("() => new Date().getMonth() + 1")
-private external fun jsGetMonth(): Int
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun jsGetMonth(): Int = js("new Date().getMonth() + 1")
 
-@JsFun("() => new Date().getDate()")
-private external fun jsGetDate(): Int
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun jsGetDate(): Int = js("new Date().getDate()")
 
-@JsFun("() => Date.now()")
-private external fun jsDateNow(): Double
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun jsDateNow(): Double = js("Date.now()")
 
 actual fun getTodayDate(): SimpleDate = SimpleDate(
     year = jsGetFullYear(),
