@@ -37,4 +37,6 @@ if (file("webApp").exists()) {
     include(":webApp")
 }
 include(":shared")
-include(":server")
+if (file("server").exists()) {
+    include(":server")
+}
