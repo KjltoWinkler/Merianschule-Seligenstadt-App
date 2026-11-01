@@ -210,4 +210,51 @@ object SubstitutionServerRepository {
             }
         }
     }
+
+    suspend fun addOrUpdateEntry(entry: SubstitutionEntry): Boolean = DatabaseFactory.query { conn ->
+        val now = System.currentTimeMillis()
+        val sql = """
+            INSERT INTO substitutions (
+                id, date, day_label, period, subject, class_name, 
+                type, details, room_info, time, is_new, is_marked, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                date = excluded.date,
+                day_label = excluded.day_label,
+                period = excluded.period,
+                subject = excluded.subject,
+                class_name = excluded.class_name,
+                type = excluded.type,
+                details = excluded.details,
+                room_info = excluded.room_info,
+                time = excluded.time,
+                is_new = excluded.is_new,
+                is_marked = excluded.is_marked,
+                updated_at = excluded.updated_at;
+        """.trimIndent()
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, entry.id)
+            stmt.setString(2, entry.date)
+            stmt.setString(3, entry.dayLabel)
+            stmt.setString(4, entry.period)
+            stmt.setString(5, entry.subject)
+            stmt.setString(6, entry.className)
+            stmt.setString(7, entry.type)
+            stmt.setString(8, entry.details)
+            stmt.setString(9, entry.roomInfo)
+            stmt.setString(10, entry.time)
+            stmt.setInt(11, if (entry.isNew) 1 else 0)
+            stmt.setInt(12, if (entry.isMarked) 1 else 0)
+            stmt.setLong(13, now)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun deleteById(id: String): Boolean = DatabaseFactory.query { conn ->
+        conn.prepareStatement("DELETE FROM substitutions WHERE id = ?;").use { stmt ->
+            stmt.setString(1, id)
+            stmt.executeUpdate() > 0
+        }
+    }
 }
+

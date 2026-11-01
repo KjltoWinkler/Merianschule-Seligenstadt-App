@@ -205,6 +205,56 @@ fun Route.adminRoutes() {
             call.respond(HttpStatusCode.OK, stats)
         }
 
+        // Vertretungsplan (Substitutions) Management
+        get("/substitutions") {
+            if (!verifyAdminAccess(call)) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich (X-Admin-Key Header oder Admin-JWT)."))
+                return@get
+            }
+            val entries = SubstitutionServerRepository.getAll()
+            call.respond(HttpStatusCode.OK, entries)
+        }
+
+        post("/substitutions/entry") {
+            if (!verifyAdminAccess(call)) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich (X-Admin-Key Header oder Admin-JWT)."))
+                return@post
+            }
+            val entry = runCatching { call.receive<SubstitutionEntry>() }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültiger Vertretungseintrag."))
+                return@post
+            }
+            val entryToSave = if (entry.id.isBlank()) {
+                entry.copy(id = "sub_${System.currentTimeMillis()}_${(1000..9999).random()}")
+            } else {
+                entry
+            }
+            val success = SubstitutionServerRepository.addOrUpdateEntry(entryToSave)
+            if (success) {
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Eintrag erfolgreich gespeichert."))
+            } else {
+                call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Fehler beim Speichern des Eintrags."))
+            }
+        }
+
+        delete("/substitutions/{id}") {
+            if (!verifyAdminAccess(call)) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                return@delete
+            }
+            val id = call.parameters["id"]
+            if (id.isNullOrBlank()) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt."))
+                return@delete
+            }
+            val success = SubstitutionServerRepository.deleteById(id)
+            if (success) {
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Eintrag erfolgreich gelöscht."))
+            } else {
+                call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Eintrag nicht gefunden."))
+            }
+        }
+
         // Upload / Update Substitutions (Vertretungsplan)
         post("/substitutions") {
             if (!verifyAdminAccess(call)) {

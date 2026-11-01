@@ -301,6 +301,75 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
       color: var(--md-sys-color-on-surface-variant);
     }
 
+    .badge-type {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-type-vertretung {
+      background-color: rgba(168, 199, 250, 0.2);
+      color: #a8c7fa;
+      border: 1px solid rgba(168, 199, 250, 0.4);
+    }
+
+    .badge-type-entfall {
+      background-color: rgba(255, 180, 171, 0.2);
+      color: #ffb4ab;
+      border: 1px solid rgba(255, 180, 171, 0.4);
+    }
+
+    .badge-type-raum {
+      background-color: rgba(255, 183, 77, 0.2);
+      color: #ffb74d;
+      border: 1px solid rgba(255, 183, 77, 0.4);
+    }
+
+    .badge-type-default {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .badge-period {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background-color: var(--md-sys-color-surface-container-highest);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--md-sys-color-primary);
+    }
+
+    .sp-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .sp-info-item {
+      background-color: var(--md-sys-color-surface-container-high);
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .sp-info-label {
+      font-size: 12px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-bottom: 4px;
+    }
+
+    .sp-info-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface);
+      word-break: break-all;
+    }
+
     .actions-cell {
       display: flex;
       gap: 4px;
@@ -403,8 +472,8 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
         Server & Status
       </md-primary-tab>
       <md-primary-tab id="tabSchulportal">
-        <md-icon slot="icon">sync</md-icon>
-        Schulportal Sync
+        <md-icon slot="icon">event_note</md-icon>
+        Vertretungsplan & Schulportal
       </md-primary-tab>
     </md-tabs>
 
@@ -521,21 +590,123 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
       </div>
     </section>
 
-    <!-- Tab 3: Schulportal Sync -->
+    <!-- Tab 3: Vertretungsplan & Schulportal -->
     <section id="panelSchulportal" class="tab-content hidden">
+      <!-- Schulportal Configuration Card -->
       <div class="m3-card">
-        <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <md-icon>sync</md-icon> Automatischer Schulportal-Abgleich
-        </h3>
-        <p style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 20px; line-height: 1.5;">
-          Der Server synchronisiert den Vertretungsplan der Merianschule Seligenstadt (Schul-ID 4322) automatisch alle 15 Minuten im Hintergrund.
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+          <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            <md-icon>sync</md-icon> Schulportal Hessen (LANIS) Anbindung
+          </h3>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <md-outlined-button onclick="openEditSchulportalDialog()">
+              <md-icon slot="icon">edit</md-icon>
+              Zugangsdaten bearbeiten
+            </md-outlined-button>
+            <md-filled-button id="btnTriggerSync" onclick="triggerSchulportalSync()">
+              <md-icon slot="icon">cloud_sync</md-icon>
+              Jetzt abgleichen
+            </md-filled-button>
+          </div>
+        </div>
+
+        <p style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 20px; line-height: 1.5; font-size: 14px;">
+          Der Server gleicht den Vertretungsplan der Merianschule Seligenstadt automatisch mit dem hessischen Schulportal (LANIS) ab und aktualisiert die mobilen Apps in Echtzeit.
         </p>
-        <div style="display: flex; gap: 16px; align-items: center;">
-          <md-filled-button id="btnTriggerSync" onclick="triggerSchulportalSync()">
-            <md-icon slot="icon">cloud_sync</md-icon>
-            Jetzt sofort synchronisieren
-          </md-filled-button>
-          <span id="syncStatusText" style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);"></span>
+
+        <div class="sp-info-grid">
+          <div class="sp-info-item">
+            <div class="sp-info-label">Schul-ID (LANIS)</div>
+            <div id="spSchoolIdVal" class="sp-info-value">4322</div>
+          </div>
+          <div class="sp-info-item">
+            <div class="sp-info-label">LANIS Benutzername</div>
+            <div id="spUsernameVal" class="sp-info-value">-</div>
+          </div>
+          <div class="sp-info-item">
+            <div class="sp-info-label">Automatischer Abgleich</div>
+            <div id="spAutoSyncVal" class="sp-info-value">-</div>
+          </div>
+          <div class="sp-info-item">
+            <div class="sp-info-label">Sync-Intervall</div>
+            <div id="spIntervalVal" class="sp-info-value">15 Minuten</div>
+          </div>
+          <div class="sp-info-item" style="grid-column: span 2;">
+            <div class="sp-info-label">Letzter Abgleich / Status</div>
+            <div id="spLastStatusVal" class="sp-info-value" style="font-size: 13px; font-weight: normal;">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Substitution Plan Management Card -->
+      <div class="m3-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+          <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            <md-icon>event_note</md-icon> Vertretungsplan-Einträge
+          </h3>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <md-outlined-button onclick="loadSubstitutions()">
+              <md-icon slot="icon">refresh</md-icon>
+              Aktualisieren
+            </md-outlined-button>
+            <md-filled-button onclick="openAddSubstitutionDialog()">
+              <md-icon slot="icon">add</md-icon>
+              Eintrag hinzufügen
+            </md-filled-button>
+            <md-outlined-button style="--md-sys-color-outline: var(--md-sys-color-error); --md-sys-color-primary: var(--md-sys-color-error);" onclick="openClearSubstitutionsDialog()">
+              <md-icon slot="icon" style="color: var(--md-sys-color-error);">delete_sweep</md-icon>
+              Alle löschen
+            </md-outlined-button>
+          </div>
+        </div>
+
+        <div class="toolbar-row" style="margin-bottom: 16px;">
+          <div class="search-field" style="max-width: 100%;">
+            <md-outlined-text-field id="subSearch" placeholder="Vertretungsplan durchsuchen (Klasse, Fach, Datum, Typ, Details, Raum)..." style="width: 100%;" oninput="filterSubstitutions()">
+              <md-icon slot="leading-icon">search</md-icon>
+            </md-outlined-text-field>
+          </div>
+        </div>
+
+        <!-- Substitution Stats Chips -->
+        <div class="stats-chips" style="margin-bottom: 16px;">
+          <div class="stat-chip">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: var(--md-sys-color-primary);">list_alt</span>
+            <span>Einträge gesamt: <strong id="totalSubCount">0</strong></span>
+          </div>
+          <div class="stat-chip">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: #ffb4ab;">event_busy</span>
+            <span>Entfälle: <strong id="totalCancelCount">0</strong></span>
+          </div>
+          <div class="stat-chip">
+            <span class="material-symbols-outlined" style="font-size: 18px; color: #81c784;">update</span>
+            <span>Stand: <strong id="subLastUpdatedText">-</strong></span>
+          </div>
+        </div>
+
+        <!-- Substitutions Table -->
+        <div class="user-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Datum / Tag</th>
+                <th>Std.</th>
+                <th>Klasse</th>
+                <th>Fach</th>
+                <th>Art</th>
+                <th>Vertretung / Details</th>
+                <th>Raum</th>
+                <th style="text-align: right;">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="subTableBody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 32px;">
+                  <md-circular-progress indeterminate></md-circular-progress>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -629,6 +800,136 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
     </div>
   </md-dialog>
 
+  <!-- Modal Dialog: Schulportal Zugangsdaten bearbeiten -->
+  <md-dialog id="editSchulportalDialog">
+    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
+      <md-icon>sync_saved_locally</md-icon>
+      Schulportal Zugangsdaten
+    </div>
+    <form id="editSchulportalForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
+      <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px; margin-bottom: 8px;">
+        Hinterlege die offiziellen Zugangsdaten des Schulportals Hessen (LANIS), damit der Server die Vertretungspläne automatisiert abrufen kann.
+      </p>
+      <div class="grid-2">
+        <md-outlined-text-field id="inputSpSchoolId" label="Schul-ID" value="4322" required>
+          <md-icon slot="leading-icon">domain</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="inputSpUsername" label="Benutzername" required placeholder="z. B. lehrer.max">
+          <md-icon slot="leading-icon">account_circle</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <div class="grid-2">
+        <md-outlined-text-field id="inputSpPassword" label="Passwort" type="password" required placeholder="LANIS Passwort">
+          <md-icon slot="leading-icon">lock</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="inputSpInterval" label="Intervall (Minuten)" type="number" min="5" max="1440" value="15" required>
+          <md-icon slot="leading-icon">timer</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+          <input type="checkbox" id="inputSpAutoSync" checked style="accent-color: var(--md-sys-color-primary); width: 18px; height: 18px;">
+          Automatischen Hintergrundabgleich aktivieren
+        </label>
+      </div>
+    </form>
+    <div slot="actions">
+      <md-text-button onclick="document.getElementById('editSchulportalDialog').close()">Abbrechen</md-text-button>
+      <md-filled-button onclick="submitSchulportalCredentials()">
+        <md-icon slot="icon">save</md-icon>
+        Speichern & Synchronisieren
+      </md-filled-button>
+    </div>
+  </md-dialog>
+
+  <!-- Modal Dialog: Vertretungseintrag manuell anlegen -->
+  <md-dialog id="addSubstitutionDialog">
+    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
+      <md-icon>post_add</md-icon>
+      Vertretungseintrag hinzufügen
+    </div>
+    <form id="addSubstitutionForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
+      <div class="grid-2">
+        <md-outlined-text-field id="subInputDate" label="Datum (JJJJ-MM-TT)*" required placeholder="z. B. 2026-11-03">
+          <md-icon slot="leading-icon">event</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="subInputDayLabel" label="Tag / Wochentag" placeholder="z. B. Heute, Di">
+          <md-icon slot="leading-icon">calendar_today</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <div class="grid-2">
+        <md-outlined-text-field id="subInputPeriod" label="Stunde(n)*" required placeholder="z. B. 3 - 4 oder 1. Std">
+          <md-icon slot="leading-icon">schedule</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="subInputClass" label="Klasse(n)*" required placeholder="z. B. 9aR">
+          <md-icon slot="leading-icon">groups</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <div class="grid-2">
+        <md-outlined-text-field id="subInputSubject" label="Fach*" required placeholder="z. B. Mathematik">
+          <md-icon slot="leading-icon">menu_book</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-select id="subInputType" label="Art der Vertretung">
+          <md-select-option value="Vertretung" selected><div slot="headline">Vertretung</div></md-select-option>
+          <md-select-option value="Entfall"><div slot="headline">Entfall</div></md-select-option>
+          <md-select-option value="Raumänderung"><div slot="headline">Raumänderung</div></md-select-option>
+          <md-select-option value="Verlegung"><div slot="headline">Verlegung</div></md-select-option>
+          <md-select-option value="Stillarbeit"><div slot="headline">Stillarbeit</div></md-select-option>
+          <md-select-option value="Sondereinsatz"><div slot="headline">Sondereinsatz</div></md-select-option>
+        </md-outlined-select>
+      </div>
+      <div class="grid-2">
+        <md-outlined-text-field id="subInputDetails" label="Vertretung / Details*" required placeholder="z. B. Hr. Müller statt Fr. Meier">
+          <md-icon slot="leading-icon">description</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="subInputRoom" label="Raum-Info" placeholder="z. B. R 204 (statt 102)">
+          <md-icon slot="leading-icon">meeting_room</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <md-outlined-text-field id="subInputTime" label="Uhrzeit / Info" placeholder="z. B. 09:50 - 11:25">
+        <md-icon slot="leading-icon">info</md-icon>
+      </md-outlined-text-field>
+    </form>
+    <div slot="actions">
+      <md-text-button onclick="document.getElementById('addSubstitutionDialog').close()">Abbrechen</md-text-button>
+      <md-filled-button onclick="submitAddSubstitution()">
+        <md-icon slot="icon">check</md-icon>
+        Eintrag speichern
+      </md-filled-button>
+    </div>
+  </md-dialog>
+
+  <!-- Modal Dialog: Vertretungseintrag löschen -->
+  <md-dialog id="deleteSubDialog">
+    <div slot="headline" style="color: var(--md-sys-color-error);">Vertretungseintrag löschen</div>
+    <div slot="content">
+      <p id="deleteSubDesc" style="font-size: 14px; line-height: 1.5;"></p>
+      <input type="hidden" id="deleteSubId">
+    </div>
+    <div slot="actions">
+      <md-text-button onclick="document.getElementById('deleteSubDialog').close()">Abbrechen</md-text-button>
+      <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteSub()">
+        Löschen
+      </md-filled-button>
+    </div>
+  </md-dialog>
+
+  <!-- Modal Dialog: Alle Vertretungseinträge löschen -->
+  <md-dialog id="clearSubsDialog">
+    <div slot="headline" style="color: var(--md-sys-color-error);">Alle Vertretungseinträge löschen</div>
+    <div slot="content">
+      <p style="font-size: 14px; line-height: 1.5;">
+        Möchtest du wirklich alle im Cache gespeicherten Vertretungseinträge unwiderruflich löschen?
+      </p>
+    </div>
+    <div slot="actions">
+      <md-text-button onclick="document.getElementById('clearSubsDialog').close()">Abbrechen</md-text-button>
+      <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitClearAllSubs()">
+        Alle löschen
+      </md-filled-button>
+    </div>
+  </md-dialog>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">
     <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
@@ -673,6 +974,10 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
 
         if (index === 0) loadUsers();
         if (index === 1) loadStats();
+        if (index === 2) {
+          loadSchulportalStatus();
+          loadSubstitutions();
+        }
       });
 
       // Logout handler
@@ -992,28 +1297,305 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
       }
     }
 
-    // Schulportal Sync
-    async function triggerSchulportalSync() {
-      const btn = document.getElementById('btnTriggerSync');
-      const statusText = document.getElementById('syncStatusText');
-      btn.disabled = true;
-      statusText.textContent = 'Synchronisiere mit Schulportal Hessen...';
+    // Schulportal Status & Configuration
+    async function loadSchulportalStatus() {
+      try {
+        const res = await apiFetch('/api/admin/schulportal/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        document.getElementById('spSchoolIdVal').textContent = data.schoolId || '4322';
+        document.getElementById('spUsernameVal').textContent = data.hasCredentials
+          ? (data.username || 'Hinterlegt')
+          : 'Nicht hinterlegt';
+        document.getElementById('spAutoSyncVal').innerHTML = data.autoSyncEnabled
+          ? '<span class="badge-role badge-admin">Aktiv</span>'
+          : '<span class="badge-role badge-user">Inaktiv</span>';
+        document.getElementById('spIntervalVal').textContent = `Alle ${'$'}{data.syncIntervalMinutes || 15} Minuten`;
+
+        const lastSyncDate = data.lastSyncTimestamp > 0
+          ? new Date(data.lastSyncTimestamp).toLocaleString('de-DE')
+          : 'Noch nie';
+        document.getElementById('spLastStatusVal').textContent = `${'$'}{lastSyncDate} — ${'$'}{data.lastStatusMessage || '-'}`;
+      } catch (err) {
+        console.error('Fehler beim Laden des Schulportal-Status:', err);
+      }
+    }
+
+    async function openEditSchulportalDialog() {
+      try {
+        const res = await apiFetch('/api/admin/schulportal/status');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('inputSpSchoolId').value = data.schoolId || '4322';
+          document.getElementById('inputSpUsername').value = data.username || '';
+          document.getElementById('inputSpPassword').value = '';
+          document.getElementById('inputSpInterval').value = data.syncIntervalMinutes || 15;
+          document.getElementById('inputSpAutoSync').checked = data.autoSyncEnabled !== false;
+        }
+      } catch (e) {}
+      document.getElementById('editSchulportalDialog').show();
+    }
+
+    async function submitSchulportalCredentials() {
+      const schoolId = document.getElementById('inputSpSchoolId').value.trim() || '4322';
+      const username = document.getElementById('inputSpUsername').value.trim();
+      const password = document.getElementById('inputSpPassword').value.trim();
+      const interval = parseInt(document.getElementById('inputSpInterval').value, 10) || 15;
+      const autoSync = document.getElementById('inputSpAutoSync').checked;
+
+      if (!username || !password) {
+        showToast('Benutzername und Passwort sind erforderlich.', true);
+        return;
+      }
 
       try {
+        const res = await apiFetch('/api/admin/schulportal/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            schoolId: schoolId,
+            username: username,
+            password: password,
+            syncIntervalMinutes: interval,
+            autoSyncEnabled: autoSync
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('editSchulportalDialog').close();
+          showToast(data.message || 'Schulportal-Zugangsdaten erfolgreich gespeichert!');
+          loadSchulportalStatus();
+          loadSubstitutions();
+        } else {
+          showToast(data.message || 'Fehler beim Speichern der Zugangsdaten.', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // Trigger Schulportal Sync
+    async function triggerSchulportalSync() {
+      const btn = document.getElementById('btnTriggerSync');
+      btn.disabled = true;
+
+      try {
+        showToast('Synchronisiere mit Schulportal Hessen...');
         const res = await apiFetch('/api/admin/schulportal/sync', { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
           showToast(data.message || 'Schulportal erfolgreich synchronisiert!');
-          statusText.textContent = 'Letzte Synchronisation: Gerade eben erfolgreich.';
+          loadSchulportalStatus();
+          loadSubstitutions();
         } else {
           showToast(data.message || 'Synchronisation fehlgeschlagen.', true);
-          statusText.textContent = 'Fehler: ' + (data.message || 'Unbekannt');
         }
       } catch (err) {
         showToast(err.message, true);
-        statusText.textContent = 'Fehler: ' + err.message;
       } finally {
         btn.disabled = false;
+      }
+    }
+
+    // Substitutions Management
+    let allSubstitutions = [];
+
+    async function loadSubstitutions() {
+      const tbody = document.getElementById('subTableBody');
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px;"><md-circular-progress indeterminate></md-circular-progress></td></tr>`;
+
+      try {
+        const res = await apiFetch('/api/admin/substitutions');
+        if (!res.ok) throw new Error('Vertretungsplan konnte nicht geladen werden.');
+        allSubstitutions = await res.json();
+        renderSubstitutions(allSubstitutions);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--md-sys-color-error);">${'$'}{err.message}</td></tr>`;
+      }
+    }
+
+    function renderSubstitutions(entries) {
+      const tbody = document.getElementById('subTableBody');
+      const total = entries.length;
+      const cancelCount = entries.filter(e => (e.type || '').toLowerCase().includes('entfall')).length;
+
+      document.getElementById('totalSubCount').textContent = total;
+      document.getElementById('totalCancelCount').textContent = cancelCount;
+      document.getElementById('subLastUpdatedText').textContent = new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+      if (entries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--md-sys-color-on-surface-variant);">Keine Vertretungseinträge im System hinterlegt.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = entries.map(sub => {
+        const typeLower = (sub.type || '').toLowerCase();
+        let badgeClass = 'badge-type-default';
+        if (typeLower.includes('entfall')) {
+          badgeClass = 'badge-type-entfall';
+        } else if (typeLower.includes('vertretung')) {
+          badgeClass = 'badge-type-vertretung';
+        } else if (typeLower.includes('raum') || typeLower.includes('verlegung')) {
+          badgeClass = 'badge-type-raum';
+        }
+
+        const dateFormatted = escapeHtml(sub.dayLabel ? `${'$'}{sub.dayLabel} (${'$'}{sub.date})` : sub.date);
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight: 500;">${'$'}{dateFormatted}</div>
+              ${'$'}{sub.time ? `<div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">${'$'}{escapeHtml(sub.time)}</div>` : ''}
+            </td>
+            <td><span class="badge-period">${'$'}{escapeHtml(sub.period || '-')}</span></td>
+            <td><span class="badge-class">${'$'}{escapeHtml(sub.className || '-')}</span></td>
+            <td style="font-weight: 500;">${'$'}{escapeHtml(sub.subject || '-')}</td>
+            <td><span class="badge-type ${'$'}{badgeClass}">${'$'}{escapeHtml(sub.type || '-')}</span></td>
+            <td>
+              <div style="font-weight: 500;">${'$'}{escapeHtml(sub.details || '-')}</div>
+            </td>
+            <td>${'$'}{escapeHtml(sub.roomInfo || '-')}</td>
+            <td>
+              <div class="actions-cell">
+                <md-icon-button title="Eintrag löschen" onclick="openDeleteSubDialog('${'$'}{sub.id}', '${'$'}{escapeHtml(sub.className)}: ${'$'}{escapeHtml(sub.subject)} (${'$'}{escapeHtml(sub.date)})')">
+                  <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
+                </md-icon-button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterSubstitutions() {
+      const q = document.getElementById('subSearch').value.toLowerCase().trim();
+      if (!q) {
+        renderSubstitutions(allSubstitutions);
+        return;
+      }
+      const filtered = allSubstitutions.filter(s =>
+        (s.className && s.className.toLowerCase().includes(q)) ||
+        (s.subject && s.subject.toLowerCase().includes(q)) ||
+        (s.date && s.date.toLowerCase().includes(q)) ||
+        (s.dayLabel && s.dayLabel.toLowerCase().includes(q)) ||
+        (s.type && s.type.toLowerCase().includes(q)) ||
+        (s.details && s.details.toLowerCase().includes(q)) ||
+        (s.roomInfo && s.roomInfo.toLowerCase().includes(q)) ||
+        (s.period && s.period.toLowerCase().includes(q))
+      );
+      renderSubstitutions(filtered);
+    }
+
+    function openAddSubstitutionDialog() {
+      document.getElementById('addSubstitutionForm').reset();
+      const todayIso = new Date().toISOString().split('T')[0];
+      document.getElementById('subInputDate').value = todayIso;
+      document.getElementById('subInputDayLabel').value = 'Heute';
+      document.getElementById('subInputPeriod').value = '1 - 2';
+      document.getElementById('subInputClass').value = '9aR';
+      document.getElementById('subInputSubject').value = 'Mathematik';
+      document.getElementById('subInputType').value = 'Vertretung';
+      document.getElementById('subInputDetails').value = '';
+      document.getElementById('subInputRoom').value = '';
+      document.getElementById('subInputTime').value = '';
+      document.getElementById('addSubstitutionDialog').show();
+    }
+
+    async function submitAddSubstitution() {
+      const date = document.getElementById('subInputDate').value.trim();
+      const dayLabel = document.getElementById('subInputDayLabel').value.trim();
+      const period = document.getElementById('subInputPeriod').value.trim();
+      const className = document.getElementById('subInputClass').value.trim();
+      const subject = document.getElementById('subInputSubject').value.trim();
+      const type = document.getElementById('subInputType').value;
+      const details = document.getElementById('subInputDetails').value.trim();
+      const roomInfo = document.getElementById('subInputRoom').value.trim();
+      const time = document.getElementById('subInputTime').value.trim();
+
+      if (!date || !period || !className || !subject || !details) {
+        showToast('Bitte fülle alle Pflichtfelder (Datum, Stunde, Klasse, Fach, Details) aus.', true);
+        return;
+      }
+
+      const entry = {
+        id: '',
+        date: date,
+        dayLabel: dayLabel || date,
+        period: period,
+        className: className,
+        subject: subject,
+        type: type || 'Vertretung',
+        details: details,
+        roomInfo: roomInfo,
+        time: time,
+        isNew: true,
+        isMarked: false
+      };
+
+      try {
+        const res = await apiFetch('/api/admin/substitutions/entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('addSubstitutionDialog').close();
+          showToast('Vertretungseintrag erfolgreich gespeichert!');
+          loadSubstitutions();
+        } else {
+          showToast(data.message || 'Fehler beim Speichern.', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function openDeleteSubDialog(id, summary) {
+      document.getElementById('deleteSubId').value = id;
+      document.getElementById('deleteSubDesc').textContent = `Möchtest du den Vertretungseintrag "${'$'}{summary}" wirklich löschen?`;
+      document.getElementById('deleteSubDialog').show();
+    }
+
+    async function submitDeleteSub() {
+      const id = document.getElementById('deleteSubId').value;
+      try {
+        const res = await apiFetch(`/api/admin/substitutions/${'$'}{id}`, {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('deleteSubDialog').close();
+          showToast('Vertretungseintrag gelöscht!');
+          loadSubstitutions();
+        } else {
+          showToast(data.message || 'Fehler beim Löschen.', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function openClearSubstitutionsDialog() {
+      document.getElementById('clearSubsDialog').show();
+    }
+
+    async function submitClearAllSubs() {
+      try {
+        const res = await apiFetch('/api/admin/substitutions', {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('clearSubsDialog').close();
+          showToast(data.message || 'Alle Vertretungseinträge wurden gelöscht!');
+          loadSubstitutions();
+        } else {
+          showToast(data.message || 'Fehler beim Löschen.', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
       }
     }
 
