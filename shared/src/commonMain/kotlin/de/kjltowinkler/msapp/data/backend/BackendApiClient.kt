@@ -20,10 +20,11 @@ import kotlinx.serialization.json.Json
  */
 object BackendApiClient {
 
-    var serverUrl: String = "http://localhost:8080"
+    var serverUrl: String = "https://api.veloschulplaner.de"
         set(value) {
             field = value.trimEnd('/')
         }
+
 
     var authToken: String? = null
     var currentUser: UserProfileDto? = null
