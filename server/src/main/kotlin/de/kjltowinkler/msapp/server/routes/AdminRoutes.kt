@@ -35,6 +35,7 @@ data class AdminCreateUserRequest(
     val className: String = "9aR",
     val schoolType: String = "Realschule",
     val classTeacher: String = "Hr. Thomas",
+    val studentId: String = "",
     val role: String = "USER"
 )
 
@@ -128,7 +129,8 @@ fun Route.adminRoutes() {
                             avatarColorHex = 0xFF1B65A4L
                         ),
                         role = req.role.ifBlank { "USER" }.uppercase(),
-                        hasCustomPassword = false
+                        hasCustomPassword = false,
+                        studentId = req.studentId
                     )
                     call.respond(HttpStatusCode.Created, user.toDto())
                 } catch (e: IllegalArgumentException) {

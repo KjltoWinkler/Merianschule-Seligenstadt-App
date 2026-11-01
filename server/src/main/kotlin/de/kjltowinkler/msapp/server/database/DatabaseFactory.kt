@@ -45,6 +45,7 @@ object DatabaseFactory {
                         class_teacher TEXT NOT NULL,
                         avatar_type TEXT NOT NULL,
                         avatar_color_hex INTEGER NOT NULL,
+                        student_id TEXT UNIQUE,
                         role TEXT NOT NULL DEFAULT 'USER',
                         has_custom_password INTEGER NOT NULL DEFAULT 1,
                         is_two_factor_enabled INTEGER NOT NULL DEFAULT 0,
@@ -59,6 +60,39 @@ object DatabaseFactory {
 
                 try {
                     stmt.execute("ALTER TABLE users ADD COLUMN is_two_factor_enabled INTEGER NOT NULL DEFAULT 0;")
+                } catch (_: Exception) {}
+
+                try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN student_id TEXT;")
+                } catch (_: Exception) {}
+
+                try {
+                    stmt.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_student_id ON users(student_id);")
+                } catch (_: Exception) {}
+
+                try {
+                    val usersWithoutId = mutableListOf<Pair<String, String>>()
+                    conn.prepareStatement("SELECT id, username FROM users WHERE student_id IS NULL OR student_id = ''").use { pStmt ->
+                        pStmt.executeQuery().use { rs ->
+                            while (rs.next()) {
+                                val uId = rs.getString("id")
+                                val uName = rs.getString("username")
+                                usersWithoutId.add(uId to uName)
+                            }
+                        }
+                    }
+                    for ((uId, uName) in usersWithoutId) {
+                        val genId = when (uName.lowercase()) {
+                            "admin" -> "#100001"
+                            "sebastian.wagner" -> "#104829"
+                            else -> "#" + (100000 + (Math.random() * 900000).toInt())
+                        }
+                        conn.prepareStatement("UPDATE users SET student_id = ? WHERE id = ?").use { uStmt ->
+                            uStmt.setString(1, genId)
+                            uStmt.setString(2, uId)
+                            uStmt.executeUpdate()
+                        }
+                    }
                 } catch (_: Exception) {}
 
                 stmt.execute("""

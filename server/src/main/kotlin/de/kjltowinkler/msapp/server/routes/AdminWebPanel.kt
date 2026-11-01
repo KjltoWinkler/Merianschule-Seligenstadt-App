@@ -759,6 +759,10 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
           <md-select-option value="ADMIN"><div slot="headline">Administrator</div></md-select-option>
         </md-outlined-select>
       </div>
+
+      <md-outlined-text-field id="addStudentId" label="Schüler-ID (optional)" placeholder="z. B. #104829 (leer lassen für automatische Vergabe)">
+        <md-icon slot="leading-icon">tag</md-icon>
+      </md-outlined-text-field>
     </form>
     <div slot="actions">
       <md-text-button onclick="closeAddUserDialog()">Abbrechen</md-text-button>
@@ -1109,7 +1113,10 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
                 <div class="avatar-circle" style="background-color: ${'$'}{color};">${'$'}{initials}</div>
                 <div>
                   <div style="font-weight: 500;">${'$'}{escapeHtml(user.fullName || user.username)}</div>
-                  <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">@${'$'}{escapeHtml(user.username)}</div>
+                  <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                    <span>@${'$'}{escapeHtml(user.username)}</span>
+                    ${'$'}{user.studentId ? `<span style="background-color: rgba(27, 101, 164, 0.25); color: #82b1ff; font-weight: 600; padding: 1px 6px; border-radius: 6px; font-size: 11px;">${'$'}{escapeHtml(user.studentId)}</span>` : ''}
+                  </div>
                 </div>
               </div>
             </td>
@@ -1145,6 +1152,7 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
       }
       const filtered = allUsers.filter(u => 
         (u.username && u.username.toLowerCase().includes(q)) ||
+        (u.studentId && u.studentId.toLowerCase().includes(q)) ||
         (u.fullName && u.fullName.toLowerCase().includes(q)) ||
         (u.email && u.email.toLowerCase().includes(q)) ||
         (u.className && u.className.toLowerCase().includes(q))
@@ -1157,6 +1165,7 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
       document.getElementById('addUserForm').reset();
       document.getElementById('addClassName').value = '9aR';
       document.getElementById('addClassTeacher').value = 'Hr. Thomas';
+      document.getElementById('addStudentId').value = '';
       document.getElementById('addUserDialog').show();
     }
 
@@ -1173,6 +1182,7 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
       const schoolType = document.getElementById('addSchoolType').value;
       const classTeacher = document.getElementById('addClassTeacher').value.trim();
       const role = document.getElementById('addRole').value;
+      const studentId = document.getElementById('addStudentId').value.trim();
 
       if (!username || !email || !password) {
         showToast('Benutzername, E-Mail und Passwort sind Pflichtfelder.', true);
@@ -1192,7 +1202,8 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
         className: className || '9aR',
         schoolType: schoolType || 'Realschule',
         classTeacher: classTeacher || 'Hr. Thomas',
-        role: role || 'USER'
+        role: role || 'USER',
+        studentId: studentId
       };
 
       try {

@@ -12,6 +12,7 @@ data class UserRecord(
     val id: String,
     val username: String,
     val email: String,
+    val studentId: String = "",
     val passwordHash: String,
     val passwordSalt: String,
     val fullName: String,
@@ -30,6 +31,7 @@ data class UserRecord(
         id = id,
         username = username,
         email = email,
+        studentId = studentId,
         fullName = fullName,
         className = className,
         schoolType = schoolType,
@@ -45,13 +47,27 @@ data class UserRecord(
 
 object UserRepository {
 
+    private fun generateUniqueStudentId(conn: java.sql.Connection): String {
+        for (i in 0 until 50) {
+            val candidate = "#" + (100000 + (Math.random() * 900000).toInt())
+            val exists = conn.prepareStatement("SELECT 1 FROM users WHERE student_id = ? LIMIT 1").use { stmt ->
+                stmt.setString(1, candidate)
+                stmt.executeQuery().use { rs -> rs.next() }
+            }
+            if (!exists) return candidate
+        }
+        return "#" + (System.currentTimeMillis() % 1000000L).toString().padStart(6, '0')
+    }
+
     private fun mapResultSet(rs: ResultSet): UserRecord {
         val hasCustom = runCatching { rs.getInt("has_custom_password") == 1 }.getOrDefault(true)
         val is2fa = runCatching { rs.getInt("is_two_factor_enabled") == 1 }.getOrDefault(false)
+        val sId = runCatching { rs.getString("student_id") ?: "" }.getOrDefault("")
         return UserRecord(
             id = rs.getString("id"),
             username = rs.getString("username"),
             email = rs.getString("email"),
+            studentId = sId,
             passwordHash = rs.getString("password_hash"),
             passwordSalt = rs.getString("password_salt"),
             fullName = rs.getString("full_name"),
@@ -69,14 +85,7 @@ object UserRepository {
     }
 
     suspend fun findByUsernameOrEmail(identifier: String): UserRecord? = DatabaseFactory.query { conn ->
-        val sql = "SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1;"
-        conn.prepareStatement(sql).use { stmt ->
-            stmt.setString(1, identifier)
-            stmt.setString(2, identifier)
-            stmt.executeQuery().use { rs ->
-                if (rs.next()) mapResultSet(rs) else null
-            }
-        }
+        findByUsernameOrEmailSync(conn, identifier)
     }
 
     suspend fun findById(id: String): UserRecord? = DatabaseFactory.query { conn ->
@@ -93,11 +102,18 @@ object UserRepository {
         request: RegisterRequest,
         role: String = "USER",
         hasCustomPassword: Boolean = true,
-        isTwoFactorEnabled: Boolean = false
+        isTwoFactorEnabled: Boolean = false,
+        studentId: String = ""
     ): UserRecord = DatabaseFactory.query { conn ->
         val existing = findByUsernameOrEmailSync(conn, request.username) ?: findByUsernameOrEmailSync(conn, request.email)
         if (existing != null) {
             throw IllegalArgumentException("Benutzername oder E-Mail ist bereits vergeben.")
+        }
+
+        val finalStudentId = if (studentId.isNotBlank()) {
+            if (studentId.startsWith("#")) studentId else "#$studentId"
+        } else {
+            generateUniqueStudentId(conn)
         }
 
         val id = UUID.randomUUID().toString()
@@ -106,8 +122,8 @@ object UserRepository {
         val now = System.currentTimeMillis()
 
         val sql = """
-            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, has_custom_password, is_two_factor_enabled, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, has_custom_password, is_two_factor_enabled, student_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """.trimIndent()
 
         conn.prepareStatement(sql).use { stmt ->
@@ -125,8 +141,9 @@ object UserRepository {
             stmt.setString(12, role)
             stmt.setInt(13, if (hasCustomPassword) 1 else 0)
             stmt.setInt(14, if (isTwoFactorEnabled) 1 else 0)
-            stmt.setLong(15, now)
+            stmt.setString(15, finalStudentId)
             stmt.setLong(16, now)
+            stmt.setLong(17, now)
             stmt.executeUpdate()
         }
 
@@ -142,6 +159,7 @@ object UserRepository {
             id = id,
             username = request.username.trim(),
             email = request.email.trim(),
+            studentId = finalStudentId,
             passwordHash = hash,
             passwordSalt = salt,
             fullName = request.fullName.trim(),
@@ -179,10 +197,16 @@ object UserRepository {
     }
 
     private fun findByUsernameOrEmailSync(conn: java.sql.Connection, identifier: String): UserRecord? {
-        val sql = "SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1;"
+        val trimmed = identifier.trim()
+        val withHash = if (trimmed.startsWith("#")) trimmed else "#$trimmed"
+        val withoutHash = if (trimmed.startsWith("#")) trimmed.substring(1) else trimmed
+
+        val sql = "SELECT * FROM users WHERE username = ? OR email = ? OR student_id = ? OR student_id = ? LIMIT 1;"
         conn.prepareStatement(sql).use { stmt ->
-            stmt.setString(1, identifier)
-            stmt.setString(2, identifier)
+            stmt.setString(1, trimmed)
+            stmt.setString(2, trimmed)
+            stmt.setString(3, withHash)
+            stmt.setString(4, withoutHash)
             stmt.executeQuery().use { rs ->
                 return if (rs.next()) mapResultSet(rs) else null
             }
@@ -223,6 +247,7 @@ object UserRepository {
             id = current.id,
             username = current.username,
             email = current.email,
+            studentId = current.studentId,
             fullName = newFullName,
             className = newClassName,
             schoolType = newSchoolType,

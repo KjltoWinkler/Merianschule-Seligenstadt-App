@@ -70,6 +70,7 @@ data class MockAccountState(
     val username: String = "Sebastian Wagner",
     val loginUsername: String = "sebastian.wagner",
     val email: String = "sebastian.wagner@mssof.onmicrosoft.com",
+    val studentId: String = "#104829",
     val className: String = "9aR",
     val schoolType: String = "Realschule",
     val classTeacher: String = "Hr. Thomas",
@@ -91,6 +92,7 @@ fun createMockAccount(
             MockAccountState(
                 username = if (clean.isNotBlank()) clean else "Anna Becker",
                 email = "anna.becker@mssof.onmicrosoft.com",
+                studentId = "#102341",
                 className = "7bG",
                 schoolType = "Gymnasium",
                 classTeacher = "Fr. Schneider",
@@ -104,6 +106,7 @@ fun createMockAccount(
             MockAccountState(
                 username = if (clean.isNotBlank()) clean else "Leon Schmidt",
                 email = "leon.schmidt@mssof.onmicrosoft.com",
+                studentId = "#105582",
                 className = "10aH",
                 schoolType = "Hauptschule",
                 classTeacher = "Hr. Weber",
@@ -117,6 +120,7 @@ fun createMockAccount(
             MockAccountState(
                 username = if (clean.isNotBlank()) clean else "Hr. Thomas",
                 email = "thomas@merianschule.de",
+                studentId = "#100002",
                 className = "9aR (Leitung)",
                 schoolType = "Realschule",
                 classTeacher = "Hr. Thomas (Selbst)",
@@ -130,6 +134,7 @@ fun createMockAccount(
             MockAccountState(
                 username = if (clean.isNotBlank()) clean else "Sebastian Wagner",
                 email = if (clean.contains("@")) clean else "sebastian.wagner@mssof.onmicrosoft.com",
+                studentId = "#104829",
                 className = "9aR",
                 schoolType = "Realschule",
                 classTeacher = "Hr. Thomas",
@@ -148,6 +153,7 @@ fun createMockAccount(
             MockAccountState(
                 username = name,
                 email = email,
+                studentId = "#104829",
                 className = "8bR",
                 schoolType = "Realschule",
                 classTeacher = "Fr. Hoffmann",
@@ -195,6 +201,7 @@ fun App() {
                         username = user.fullName.ifBlank { user.username },
                         loginUsername = user.username,
                         email = user.email,
+                        studentId = user.studentId,
                         className = user.className,
                         schoolType = user.schoolType,
                         classTeacher = user.classTeacher,
@@ -238,6 +245,7 @@ fun App() {
                             username = user.fullName.ifBlank { user.username },
                             loginUsername = user.username,
                             email = user.email,
+                            studentId = user.studentId,
                             className = user.className,
                             schoolType = user.schoolType,
                             classTeacher = user.classTeacher,
@@ -352,6 +360,7 @@ fun App() {
                                                 username = response.fullName?.ifBlank { response.username } ?: clean,
                                                 loginUsername = response.username ?: clean,
                                                 email = response.email ?: clean,
+                                                studentId = response.studentId ?: "",
                                                 className = response.className ?: "9aR",
                                                 schoolType = response.schoolType ?: "Realschule",
                                                 classTeacher = response.classTeacher ?: "Hr. Thomas",
@@ -698,6 +707,7 @@ fun App() {
                                     username = auth.user.fullName.ifBlank { auth.user.username },
                                     loginUsername = auth.user.username,
                                     email = auth.user.email,
+                                    studentId = auth.user.studentId,
                                     className = auth.user.className,
                                     schoolType = auth.user.schoolType,
                                     classTeacher = auth.user.classTeacher,
@@ -766,6 +776,7 @@ fun App() {
                     className = currentAccount.className,
                     schoolType = currentAccount.schoolType,
                     classTeacher = currentAccount.classTeacher,
+                    studentId = currentAccount.studentId,
                     avatarType = currentAccount.avatarType,
                     avatarColorHex = currentAccount.avatarColorHex,
                     onAvatarChanged = { type, colorHex ->
@@ -804,6 +815,8 @@ fun App() {
                     onBackClicked = {
                         navController.popBackStack()
                     },
+                    studentId = currentAccount.studentId,
+                    accountName = currentAccount.username,
                     useMaterialYou = isDynamicColor,
                     onMaterialYouChanged = { isDynamicColor = it },
                     initialDarkTheme = isDarkTheme,

@@ -37,6 +37,7 @@ data class CheckAccountResponse(
     val classTeacher: String? = null,
     val avatarType: String? = null,
     val avatarColorHex: Long? = null,
+    val studentId: String? = null,
     val hasCustomPassword: Boolean = true,
     val isTwoFactorEnabled: Boolean = false,
     val message: String? = null
@@ -65,6 +66,7 @@ data class UserProfileDto(
     val classTeacher: String,
     val avatarType: String,
     val avatarColorHex: Long,
+    val studentId: String = "",
     val role: String = "USER",
     val hasCustomPassword: Boolean = true,
     val isTwoFactorEnabled: Boolean = false,

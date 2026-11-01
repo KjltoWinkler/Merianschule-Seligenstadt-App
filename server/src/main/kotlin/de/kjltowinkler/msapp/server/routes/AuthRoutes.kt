@@ -42,6 +42,7 @@ fun Route.authRoutes() {
                     classTeacher = user.classTeacher,
                     avatarType = user.avatarType,
                     avatarColorHex = user.avatarColorHex,
+                    studentId = user.studentId,
                     hasCustomPassword = user.hasCustomPassword,
                     isTwoFactorEnabled = user.isTwoFactorEnabled
                 ))
@@ -72,6 +73,7 @@ fun Route.authRoutes() {
                     classTeacher = user.classTeacher,
                     avatarType = user.avatarType,
                     avatarColorHex = user.avatarColorHex,
+                    studentId = user.studentId,
                     hasCustomPassword = user.hasCustomPassword,
                     isTwoFactorEnabled = user.isTwoFactorEnabled
                 ))

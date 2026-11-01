@@ -48,6 +48,7 @@ fun AccountBottomSheet(
     className: String = "9aR",
     schoolType: String = "Realschule",
     classTeacher: String = "Hr. Thomas",
+    studentId: String = "",
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
     onAvatarChanged: (avatarType: String, avatarColorHex: Long) -> Unit = { _, _ -> },
@@ -329,6 +330,27 @@ fun AccountBottomSheet(
                             color = textSecondaryColor
                         )
                     )
+                }
+
+                // Schüler-ID
+                if (studentId.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_person),
+                            contentDescription = null,
+                            tint = metaIconTint,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Schüler-ID: $studentId",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textSecondaryColor
+                            )
+                        )
+                    }
                 }
             }
 

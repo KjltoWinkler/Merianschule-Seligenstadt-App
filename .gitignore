@@ -23,4 +23,5 @@ node_modules/
 server/data/*.db*
 data/*.db*
 kotlin-js-store/
-
+bin/
+**/bin/
