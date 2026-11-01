@@ -68,6 +68,7 @@ object AppRoutes {
  */
 data class MockAccountState(
     val username: String = "Sebastian Wagner",
+    val loginUsername: String = "sebastian.wagner",
     val email: String = "sebastian.wagner@mssof.onmicrosoft.com",
     val className: String = "9aR",
     val schoolType: String = "Realschule",
@@ -192,6 +193,7 @@ fun App() {
                 BackendApiClient.currentUser?.let { user ->
                     MockAccountState(
                         username = user.fullName.ifBlank { user.username },
+                        loginUsername = user.username,
                         email = user.email,
                         className = user.className,
                         schoolType = user.schoolType,
@@ -213,7 +215,11 @@ fun App() {
             val isDesktop = getPlatform().name.startsWith("Desktop") || maxWidth >= 840.dp
             val initialRoute = remember {
                 if (BackendApiClient.isLoggedIn) {
-                    AppRoutes.HOME
+                    if (BackendApiClient.currentUser?.hasCustomPassword == false) {
+                        AppRoutes.NEW_PASSWORD
+                    } else {
+                        AppRoutes.HOME
+                    }
                 } else if (isDesktop) {
                     AppRoutes.USERNAME
                 } else {
@@ -230,6 +236,7 @@ fun App() {
                     BackendApiClient.getProfile().onSuccess { user ->
                         currentAccount = MockAccountState(
                             username = user.fullName.ifBlank { user.username },
+                            loginUsername = user.username,
                             email = user.email,
                             className = user.className,
                             schoolType = user.schoolType,
@@ -239,6 +246,14 @@ fun App() {
                             hasCustomPassword = user.hasCustomPassword,
                             isTwoFactorEnabled = user.isTwoFactorEnabled
                         )
+
+                        // Falls der Account noch das Einmal-Passwort hat -> zwingend neues Passwort erstellen lassen!
+                        if (!user.hasCustomPassword) {
+                            isOnboardingFlow = true
+                            navController.navigate(AppRoutes.NEW_PASSWORD) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                     }.onFailure { err ->
                         val msg = err.message ?: ""
                         if (msg.contains("401") || msg.contains("Nicht autorisiert", ignoreCase = true)) {
@@ -335,6 +350,7 @@ fun App() {
                                             usernameError = null
                                             currentAccount = MockAccountState(
                                                 username = response.fullName?.ifBlank { response.username } ?: clean,
+                                                loginUsername = response.username ?: clean,
                                                 email = response.email ?: clean,
                                                 className = response.className ?: "9aR",
                                                 schoolType = response.schoolType ?: "Realschule",
@@ -429,17 +445,22 @@ fun App() {
                         oneTimePasswordError = null
                         isCheckingOneTimePassword = true
 
-                        val identifier = if (currentAccount.email.isNotBlank() && currentAccount.email.contains("@")) {
-                            currentAccount.email
-                        } else {
-                            currentAccount.username
+                        val identifier = when {
+                            currentAccount.loginUsername.isNotBlank() -> currentAccount.loginUsername
+                            currentAccount.email.isNotBlank() && currentAccount.email.contains("@") -> currentAccount.email
+                            else -> currentAccount.username
                         }
 
                         coroutineScope.launch {
                             val result = BackendApiClient.login(LoginRequest(usernameOrEmail = identifier, password = oneTimePassword))
                                 .recoverCatching {
-                                    if (identifier != currentAccount.username && currentAccount.username.isNotBlank()) {
-                                        BackendApiClient.login(LoginRequest(usernameOrEmail = currentAccount.username, password = oneTimePassword)).getOrThrow()
+                                    val fallbackIdentifier = if (identifier == currentAccount.loginUsername && currentAccount.email.contains("@")) {
+                                        currentAccount.email
+                                    } else {
+                                        currentAccount.username
+                                    }
+                                    if (fallbackIdentifier != identifier && fallbackIdentifier.isNotBlank()) {
+                                        BackendApiClient.login(LoginRequest(usernameOrEmail = fallbackIdentifier, password = oneTimePassword)).getOrThrow()
                                     } else {
                                         throw it
                                     }
@@ -483,10 +504,10 @@ fun App() {
                         newPasswordError = null
                         isSettingNewPassword = true
 
-                        val identifier = if (currentAccount.email.isNotBlank() && currentAccount.email.contains("@")) {
-                            currentAccount.email
-                        } else {
-                            currentAccount.username
+                        val identifier = when {
+                            currentAccount.loginUsername.isNotBlank() -> currentAccount.loginUsername
+                            currentAccount.email.isNotBlank() && currentAccount.email.contains("@") -> currentAccount.email
+                            else -> currentAccount.username
                         }
 
                         coroutineScope.launch {
@@ -497,10 +518,15 @@ fun App() {
                                     newPassword = newPassword
                                 )
                             ).recoverCatching {
-                                if (identifier != currentAccount.username && currentAccount.username.isNotBlank()) {
+                                val fallbackIdentifier = if (identifier == currentAccount.loginUsername && currentAccount.email.contains("@")) {
+                                    currentAccount.email
+                                } else {
+                                    currentAccount.username
+                                }
+                                if (fallbackIdentifier != identifier && fallbackIdentifier.isNotBlank()) {
                                     BackendApiClient.setInitialPassword(
                                         SetInitialPasswordRequest(
-                                            usernameOrEmail = currentAccount.username,
+                                            usernameOrEmail = fallbackIdentifier,
                                             initialPassword = initialPasswordEntered,
                                             newPassword = newPassword
                                         )
@@ -516,6 +542,7 @@ fun App() {
 
                                 currentAccount = MockAccountState(
                                     username = auth.user.fullName.ifBlank { auth.user.username },
+                                    loginUsername = auth.user.username,
                                     email = auth.user.email,
                                     className = auth.user.className,
                                     schoolType = auth.user.schoolType,
@@ -642,18 +669,22 @@ fun App() {
                         loginError = null
                         isLoggingIn = true
 
-                        val identifier = if (currentAccount.email.isNotBlank() && currentAccount.email.contains("@")) {
-                            currentAccount.email
-                        } else {
-                            currentAccount.username
+                        val identifier = when {
+                            currentAccount.loginUsername.isNotBlank() -> currentAccount.loginUsername
+                            currentAccount.email.isNotBlank() && currentAccount.email.contains("@") -> currentAccount.email
+                            else -> currentAccount.username
                         }
 
                         coroutineScope.launch {
                             val result = BackendApiClient.login(LoginRequest(usernameOrEmail = identifier, password = password))
                                 .recoverCatching {
-                                    // Fallback: Wenn Login mit E-Mail fehlschlug, versuchen wir es mit dem Benutzernamen
-                                    if (identifier != currentAccount.username && currentAccount.username.isNotBlank()) {
-                                        BackendApiClient.login(LoginRequest(usernameOrEmail = currentAccount.username, password = password)).getOrThrow()
+                                    val fallbackIdentifier = if (identifier == currentAccount.loginUsername && currentAccount.email.contains("@")) {
+                                        currentAccount.email
+                                    } else {
+                                        currentAccount.username
+                                    }
+                                    if (fallbackIdentifier != identifier && fallbackIdentifier.isNotBlank()) {
+                                        BackendApiClient.login(LoginRequest(usernameOrEmail = fallbackIdentifier, password = password)).getOrThrow()
                                     } else {
                                         throw it
                                     }
@@ -665,13 +696,14 @@ fun App() {
 
                                 currentAccount = MockAccountState(
                                     username = auth.user.fullName.ifBlank { auth.user.username },
+                                    loginUsername = auth.user.username,
                                     email = auth.user.email,
                                     className = auth.user.className,
                                     schoolType = auth.user.schoolType,
                                     classTeacher = auth.user.classTeacher,
                                     avatarType = auth.user.avatarType,
                                     avatarColorHex = auth.user.avatarColorHex,
-                                    hasCustomPassword = true,
+                                    hasCustomPassword = auth.user.hasCustomPassword,
                                     isTwoFactorEnabled = auth.user.isTwoFactorEnabled
                                 )
 
@@ -682,9 +714,12 @@ fun App() {
 
                                 de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, password)
 
-                                // Bei 2FA prüfen: Hat der Account es an?
-                                // ja = weiter zum Fertig Screen, nein = weiter zum Fragen ob 2FA aktiviert werden soll
-                                if (auth.user.isTwoFactorEnabled) {
+                                // Wenn der Nutzer noch kein eigenes Passwort hat -> zwingend zur Passwort-Erstellung weiterleiten!
+                                if (!auth.user.hasCustomPassword) {
+                                    initialPasswordEntered = password
+                                    isOnboardingFlow = true
+                                    navController.navigate(AppRoutes.NEW_PASSWORD)
+                                } else if (auth.user.isTwoFactorEnabled) {
                                     navController.navigate(AppRoutes.LOGIN_READY)
                                 } else {
                                     navController.navigate(AppRoutes.TWO_FACTOR_AUTH)
