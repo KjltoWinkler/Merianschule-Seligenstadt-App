@@ -1,6 +1,7 @@
 package de.kjltowinkler.msapp.server.routes
 
 import com.auth0.jwt.JWT
+import de.kjltowinkler.msapp.data.auth.RegisterRequest
 import de.kjltowinkler.msapp.data.auth.SimpleApiResponse
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import de.kjltowinkler.msapp.data.sync.AdminStatusResponse
@@ -24,6 +25,23 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+
+@Serializable
+data class AdminCreateUserRequest(
+    val username: String,
+    val email: String,
+    val password: String,
+    val fullName: String = "",
+    val className: String = "9aR",
+    val schoolType: String = "Realschule",
+    val classTeacher: String = "Hr. Thomas",
+    val role: String = "USER"
+)
+
+@Serializable
+data class AdminResetPasswordRequest(
+    val newPassword: String
+)
 
 @Serializable
 data class ServerStatsResponse(
@@ -69,6 +87,100 @@ private fun verifyAdminAccess(call: ApplicationCall): Boolean {
 
 fun Route.adminRoutes() {
     route("/api/admin") {
+
+        // User Management
+        route("/users") {
+            get {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich (X-Admin-Key Header oder Admin-JWT)."))
+                    return@get
+                }
+                val users = UserRepository.getAllUsers()
+                call.respond(HttpStatusCode.OK, users)
+            }
+
+            post {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich (X-Admin-Key Header oder Admin-JWT)."))
+                    return@post
+                }
+                val req = runCatching { call.receive<AdminCreateUserRequest>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Benutzerdaten."))
+                    return@post
+                }
+
+                if (req.username.isBlank() || req.password.isBlank() || req.email.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Benutzername, E-Mail und Passwort sind erforderlich."))
+                    return@post
+                }
+
+                try {
+                    val user = UserRepository.createUser(
+                        RegisterRequest(
+                            username = req.username,
+                            email = req.email,
+                            password = req.password,
+                            fullName = req.fullName,
+                            className = req.className,
+                            schoolType = req.schoolType,
+                            classTeacher = req.classTeacher,
+                            avatarType = "initials",
+                            avatarColorHex = 0xFF1B65A4L
+                        ),
+                        role = req.role.ifBlank { "USER" }.uppercase()
+                    )
+                    call.respond(HttpStatusCode.Created, user.toDto())
+                } catch (e: IllegalArgumentException) {
+                    call.respond(HttpStatusCode.Conflict, SimpleApiResponse(false, e.message ?: "Benutzer existiert bereits."))
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Fehler beim Erstellen des Benutzers: ${e.message}"))
+                }
+            }
+
+            delete("/{id}") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@delete
+                }
+                val id = call.parameters["id"]
+                if (id.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt."))
+                    return@delete
+                }
+                val success = UserRepository.deleteUser(id)
+                if (success) {
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Benutzer erfolgreich gelöscht."))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
+                }
+            }
+
+            post("/{id}/password") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+                val id = call.parameters["id"]
+                if (id.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt."))
+                    return@post
+                }
+                val req = runCatching { call.receive<AdminResetPasswordRequest>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Neues Passwort fehlt."))
+                    return@post
+                }
+                if (req.newPassword.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Neues Passwort darf nicht leer sein."))
+                    return@post
+                }
+                val success = UserRepository.resetPassword(id, req.newPassword)
+                if (success) {
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Passwort erfolgreich zurückgesetzt."))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
+                }
+            }
+        }
 
         // Check stats
         get("/stats") {

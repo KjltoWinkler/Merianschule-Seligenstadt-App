@@ -215,6 +215,33 @@ object UserRepository {
         }
     }
 
+    suspend fun getAllUsers(): List<UserProfileDto> = DatabaseFactory.query { conn ->
+        val sql = "SELECT * FROM users ORDER BY created_at DESC;"
+        conn.createStatement().use { stmt ->
+            stmt.executeQuery(sql).use { rs ->
+                val list = mutableListOf<UserProfileDto>()
+                while (rs.next()) {
+                    list.add(mapResultSet(rs).toDto())
+                }
+                list
+            }
+        }
+    }
+
+    suspend fun deleteUser(id: String): Boolean = DatabaseFactory.query { conn ->
+        val sql = "DELETE FROM users WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, id)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun resetPassword(userId: String, newPasswordPlain: String): Boolean {
+        val salt = PasswordHasher.generateSalt()
+        val hash = PasswordHasher.hashPassword(newPasswordPlain, salt)
+        return updatePassword(userId, hash, salt)
+    }
+
     private fun findByIdSync(conn: java.sql.Connection, id: String): UserRecord? {
         val sql = "SELECT * FROM users WHERE id = ? LIMIT 1;"
         conn.prepareStatement(sql).use { stmt ->

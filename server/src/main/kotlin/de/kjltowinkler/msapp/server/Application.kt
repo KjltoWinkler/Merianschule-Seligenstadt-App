@@ -158,5 +158,6 @@ data class HealthStatusResponse(
         substitutionRoutes()
         timetableRoutes()
         adminRoutes()
+        adminWebPanel()
     }
 }

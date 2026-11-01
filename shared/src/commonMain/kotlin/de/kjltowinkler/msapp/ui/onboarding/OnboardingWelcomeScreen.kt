@@ -38,6 +38,7 @@ val AvailableLanguages = listOf(
     LanguageOption("en-GB", "Englisch (United Kingdom)"),
     LanguageOption("es-ES", "Spanisch (Spanien)"),
     LanguageOption("tr-TR", "Türkisch (Türkei)"),
+    LanguageOption("fr-FR", "Französisch (Frankreich)"),
     LanguageOption("it-IT", "Italienisch (Italien)"),
     LanguageOption("uk-UA", "Ukrainisch (Ukraine)"),
     LanguageOption("ar", "Arabisch"),
