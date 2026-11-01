@@ -56,6 +56,23 @@ data class Update2FaRequest(
 )
 
 @Serializable
+data class TwoFactorSetupResponse(
+    val secret: String,
+    val otpauthUri: String
+)
+
+@Serializable
+data class ConfirmTwoFactorRequest(
+    val code: String
+)
+
+@Serializable
+data class TwoFactorLoginRequest(
+    val tempToken: String,
+    val code: String
+)
+
+@Serializable
 data class UserProfileDto(
     val id: String,
     val username: String,
@@ -75,8 +92,10 @@ data class UserProfileDto(
 
 @Serializable
 data class AuthResponse(
-    val token: String,
-    val user: UserProfileDto
+    val token: String? = null,
+    val user: UserProfileDto,
+    val requiresTwoFactor: Boolean = false,
+    val tempToken: String? = null
 )
 
 @Serializable

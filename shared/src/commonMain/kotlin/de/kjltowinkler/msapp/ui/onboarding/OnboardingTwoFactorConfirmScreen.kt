@@ -55,33 +55,35 @@ fun OnboardingTwoFactorConfirmScreen(
     avatarPainter: Painter? = null,
     initialCode: String = "",
     codeState: TextFieldState = rememberTextFieldState(initialCode),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onBackClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
     onHelpClicked: () -> Unit = {},
     onFinishClicked: (String) -> Unit = {}
 ) {
-    var isError by rememberSaveable { mutableStateOf(false) }
-    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var localError by rememberSaveable { mutableStateOf<String?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    val displayedError = errorMessage ?: localError
+    val isError = displayedError != null
 
     // Fehler zurücksetzen, wenn der Nutzer tippt
     LaunchedEffect(Unit) {
         snapshotFlow { codeState.text }.collect {
-            if (isError) {
-                isError = false
-                errorMessage = null
+            if (localError != null) {
+                localError = null
             }
         }
     }
 
     fun validateAndSubmit() {
+        if (isLoading) return
         val code = codeState.text.toString().trim()
         if (code.isBlank()) {
-            isError = true
-            errorMessage = "Bitte gib deinen Code ein"
+            localError = "Bitte gib deinen Code ein"
         } else {
-            // Erstmal alles zulassen, um es bestätigen zu können
             keyboardController?.hide()
             onFinishClicked(code)
         }
@@ -96,6 +98,8 @@ fun OnboardingTwoFactorConfirmScreen(
                 avatarPainter = avatarPainter,
                 initialCode = initialCode,
                 codeState = codeState,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onFinishClicked = onFinishClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onHelpClicked = onHelpClicked
@@ -197,7 +201,7 @@ fun OnboardingTwoFactorConfirmScreen(
                     supportingText = if (isError) {
                         {
                             Text(
-                                text = errorMessage ?: "Bitte gib deinen Code ein",
+                                text = displayedError ?: "Bitte gib deinen Code ein",
                                 modifier = Modifier.clearAndSetSemantics {}
                             )
                         }
@@ -214,7 +218,7 @@ fun OnboardingTwoFactorConfirmScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics {
-                            if (isError) error(errorMessage ?: "Bitte gib deinen Code ein")
+                            if (isError) error(displayedError ?: "Bitte gib deinen Code ein")
                         }
                 )
 
@@ -243,9 +247,12 @@ fun OnboardingTwoFactorConfirmScreen(
             // 7. "Fertigstellen" Button am unteren Rand (Hero CTA / Final Completion)
             ButtonWithAnimatedShape(
                 onClick = { validateAndSubmit() },
+                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                 ),
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
@@ -257,24 +264,32 @@ fun OnboardingTwoFactorConfirmScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Fertigstellen",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Fertigstellen",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
 
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_arrow_forward),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 28.dp)
-                            .size(31.dp)
-                    )
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_forward),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 28.dp)
+                                .size(31.dp)
+                        )
+                    }
                 }
             }
         }

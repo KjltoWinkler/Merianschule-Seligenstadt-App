@@ -36,9 +36,38 @@ object JwtService {
             .sign(algorithm)
     }
 
+    fun generate2FaTempToken(userId: String, username: String): String {
+        val now = System.currentTimeMillis()
+        return JWT.create()
+            .withAudience(ServerConfig.jwtAudience)
+            .withIssuer(ServerConfig.jwtIssuer)
+            .withClaim("userId", userId)
+            .withClaim("username", username)
+            .withClaim("purpose", "2fa_challenge")
+            .withIssuedAt(Date(now))
+            .withExpiresAt(Date(now + 5 * 60 * 1000)) // 5 Minuten gültig
+            .sign(algorithm)
+    }
+
+    fun verify2FaTempToken(token: String): Pair<String, String>? {
+        return try {
+            val decoded = verifier.verify(token)
+            val purpose = decoded.getClaim("purpose").asString()
+            if (purpose != "2fa_challenge") return null
+            val userId = decoded.getClaim("userId").asString() ?: return null
+            val username = decoded.getClaim("username").asString() ?: return null
+            userId to username
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun validateCredential(credential: JWTCredential): JWTPrincipal? {
         val userId = credential.payload.getClaim("userId").asString()
         val username = credential.payload.getClaim("username").asString()
+        val purpose = credential.payload.getClaim("purpose").asString()
+        // Temp tokens for 2FA challenges cannot be used as regular authentication tokens
+        if (purpose == "2fa_challenge") return null
         return if (!userId.isNullOrBlank() && !username.isNullOrBlank()) {
             JWTPrincipal(credential.payload)
         } else {

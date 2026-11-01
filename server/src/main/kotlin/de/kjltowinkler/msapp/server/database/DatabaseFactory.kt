@@ -63,6 +63,14 @@ object DatabaseFactory {
                 } catch (_: Exception) {}
 
                 try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN two_factor_secret TEXT;")
+                } catch (_: Exception) {}
+
+                try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN two_factor_temp_secret TEXT;")
+                } catch (_: Exception) {}
+
+                try {
                     stmt.execute("ALTER TABLE users ADD COLUMN student_id TEXT;")
                 } catch (_: Exception) {}
 

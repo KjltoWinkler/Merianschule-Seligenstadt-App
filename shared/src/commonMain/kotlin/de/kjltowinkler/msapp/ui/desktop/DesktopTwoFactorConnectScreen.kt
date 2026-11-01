@@ -1,5 +1,6 @@
 package de.kjltowinkler.msapp.ui.desktop
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -39,6 +40,7 @@ fun DesktopTwoFactorConnectScreen(
     avatarPainter: Painter? = null,
     totpUri: String = "otpauth://totp/Merianschule:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
     backupCode: String = "ABCD EFGH 1234 5678",
+    isLoading: Boolean = false,
     onNextClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onHelpClicked: () -> Unit = {}
@@ -116,17 +118,31 @@ fun DesktopTwoFactorConnectScreen(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            MerianQrCode(
-                content = totpUri,
-                modifier = Modifier.size(240.dp),
-                style = MerianQrCodeStyle(
-                    darkColor = Color.Black,
-                    lightColor = Color.White,
-                    cornerRadius = 16.dp,
-                    quietZonePadding = 14.dp,
-                    roundPixels = true
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .size(240.dp)
+                        .background(DesktopCardBackground, RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = DesktopAccentBlue,
+                        strokeWidth = 3.dp
+                    )
+                }
+            } else {
+                MerianQrCode(
+                    content = totpUri,
+                    modifier = Modifier.size(240.dp),
+                    style = MerianQrCodeStyle(
+                        darkColor = Color.Black,
+                        lightColor = Color.White,
+                        cornerRadius = 16.dp,
+                        quietZonePadding = 14.dp,
+                        roundPixels = true
+                    )
                 )
-            )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -139,7 +155,7 @@ fun DesktopTwoFactorConnectScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .handCursor()
-                .clickable {
+                .clickable(enabled = !isLoading) {
                     clipboardManager.setText(AnnotatedString(backupCode))
                     codeCopied = true
                     coroutineScope.launch {
@@ -150,7 +166,7 @@ fun DesktopTwoFactorConnectScreen(
                 .padding(vertical = 6.dp)
         ) {
             Text(
-                text = if (codeCopied) "Code kopiert!" else "Code: $backupCode",
+                text = if (isLoading) "Code wird generiert..." else if (codeCopied) "Code kopiert!" else "Code: $backupCode",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
@@ -172,10 +188,13 @@ fun DesktopTwoFactorConnectScreen(
         // 6. Weiter Button
         Button(
             onClick = onNextClicked,
+            enabled = !isLoading,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = DesktopAccentBlue,
-                contentColor = DesktopOnAccentBlue
+                contentColor = DesktopOnAccentBlue,
+                disabledContainerColor = DesktopAccentBlue.copy(alpha = 0.6f),
+                disabledContentColor = DesktopOnAccentBlue.copy(alpha = 0.6f)
             ),
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier

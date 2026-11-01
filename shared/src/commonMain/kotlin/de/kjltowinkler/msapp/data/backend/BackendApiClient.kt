@@ -88,7 +88,9 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.Created) {
             val auth = json.decodeFromString<AuthResponse>(body)
-            saveSession(auth.token, auth.user)
+            if (!auth.token.isNullOrBlank()) {
+                saveSession(auth.token, auth.user)
+            }
             auth
         } else {
             val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
@@ -124,11 +126,13 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             val auth = json.decodeFromString<AuthResponse>(body)
-            saveSession(auth.token, auth.user)
+            if (auth.token != null && auth.user != null) {
+                saveSession(auth.token, auth.user)
+            }
             auth
         } else {
             val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
-            error("Anmeldung fehlgeschlagen ($error)")
+            error(error)
         }
     }
 
@@ -141,7 +145,81 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             val auth = json.decodeFromString<AuthResponse>(body)
-            saveSession(auth.token, auth.user)
+            if (auth.token != null && auth.user != null) {
+                saveSession(auth.token, auth.user)
+            }
+            auth
+        } else {
+            val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(error)
+        }
+    }
+
+    suspend fun setup2Fa(): Result<TwoFactorSetupResponse> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.post("$serverUrl/api/auth/2fa/setup") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<TwoFactorSetupResponse>(body)
+        } else {
+            val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(error)
+        }
+    }
+
+    suspend fun confirm2Fa(code: String): Result<Boolean> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.post("$serverUrl/api/auth/2fa/confirm") {
+            header("Authorization", "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(ConfirmTwoFactorRequest(code)))
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            currentUser?.let { user ->
+                val updated = user.copy(isTwoFactorEnabled = true)
+                currentUser = updated
+                PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(updated))
+            }
+            true
+        } else {
+            val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(error)
+        }
+    }
+
+    suspend fun disable2Fa(): Result<Boolean> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.post("$serverUrl/api/auth/2fa/disable") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            currentUser?.let { user ->
+                val updated = user.copy(isTwoFactorEnabled = false)
+                currentUser = updated
+                PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(updated))
+            }
+            true
+        } else {
+            val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(error)
+        }
+    }
+
+    suspend fun verify2FaLogin(tempToken: String, code: String): Result<AuthResponse> = runCatching {
+        val response = client.post("$serverUrl/api/auth/2fa/verify-login") {
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(TwoFactorLoginRequest(tempToken = tempToken, code = code)))
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            val auth = json.decodeFromString<AuthResponse>(body)
+            if (auth.token != null && auth.user != null) {
+                saveSession(auth.token, auth.user)
+            }
             auth
         } else {
             val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
@@ -150,21 +228,11 @@ object BackendApiClient {
     }
 
     suspend fun update2Fa(enabled: Boolean): Result<Boolean> = runCatching {
-        val token = authToken ?: error("Nicht angemeldet")
-        val response = client.post("$serverUrl/api/auth/2fa") {
-            header("Authorization", "Bearer $token")
-            contentType(ContentType.Application.Json)
-            setBody(json.encodeToString(Update2FaRequest(enabled)))
+        if (enabled) {
+            error("Bitte confirm2Fa() für die Einrichtung mit Authenticator-Code verwenden.")
+        } else {
+            disable2Fa().getOrThrow()
         }
-        val success = response.status == HttpStatusCode.OK
-        if (success) {
-            currentUser?.let { user ->
-                val updated = user.copy(isTwoFactorEnabled = enabled)
-                currentUser = updated
-                PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(updated))
-            }
-        }
-        success
     }
 
     suspend fun getProfile(): Result<UserProfileDto> = runCatching {

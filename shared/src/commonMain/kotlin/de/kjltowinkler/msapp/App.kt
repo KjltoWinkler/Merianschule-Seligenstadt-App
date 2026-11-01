@@ -192,6 +192,14 @@ fun App() {
         var isSettingNewPassword by remember { mutableStateOf(false) }
         var initialPasswordEntered by remember { mutableStateOf("") }
         var isOnboardingFlow by remember { mutableStateOf(false) }
+        var twoFactorTempToken by remember { mutableStateOf<String?>(null) }
+        var isLoginTwoFactorVerification by remember { mutableStateOf(false) }
+        var twoFactorSetupUri by remember { mutableStateOf<String?>(null) }
+        var twoFactorBackupSecret by remember { mutableStateOf<String?>(null) }
+        var isLoadingTwoFactorSetup by remember { mutableStateOf(false) }
+        var isConfirmingTwoFactor by remember { mutableStateOf(false) }
+        var twoFactorConfirmError by remember { mutableStateOf<String?>(null) }
+        var lastEnteredPassword by remember { mutableStateOf("") }
 
         // Aktueller Account-Status (wird bei bestehender Sitzung aus dem Speicher geladen)
         var currentAccount by remember {
@@ -614,8 +622,24 @@ fun App() {
                 )
             }
             composable(AppRoutes.TWO_FACTOR_CONNECT) {
+                LaunchedEffect(Unit) {
+                    if (twoFactorSetupUri.isNullOrBlank()) {
+                        isLoadingTwoFactorSetup = true
+                        BackendApiClient.setup2Fa().onSuccess { setup ->
+                            twoFactorSetupUri = setup.otpauthUri
+                            twoFactorBackupSecret = setup.secret
+                            isLoadingTwoFactorSetup = false
+                        }.onFailure {
+                            isLoadingTwoFactorSetup = false
+                        }
+                    }
+                }
+
                 de.kjltowinkler.msapp.ui.onboarding.OnboardingTwoFactorConnectScreen(
                     accountName = currentAccount.username,
+                    totpUri = twoFactorSetupUri ?: "otpauth://totp/Merianschule:${currentAccount.username}?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
+                    backupCode = twoFactorBackupSecret ?: "ABCD EFGH 1234 5678",
+                    isLoading = isLoadingTwoFactorSetup,
                     onBackClicked = {
                         navController.popBackStack()
                     },
@@ -623,6 +647,8 @@ fun App() {
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
                     onNextClicked = {
+                        isLoginTwoFactorVerification = false
+                        twoFactorConfirmError = null
                         navController.navigate(AppRoutes.TWO_FACTOR_CONFIRM)
                     }
                 )
@@ -630,19 +656,89 @@ fun App() {
             composable(AppRoutes.TWO_FACTOR_CONFIRM) {
                 de.kjltowinkler.msapp.ui.onboarding.OnboardingTwoFactorConfirmScreen(
                     accountName = currentAccount.username,
+                    isLoading = isConfirmingTwoFactor,
+                    errorMessage = twoFactorConfirmError,
                     onBackClicked = {
+                        twoFactorConfirmError = null
                         navController.popBackStack()
                     },
                     onChangeAccountClicked = {
+                        twoFactorConfirmError = null
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
                     onFinishClicked = { code ->
-                        coroutineScope.launch {
-                            BackendApiClient.update2Fa(true)
+                        twoFactorConfirmError = null
+                        isConfirmingTwoFactor = true
+
+                        if (isLoginTwoFactorVerification) {
+                            val tempToken = twoFactorTempToken ?: ""
+                            coroutineScope.launch {
+                                BackendApiClient.verify2FaLogin(tempToken, code)
+                                    .onSuccess { auth ->
+                                        isConfirmingTwoFactor = false
+                                        currentAccount = MockAccountState(
+                                            username = auth.user.fullName.ifBlank { auth.user.username },
+                                            loginUsername = auth.user.username,
+                                            email = auth.user.email,
+                                            studentId = auth.user.studentId,
+                                            className = auth.user.className,
+                                            schoolType = auth.user.schoolType,
+                                            classTeacher = auth.user.classTeacher,
+                                            avatarType = auth.user.avatarType,
+                                            avatarColorHex = auth.user.avatarColorHex,
+                                            hasCustomPassword = auth.user.hasCustomPassword,
+                                            isTwoFactorEnabled = auth.user.isTwoFactorEnabled
+                                        )
+
+                                        BackendApiClient.fetchUserCourses().onSuccess { courses ->
+                                            de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
+                                        }
+
+                                        if (lastEnteredPassword.isNotBlank()) {
+                                            de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, lastEnteredPassword)
+                                        }
+
+                                        navController.navigate(AppRoutes.LOGIN_READY)
+                                    }
+                                    .onFailure { err ->
+                                        isConfirmingTwoFactor = false
+                                        val msg = err.message ?: ""
+                                        twoFactorConfirmError = when {
+                                            msg.contains("401") || msg.contains("falsch", ignoreCase = true) || msg.contains("ungültig", ignoreCase = true) -> {
+                                                "Der Bestätigungscode ist falsch oder abgelaufen."
+                                            }
+                                            msg.contains("abgelaufen", ignoreCase = true) -> {
+                                                "Die Anmeldesitzung ist abgelaufen. Bitte melde dich erneut an."
+                                            }
+                                            else -> {
+                                                "Bestätigung fehlgeschlagen. Bitte prüfe deinen Code."
+                                            }
+                                        }
+                                    }
+                            }
+                        } else {
+                            coroutineScope.launch {
+                                BackendApiClient.confirm2Fa(code)
+                                    .onSuccess {
+                                        isConfirmingTwoFactor = false
+                                        currentAccount = currentAccount.copy(isTwoFactorEnabled = true)
+                                        val targetRoute = if (isOnboardingFlow) AppRoutes.READY else AppRoutes.LOGIN_READY
+                                        navController.navigate(targetRoute)
+                                    }
+                                    .onFailure { err ->
+                                        isConfirmingTwoFactor = false
+                                        val msg = err.message ?: ""
+                                        twoFactorConfirmError = when {
+                                            msg.contains("401") || msg.contains("falsch", ignoreCase = true) || msg.contains("ungültig", ignoreCase = true) -> {
+                                                "Der Bestätigungscode ist falsch. Bitte gib den aktuellen 6-stelligen Code ein."
+                                            }
+                                            else -> {
+                                                "Bestätigung fehlgeschlagen. Bitte prüfe deinen Code."
+                                            }
+                                        }
+                                    }
+                            }
                         }
-                        currentAccount = currentAccount.copy(isTwoFactorEnabled = true)
-                        val targetRoute = if (isOnboardingFlow) AppRoutes.READY else AppRoutes.LOGIN_READY
-                        navController.navigate(targetRoute)
                     }
                 )
             }
@@ -702,6 +798,7 @@ fun App() {
                             result.onSuccess { auth ->
                                 isLoggingIn = false
                                 loginError = null
+                                lastEnteredPassword = password
 
                                 currentAccount = MockAccountState(
                                     username = auth.user.fullName.ifBlank { auth.user.username },
@@ -717,22 +814,29 @@ fun App() {
                                     isTwoFactorEnabled = auth.user.isTwoFactorEnabled
                                 )
 
-                                // Kurse synchronisieren / laden
-                                BackendApiClient.fetchUserCourses().onSuccess { courses ->
-                                    de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
-                                }
-
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, password)
-
-                                // Wenn der Nutzer noch kein eigenes Passwort hat -> zwingend zur Passwort-Erstellung weiterleiten!
-                                if (!auth.user.hasCustomPassword) {
-                                    initialPasswordEntered = password
-                                    isOnboardingFlow = true
-                                    navController.navigate(AppRoutes.NEW_PASSWORD)
-                                } else if (auth.user.isTwoFactorEnabled) {
-                                    navController.navigate(AppRoutes.LOGIN_READY)
+                                if (auth.requiresTwoFactor && !auth.tempToken.isNullOrBlank()) {
+                                    twoFactorTempToken = auth.tempToken
+                                    isLoginTwoFactorVerification = true
+                                    twoFactorConfirmError = null
+                                    navController.navigate(AppRoutes.TWO_FACTOR_CONFIRM)
                                 } else {
-                                    navController.navigate(AppRoutes.TWO_FACTOR_AUTH)
+                                    // Kurse synchronisieren / laden
+                                    BackendApiClient.fetchUserCourses().onSuccess { courses ->
+                                        de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
+                                    }
+
+                                    de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, password)
+
+                                    // Wenn der Nutzer noch kein eigenes Passwort hat -> zwingend zur Passwort-Erstellung weiterleiten!
+                                    if (!auth.user.hasCustomPassword) {
+                                        initialPasswordEntered = password
+                                        isOnboardingFlow = true
+                                        navController.navigate(AppRoutes.NEW_PASSWORD)
+                                    } else if (auth.user.isTwoFactorEnabled) {
+                                        navController.navigate(AppRoutes.LOGIN_READY)
+                                    } else {
+                                        navController.navigate(AppRoutes.TWO_FACTOR_AUTH)
+                                    }
                                 }
                             }.onFailure { err ->
                                 isLoggingIn = false
@@ -798,6 +902,12 @@ fun App() {
                     },
                     onLogoutClicked = {
                         BackendApiClient.logout()
+                        twoFactorTempToken = null
+                        twoFactorSetupUri = null
+                        twoFactorBackupSecret = null
+                        twoFactorConfirmError = null
+                        isLoginTwoFactorVerification = false
+                        lastEnteredPassword = ""
                         de.kjltowinkler.msapp.data.schulportal.SchulportalClient.clearCredentials()
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(emptyList())
                         val defaultRoute = if (isDesktop) AppRoutes.USERNAME else AppRoutes.WELCOME

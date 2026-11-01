@@ -152,11 +152,128 @@ fun Route.authRoutes() {
                 return@post
             }
 
+            // Prüfe, ob 2FA für diesen Account aktiv ist
+            if (user.isTwoFactorEnabled && !user.twoFactorSecret.isNullOrBlank()) {
+                val tempToken = JwtService.generate2FaTempToken(user.id, user.username)
+                call.respond(HttpStatusCode.OK, AuthResponse(
+                    requiresTwoFactor = true,
+                    tempToken = tempToken,
+                    user = user.toDto()
+                ))
+                return@post
+            }
+
             val token = JwtService.generateToken(user.id, user.username, user.role)
             call.respond(HttpStatusCode.OK, AuthResponse(token, user.toDto()))
         }
 
+        post("/2fa/verify-login") {
+            val req = runCatching { call.receive<TwoFactorLoginRequest>() }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Anfrage."))
+                return@post
+            }
+
+            val userClaims = JwtService.verify2FaTempToken(req.tempToken)
+            if (userClaims == null) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Deine 2FA-Sitzung ist abgelaufen. Bitte melde dich erneut an."))
+                return@post
+            }
+
+            val (userId, _) = userClaims
+            val user = UserRepository.findById(userId)
+            if (user == null || !user.isTwoFactorEnabled || user.twoFactorSecret.isNullOrBlank()) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "2FA ist für diesen Account nicht aktiv."))
+                return@post
+            }
+
+            val isValid = de.kjltowinkler.msapp.server.security.TotpService.verifyCode(user.twoFactorSecret, req.code)
+            if (!isValid) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Der Bestätigungscode ist ungültig oder abgelaufen."))
+                return@post
+            }
+
+            val token = JwtService.generateToken(user.id, user.username, user.role)
+            call.respond(HttpStatusCode.OK, AuthResponse(token = token, user = user.toDto()))
+        }
+
         authenticate("auth-jwt") {
+            post("/2fa/setup") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert."))
+                    return@post
+                }
+
+                val user = UserRepository.findById(userId)
+                if (user == null) {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
+                    return@post
+                }
+
+                val secret = de.kjltowinkler.msapp.server.security.TotpService.generateSecret()
+                val otpauthUri = de.kjltowinkler.msapp.server.security.TotpService.generateOtpAuthUri(
+                    issuer = "Merianschule",
+                    accountName = user.username,
+                    secret = secret
+                )
+                val formattedSecret = de.kjltowinkler.msapp.server.security.TotpService.formatSecret(secret)
+
+                UserRepository.setTwoFactorTempSecret(userId, secret)
+
+                call.respond(HttpStatusCode.OK, TwoFactorSetupResponse(
+                    secret = formattedSecret,
+                    otpauthUri = otpauthUri
+                ))
+            }
+
+            post("/2fa/confirm") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert."))
+                    return@post
+                }
+
+                val req = runCatching { call.receive<ConfirmTwoFactorRequest>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Anfrage."))
+                    return@post
+                }
+
+                val user = UserRepository.findById(userId)
+                if (user == null) {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
+                    return@post
+                }
+
+                val secretToVerify = user.twoFactorTempSecret ?: user.twoFactorSecret
+                if (secretToVerify.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Keine 2FA-Einrichtung gestartet. Bitte starte das Setup erneut."))
+                    return@post
+                }
+
+                val isValid = de.kjltowinkler.msapp.server.security.TotpService.verifyCode(secretToVerify, req.code)
+                if (!isValid) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Der Bestätigungscode ist falsch oder abgelaufen. Bitte prüfe deine Authenticator-App."))
+                    return@post
+                }
+
+                UserRepository.activateTwoFactor(userId, secretToVerify)
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Zwei-Faktor-Authentifizierung wurde erfolgreich aktiviert!"))
+            }
+
+            post("/2fa/disable") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert."))
+                    return@post
+                }
+
+                UserRepository.disableTwoFactor(userId)
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "2FA wurde deaktiviert."))
+            }
+
             get("/me") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asString()

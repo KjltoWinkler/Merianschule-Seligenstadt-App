@@ -40,17 +40,22 @@ fun DesktopTwoFactorConfirmScreen(
     avatarPainter: Painter? = null,
     initialCode: String = "",
     codeState: TextFieldState = rememberTextFieldState(initialCode),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onFinishClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onHelpClicked: () -> Unit = {}
 ) {
-    var isError by rememberSaveable { mutableStateOf(false) }
+    var localError by rememberSaveable { mutableStateOf<String?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    val displayedError = errorMessage ?: localError
+    val isError = displayedError != null
+
     LaunchedEffect(Unit) {
         snapshotFlow { codeState.text }.collect {
-            if (isError) isError = false
+            if (localError != null) localError = null
         }
     }
 
@@ -120,7 +125,7 @@ fun DesktopTwoFactorConfirmScreen(
             supportingText = if (isError) {
                 {
                     Text(
-                        text = "Bitte gib den 6-stelligen Code ein",
+                        text = displayedError ?: "Bitte gib den 6-stelligen Code ein",
                         modifier = Modifier.clearAndSetSemantics {}
                     )
                 }
@@ -132,18 +137,19 @@ fun DesktopTwoFactorConfirmScreen(
                 imeAction = ImeAction.Done
             ),
             onKeyboardAction = {
+                if (isLoading) return@OutlinedTextField
                 val code = codeState.text.toString().trim()
                 if (code.length >= 6) {
                     keyboardController?.hide()
                     onFinishClicked(code)
                 } else {
-                    isError = true
+                    localError = "Bitte gib den 6-stelligen Code ein"
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
-                    if (isError) error("Bitte gib den 6-stelligen Code ein")
+                    if (isError) error(displayedError ?: "Bitte gib den 6-stelligen Code ein")
                 }
         )
 
@@ -172,17 +178,21 @@ fun DesktopTwoFactorConfirmScreen(
         // 6. Weiter Button
         Button(
             onClick = {
+                if (isLoading) return@Button
                 val code = codeState.text.toString().trim()
                 if (code.length >= 6) {
                     onFinishClicked(code)
                 } else {
-                    isError = true
+                    localError = "Bitte gib den 6-stelligen Code ein"
                 }
             },
+            enabled = !isLoading,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = DesktopAccentBlue,
-                contentColor = DesktopOnAccentBlue
+                contentColor = DesktopOnAccentBlue,
+                disabledContainerColor = DesktopAccentBlue.copy(alpha = 0.6f),
+                disabledContentColor = DesktopOnAccentBlue.copy(alpha = 0.6f)
             ),
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier
@@ -191,14 +201,22 @@ fun DesktopTwoFactorConfirmScreen(
                 .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
-            Text(
-                text = "Weiter",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = DesktopOnAccentBlue
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = DesktopOnAccentBlue,
+                    strokeWidth = 3.dp,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = "Weiter",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = DesktopOnAccentBlue
+                )
+            }
         }
     }
 

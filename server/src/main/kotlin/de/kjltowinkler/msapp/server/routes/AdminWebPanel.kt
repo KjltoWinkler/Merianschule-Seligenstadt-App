@@ -1128,9 +1128,14 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
               <span class="badge-role ${'$'}{isAdmin ? 'badge-admin' : 'badge-user'}">
                 ${'$'}{user.role}
               </span>
+              ${'$'}{user.isTwoFactorEnabled ? `<span class="badge-role" style="background: rgba(76, 175, 80, 0.2); color: #81c784; margin-left: 4px;" title="2FA aktiv">2FA</span>` : ''}
             </td>
             <td>
               <div class="actions-cell">
+                ${'$'}{user.isTwoFactorEnabled ? `
+                <md-icon-button title="2FA zurücksetzen" onclick="resetUser2Fa('${'$'}{user.id}', '${'$'}{escapeHtml(user.fullName || user.username)}')">
+                  <md-icon style="color: #ffb74d;">phonelink_erase</md-icon>
+                </md-icon-button>` : ''}
                 <md-icon-button title="Passwort ändern" onclick="openResetPasswordDialog('${'$'}{user.id}', '${'$'}{escapeHtml(user.fullName || user.username)}')">
                   <md-icon>key</md-icon>
                 </md-icon-button>
@@ -1255,6 +1260,24 @@ private const val ADMIN_PANEL_HTML = """<!DOCTYPE html>
           showToast('Passwort erfolgreich zurückgesetzt!');
         } else {
           showToast(data.message || 'Fehler beim Zurücksetzen.', true);
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function resetUser2Fa(userId, userName) {
+      if (!confirm(`Möchtest du 2FA für "${'$'}{userName}" wirklich zurücksetzen? Der Nutzer kann sich danach wieder ohne Authenticator-App anmelden.`)) {
+        return;
+      }
+      try {
+        const res = await apiFetch(`/api/admin/users/${'$'}{userId}/reset-2fa`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('2FA erfolgreich zurückgesetzt!');
+          loadUsers();
+        } else {
+          showToast(data.message || 'Fehler beim Zurücksetzen von 2FA.', true);
         }
       } catch (err) {
         showToast(err.message, true);

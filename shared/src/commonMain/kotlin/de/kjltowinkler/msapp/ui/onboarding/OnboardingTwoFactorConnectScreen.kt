@@ -49,6 +49,7 @@ fun OnboardingTwoFactorConnectScreen(
     // Standard TOTP-URI oder Secret, lässt sich direkt vom Backend übergeben
     totpUri: String = "otpauth://totp/Merianschule:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
     backupCode: String = "ABCD EFGH 1234 5678",
+    isLoading: Boolean = false,
     onBackClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
     onHelpClicked: () -> Unit = {},
@@ -72,6 +73,7 @@ fun OnboardingTwoFactorConnectScreen(
                 avatarPainter = avatarPainter,
                 totpUri = totpUri,
                 backupCode = backupCode,
+                isLoading = isLoading,
                 onNextClicked = onNextClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onHelpClicked = onHelpClicked
@@ -182,18 +184,35 @@ fun OnboardingTwoFactorConnectScreen(
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // 5. Zentrierter Material 3 QR-Code Generator
-                MerianQrCode(
-                    content = totpUri,
-                    modifier = Modifier
-                        .size(250.dp),
-                    style = MerianQrCodeStyle(
-                        darkColor = Color.Black,
-                        lightColor = Color.White,
-                        cornerRadius = 16.dp,
-                        quietZonePadding = 14.dp,
-                        roundPixels = true
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .size(250.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(16.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 3.dp
+                        )
+                    }
+                } else {
+                    MerianQrCode(
+                        content = totpUri,
+                        modifier = Modifier
+                            .size(250.dp),
+                        style = MerianQrCodeStyle(
+                            darkColor = Color.Black,
+                            lightColor = Color.White,
+                            cornerRadius = 16.dp,
+                            quietZonePadding = 14.dp,
+                            roundPixels = true
+                        )
                     )
-                )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -203,7 +222,7 @@ fun OnboardingTwoFactorConnectScreen(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable {
+                        .clickable(enabled = !isLoading) {
                             clipboardManager.setText(AnnotatedString(backupCode))
                             codeCopied = true
                             coroutineScope.launch {
@@ -214,7 +233,7 @@ fun OnboardingTwoFactorConnectScreen(
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = if (codeCopied) "Code kopiert: $backupCode" else "Code: $backupCode",
+                        text = if (isLoading) "Code wird generiert..." else if (codeCopied) "Code kopiert: $backupCode" else "Code: $backupCode",
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
@@ -237,10 +256,13 @@ fun OnboardingTwoFactorConnectScreen(
             // 7. Weiter-Button unten (69 dp hoch)
             Button(
                 onClick = onNextClicked,
+                enabled = !isLoading,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
                 ),
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier

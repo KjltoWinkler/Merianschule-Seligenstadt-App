@@ -184,6 +184,24 @@ fun Route.adminRoutes() {
                     call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
                 }
             }
+
+            post("/{id}/reset-2fa") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+                val id = call.parameters["id"]
+                if (id.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt."))
+                    return@post
+                }
+                val success = UserRepository.disableTwoFactor(id)
+                if (success) {
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "2FA wurde erfolgreich zurückgesetzt."))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
+                }
+            }
         }
 
         // Check stats

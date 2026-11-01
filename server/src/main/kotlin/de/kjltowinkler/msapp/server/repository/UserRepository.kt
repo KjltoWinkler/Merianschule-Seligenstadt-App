@@ -24,6 +24,8 @@ data class UserRecord(
     val role: String,
     val hasCustomPassword: Boolean = true,
     val isTwoFactorEnabled: Boolean = false,
+    val twoFactorSecret: String? = null,
+    val twoFactorTempSecret: String? = null,
     val createdAt: Long,
     val updatedAt: Long
 ) {
@@ -63,6 +65,8 @@ object UserRepository {
         val hasCustom = runCatching { rs.getInt("has_custom_password") == 1 }.getOrDefault(true)
         val is2fa = runCatching { rs.getInt("is_two_factor_enabled") == 1 }.getOrDefault(false)
         val sId = runCatching { rs.getString("student_id") ?: "" }.getOrDefault("")
+        val secret = runCatching { rs.getString("two_factor_secret") }.getOrNull()
+        val tempSecret = runCatching { rs.getString("two_factor_temp_secret") }.getOrNull()
         return UserRecord(
             id = rs.getString("id"),
             username = rs.getString("username"),
@@ -79,6 +83,8 @@ object UserRepository {
             role = rs.getString("role"),
             hasCustomPassword = hasCustom,
             isTwoFactorEnabled = is2fa,
+            twoFactorSecret = secret,
+            twoFactorTempSecret = tempSecret,
             createdAt = rs.getLong("created_at"),
             updatedAt = rs.getLong("updated_at")
         )
@@ -192,6 +198,35 @@ object UserRepository {
             stmt.setInt(1, if (enabled) 1 else 0)
             stmt.setLong(2, System.currentTimeMillis())
             stmt.setString(3, userId)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun setTwoFactorTempSecret(userId: String, tempSecret: String?): Boolean = DatabaseFactory.query { conn ->
+        val sql = "UPDATE users SET two_factor_temp_secret = ?, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, tempSecret)
+            stmt.setLong(2, System.currentTimeMillis())
+            stmt.setString(3, userId)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun activateTwoFactor(userId: String, secret: String): Boolean = DatabaseFactory.query { conn ->
+        val sql = "UPDATE users SET is_two_factor_enabled = 1, two_factor_secret = ?, two_factor_temp_secret = NULL, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, secret)
+            stmt.setLong(2, System.currentTimeMillis())
+            stmt.setString(3, userId)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun disableTwoFactor(userId: String): Boolean = DatabaseFactory.query { conn ->
+        val sql = "UPDATE users SET is_two_factor_enabled = 0, two_factor_secret = NULL, two_factor_temp_secret = NULL, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setLong(1, System.currentTimeMillis())
+            stmt.setString(2, userId)
             stmt.executeUpdate() > 0
         }
     }
