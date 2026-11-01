@@ -32,8 +32,7 @@ object SchulportalHtmlParser {
 
         // 1. Suche nach allen Vertretungstabellen: <table id="vtable..." ...>...</table>
         val tableRegex = Regex(
-            """<table[^>]*\bid=["'](vtable\d{2}_\d{2}_\d{4})["'][^>]*>(.*?)</table>""",
-            setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
+            """(?is)<table[^>]*\bid=["'](vtable\d{2}_\d{2}_\d{4})["'][^>]*>(.*?)</table>"""
         )
 
         val tableMatches = tableRegex.findAll(html)
@@ -57,10 +56,10 @@ object SchulportalHtmlParser {
             val dayLabel = formatDayLabel(day.toIntOrNull() ?: 1, month.toIntOrNull() ?: 1, year.toIntOrNull() ?: 2026)
 
             // 2. Tabellenkopf parsen (Spaltennamen über data-field oder Inhalt)
-            val theadRegex = Regex("""<thead[^>]*>(.*?)</thead>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+            val theadRegex = Regex("""(?is)<thead[^>]*>(.*?)</thead>""")
             val theadContent = theadRegex.find(tableContent)?.groupValues?.get(1) ?: ""
 
-            val thRegex = Regex("""<th([^>]*)>(.*?)</th>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+            val thRegex = Regex("""(?is)<th([^>]*)>(.*?)</th>""")
             val headers = mutableListOf<String>()
 
             for (thMatch in thRegex.findAll(theadContent)) {
@@ -78,10 +77,10 @@ object SchulportalHtmlParser {
             }
 
             // 3. Tabellenzeilen in tbody parsen
-            val tbodyRegex = Regex("""<tbody[^>]*>(.*?)</tbody>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+            val tbodyRegex = Regex("""(?is)<tbody[^>]*>(.*?)</tbody>""")
             val tbodyContent = tbodyRegex.find(tableContent)?.groupValues?.get(1) ?: tableContent
 
-            val trRegex = Regex("""<tr[^>]*>(.*?)</tr>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+            val trRegex = Regex("""(?is)<tr[^>]*>(.*?)</tr>""")
 
             for (trMatch in trRegex.findAll(tbodyContent)) {
                 val rowHtml = trMatch.groupValues[1]
@@ -89,7 +88,7 @@ object SchulportalHtmlParser {
                 // Zeilen mit colspan überspringen (sind oft Hinweis-/Statuszeilen)
                 if (rowHtml.contains("colspan", ignoreCase = true)) continue
 
-                val tdRegex = Regex("""<td[^>]*>(.*?)</td>""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+                val tdRegex = Regex("""(?is)<td[^>]*>(.*?)</td>""")
                 val cells = tdRegex.findAll(rowHtml).map { cleanHtmlText(it.groupValues[1]) }.toList()
 
                 if (cells.isEmpty()) continue

@@ -383,13 +383,27 @@ fun SubstitutionPlanScreen(
     val today = remember { getTodayDate() }
     val todayIso = remember(today) { today.toIsoString() }
     val tomorrowIso = remember(today) { today.plusDays(1).toIsoString() }
+    val dayAfterTomorrowIso = remember(today) { today.plusDays(2).toIsoString() }
 
-    val distinctDates = remember(allEntries) {
-        allEntries.mapNotNull { it.date.takeIf { d -> d.isNotBlank() } }.distinct().sorted()
+    // Berechne die nächsten zwei Schultage (Montag bis Freitag):
+    // - Wenn heute ein Schultag ist (Mo-Fr): Schultag 1 = Heute, Schultag 2 = Nächster Schultag (z.B. Morgen bzw. Montag bei Fr)
+    // - Am Wochenende (Sa/So): Schultag 1 = Montag, Schultag 2 = Dienstag
+    fun getNextSchoolDays(from: SimpleDate): Pair<SimpleDate, SimpleDate> {
+        val days = mutableListOf<SimpleDate>()
+        var cur = from
+        while (days.size < 2) {
+            if (cur.dayOfWeek in 1..5) {
+                days.add(cur)
+            }
+            cur = cur.plusDays(1)
+        }
+        return days[0] to days[1]
     }
-    // Der Schalter (Heute vs. Upcoming/Morgen) steuert strikt den heutigen bzw. morgigen Tag
-    val heuteDate = todayIso
-    val morgenDate = tomorrowIso
+
+    val (schoolDay1, schoolDay2) = remember(today) { getNextSchoolDays(today) }
+    val heuteDate = remember(schoolDay1) { schoolDay1.toIsoString() }
+    val morgenDate = remember(schoolDay2) { schoolDay2.toIsoString() }
+
 
 
 
@@ -854,8 +868,18 @@ fun SubstitutionPlanScreen(
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(12.dp))
+                                                val emptyTargetDayText = when (targetDate) {
+                                                    todayIso -> "heute"
+                                                    tomorrowIso -> "morgen"
+                                                    dayAfterTomorrowIso -> "übermorgen"
+                                                    else -> {
+                                                        val parsed = parseIsoDate(targetDate)
+                                                        val weekdays = listOf("Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag")
+                                                        if (parsed != null) weekdays.getOrElse(parsed.dayOfWeek) { targetDate } else "diesen Tag"
+                                                    }
+                                                }
                                                 Text(
-                                                    text = if (isUpcoming) "Keine Einträge für morgen" else "Keine Einträge für heute",
+                                                    text = "Keine Einträge für $emptyTargetDayText",
                                                     fontSize = 14.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
