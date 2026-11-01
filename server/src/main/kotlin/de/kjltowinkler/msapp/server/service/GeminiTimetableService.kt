@@ -181,9 +181,17 @@ Regeln:
             }
         }
 
-        val candidateModels = listOf("gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+        val candidateModels = listOf(
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-3.8-flash",
+            "gemini-2.5-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-pro"
+        )
         var lastError: Exception? = null
         var responseBody: String? = null
+        val attemptedErrors = mutableListOf<String>()
 
         for (model in candidateModels) {
             val requestUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key"
@@ -199,6 +207,7 @@ Regeln:
                 httpClient.send(request, HttpResponse.BodyHandlers.ofString())
             } catch (e: Exception) {
                 lastError = e
+                attemptedErrors.add("$model: ${e.message}")
                 continue
             }
 
@@ -214,21 +223,23 @@ Regeln:
                     if (!apiErr.isNullOrBlank()) errorMsg = apiErr
                 } catch (_: Exception) {}
 
-                val isModelUnavailable = response.statusCode() == 404 || 
-                    errorMsg.contains("no longer available", ignoreCase = true) || 
-                    errorMsg.contains("not found", ignoreCase = true)
-
-                if (isModelUnavailable) {
-                    lastError = IllegalStateException("Modell $model: $errorMsg")
-                    continue
-                } else {
-                    throw IllegalStateException("Fehler bei der KI-Analyse ($model): $errorMsg")
+                val isAuthError = response.statusCode() in listOf(401, 403) ||
+                    errorMsg.contains("API key not valid", ignoreCase = true) ||
+                    errorMsg.contains("API_KEY_INVALID", ignoreCase = true)
+                if (isAuthError) {
+                    throw IllegalArgumentException("Der hinterlegte Google Gemini API-Key ist ungültig: $errorMsg")
                 }
+
+                // If this model has high demand, 429, 404, or is deprecated/temporarily unavailable, try the next model!
+                attemptedErrors.add("$model: $errorMsg")
+                lastError = IllegalStateException("Fehler bei der KI-Analyse ($model): $errorMsg")
+                continue
             }
         }
 
         if (responseBody == null) {
-            throw lastError ?: IllegalStateException("Keines der Gemini-Modelle konnte erfolgreich erreicht werden.")
+            val errorSummary = attemptedErrors.joinToString("; ")
+            throw lastError ?: IllegalStateException("Keines der Gemini-Modelle konnte erfolgreich erreicht werden ($errorSummary).")
         }
 
         val parsedJson = jsonParser.decodeFromString<JsonObject>(responseBody)
