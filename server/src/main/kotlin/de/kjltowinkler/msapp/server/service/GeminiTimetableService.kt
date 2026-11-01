@@ -358,17 +358,20 @@ Regeln:
                 val pNum = if (lesson.periodNumber > 0) lesson.periodNumber else (idx + 1)
                 val lessonId = if (lesson.id.isNotBlank()) lesson.id else "${dayId}_$pNum"
                 
-                // Always stick strictly to the original abbreviation/code without invented names
+                // Match against verified teacher directory or stick strictly to the code (never invent fake names)
                 val cleanCode = lesson.teacherCode.trim().ifBlank { lesson.teacherName.trim() }
-                val teacherName = cleanCode
+                val teacherInfo = TimetableRepository.teacherDirectory[cleanCode]
+                val teacherName = teacherInfo?.fullName ?: cleanCode
+                val teacherEmail = teacherInfo?.email ?: ""
+                val teacherOfficeHours = teacherInfo?.officeHours ?: ""
 
                 lesson.copy(
                     id = lessonId,
                     periodNumber = pNum,
                     teacherCode = cleanCode,
                     teacherName = teacherName,
-                    teacherEmail = "",
-                    teacherOfficeHours = ""
+                    teacherEmail = teacherEmail,
+                    teacherOfficeHours = teacherOfficeHours
                 )
             }
         }

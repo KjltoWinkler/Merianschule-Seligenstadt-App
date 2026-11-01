@@ -15,12 +15,82 @@ object TimetableRepository {
 
     // Lehrer-Verzeichnis für Detailinformationen bei Klick auf das Lehrer-Kürzel
     val teacherDirectory: Map<String, TeacherInfo> = mapOf(
+        "Rd" to TeacherInfo(
+            code = "Rd",
+            fullName = "Julia Ridel",
+            email = "j.ridel@merianschule-seligenstadt.de",
+            subjects = listOf("Englisch"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Reu" to TeacherInfo(
+            code = "Reu",
+            fullName = "Alvin Bernhard Perry Reuter",
+            email = "a.reuter@merianschule-seligenstadt.de",
+            subjects = listOf("Deutsch", "Englisch"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Tho" to TeacherInfo(
+            code = "Tho",
+            fullName = "Daniel Thomas",
+            email = "d.thomas@merianschule-seligenstadt.de",
+            subjects = listOf("Biologie", "Chemie", "Geschichte"),
+            officeHours = "Mo. 13:10 - 13:40 Uhr"
+        ),
+        "Kne" to TeacherInfo(
+            code = "Kne",
+            fullName = "Gerrit Jens Knebel",
+            email = "g.knebel@merianschule-seligenstadt.de",
+            subjects = listOf("Mathematik"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Car" to TeacherInfo(
+            code = "Car",
+            fullName = "Rui Carvalho",
+            email = "r.carvalho@merianschule-seligenstadt.de",
+            subjects = listOf("Ethik"),
+            officeHours = "Nach Vereinbarung"
+        ),
         "Af" to TeacherInfo(
             code = "Af",
-            fullName = "Fr. Affeldt",
-            email = "affeldt@merianschule-seligenstadt.de",
+            fullName = "Kati Afrasiabi",
+            email = "k.afrasiabi@merianschule-seligenstadt.de",
             subjects = listOf("Deutsch", "Ethik"),
             officeHours = "Mo. 11:15 - 11:45 Uhr (nach Vereinbarung)"
+        ),
+        "Za" to TeacherInfo(
+            code = "Za",
+            fullName = "Eleni Zania",
+            email = "e.zania@merianschule-seligenstadt.de",
+            subjects = listOf("Geschichte", "Politik und Wirtschaft"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Tho / Za" to TeacherInfo(
+            code = "Tho / Za",
+            fullName = "Daniel Thomas / Eleni Zania",
+            email = "d.thomas@merianschule-seligenstadt.de",
+            subjects = listOf("Geschichte", "Politik und Wirtschaft"),
+            officeHours = "Mo. 13:10 - 13:40 Uhr"
+        ),
+        "Hol" to TeacherInfo(
+            code = "Hol",
+            fullName = "Iris Holstein",
+            email = "i.holstein@merianschule-seligenstadt.de",
+            subjects = listOf("Französisch"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Hv" to TeacherInfo(
+            code = "Hv",
+            fullName = "Tibor Horvath-Walther",
+            email = "t.horvath-walther@merianschule-seligenstadt.de",
+            subjects = listOf("Politik und Wirtschaft"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Bü" to TeacherInfo(
+            code = "Bü",
+            fullName = "Dominique Bürkle",
+            email = "d.buerkle@merianschule-seligenstadt.de",
+            subjects = listOf("Kunst"),
+            officeHours = "Nach Vereinbarung"
         ),
         "Ky" to TeacherInfo(
             code = "Ky",
@@ -28,13 +98,6 @@ object TimetableRepository {
             email = "kaya@merianschule-seligenstadt.de",
             subjects = listOf("Mathematik", "Informatik"),
             officeHours = "Di. 09:15 - 09:45 Uhr"
-        ),
-        "Tho / Za" to TeacherInfo(
-            code = "Tho / Za",
-            fullName = "Hr. Thomas / Fr. Zander",
-            email = "thomas@merianschule-seligenstadt.de",
-            subjects = listOf("Geschichte", "Politik und Wirtschaft"),
-            officeHours = "Mo. 13:10 - 13:40 Uhr"
         ),
         "Des" to TeacherInfo(
             code = "Des",
@@ -502,10 +565,19 @@ object TimetableRepository {
      * Sucht TeacherInfo anhand des Kürzels.
      */
     fun getTeacherInfo(code: String): TeacherInfo {
-        return teacherDirectory[code] ?: TeacherInfo(
-            code = code,
-            fullName = "Lehrkraft ($code)",
-            email = "${code.lowercase().replace(" ", "").replace("/", ".")}@merianschule-seligenstadt.de",
+        val trimmed = code.trim()
+        val direct = teacherDirectory[trimmed]
+        if (direct != null) return direct
+
+        val match = teacherDirectory.entries.firstOrNull { 
+            it.key.equals(trimmed, ignoreCase = true) 
+        }?.value
+        if (match != null) return match
+
+        return TeacherInfo(
+            code = trimmed,
+            fullName = "Lehrkraft ($trimmed)",
+            email = "${trimmed.lowercase().replace(" ", "").replace("/", ".")}@merianschule-seligenstadt.de",
             subjects = listOf("Fachunterricht"),
             officeHours = "Nach Vereinbarung"
         )
