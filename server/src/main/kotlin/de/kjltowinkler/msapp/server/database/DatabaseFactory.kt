@@ -191,6 +191,22 @@ object DatabaseFactory {
                         updated_at INTEGER NOT NULL
                     );
                 """.trimIndent())
+
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS school_tasks (
+                        id TEXT PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL DEFAULT '',
+                        subject TEXT NOT NULL DEFAULT '',
+                        due_date TEXT NOT NULL DEFAULT '',
+                        due_time TEXT NOT NULL DEFAULT '',
+                        deadline_date TEXT NOT NULL DEFAULT '',
+                        created_date TEXT NOT NULL DEFAULT '',
+                        target_class TEXT NOT NULL DEFAULT '09AR',
+                        creator_name TEXT NOT NULL DEFAULT 'Lehrkraft',
+                        updated_at INTEGER NOT NULL
+                    );
+                """.trimIndent())
             }
         }
     }

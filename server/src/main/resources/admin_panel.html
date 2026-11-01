@@ -544,6 +544,10 @@
         <md-icon slot="icon">calendar_month</md-icon>
         Stundenpläne & KI-Scan
       </md-primary-tab>
+      <md-primary-tab id="tabSchoolTasks">
+        <md-icon slot="icon">assignment</md-icon>
+        Schulaufgaben
+      </md-primary-tab>
     </md-tabs>
 
     <!-- Tab 1: Nutzerverwaltung -->
@@ -947,6 +951,77 @@
 
     </section>
 
+    <!-- Tab 5: Schulaufgaben -->
+    <section id="panelSchoolTasks" class="tab-content hidden">
+
+      <!-- Summary Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalSchoolTasksCount">0</div>
+          <div class="stat-label">Gesamte Schulaufgaben</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="schoolTasksClassesCount">0</div>
+          <div class="stat-label">Zielklassen</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="schoolTasksSubjectsCount">0</div>
+          <div class="stat-label">Aktive Fächer</div>
+        </div>
+      </div>
+
+      <!-- School Tasks Table Card -->
+      <div class="m3-card">
+        <div class="toolbar-row">
+          <div class="search-field">
+            <md-outlined-text-field id="schoolTaskSearch" placeholder="Schulaufgaben durchsuchen (Titel, Fach, Klasse)..." style="width: 100%;" oninput="filterSchoolTasks()">
+              <md-icon slot="leading-icon">search</md-icon>
+            </md-outlined-text-field>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <md-outlined-select id="schoolTaskClassFilter" label="Klassenfilter" onchange="filterSchoolTasks()" style="min-width: 150px;">
+              <md-select-option value="" selected><div slot="headline">Alle Klassen</div></md-select-option>
+              <md-select-option value="09AR"><div slot="headline">09AR</div></md-select-option>
+              <md-select-option value="09BR"><div slot="headline">09BR</div></md-select-option>
+              <md-select-option value="09CR"><div slot="headline">09CR</div></md-select-option>
+              <md-select-option value="ALL"><div slot="headline">Alle (ALL)</div></md-select-option>
+            </md-outlined-select>
+            <md-outlined-button onclick="loadSchoolTasks()">
+              <md-icon slot="icon">refresh</md-icon>
+              Aktualisieren
+            </md-outlined-button>
+            <md-filled-button onclick="openCreateSchoolTaskDialog()">
+              <md-icon slot="icon">add</md-icon>
+              Neue Schulaufgabe
+            </md-filled-button>
+          </div>
+        </div>
+
+        <div class="user-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fach</th>
+                <th>Titel & Aufgabenstellung</th>
+                <th>Zielklasse</th>
+                <th>Fälligkeit / Deadline</th>
+                <th>Erstellt</th>
+                <th style="text-align: right;">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="schoolTasksTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 24px;">
+                  <md-circular-progress indeterminate></md-circular-progress>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
   <!-- Modal Dialog: Nutzer hinzufügen -->
@@ -1185,6 +1260,101 @@
     </div>
   </md-dialog>
 
+  <!-- Modal Dialog: Schulaufgabe erstellen / bearbeiten -->
+  <md-dialog id="schoolTaskDialog">
+    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
+      <md-icon id="schoolTaskDialogIcon">assignment</md-icon>
+      <span id="schoolTaskDialogTitle">Neue Schulaufgabe anlegen</span>
+    </div>
+    <form id="schoolTaskForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
+      <input type="hidden" id="schoolTaskId">
+      
+      <div class="grid-2">
+        <md-outlined-text-field id="schoolTaskTitle" label="Titel der Aufgabe*" required placeholder="z. B. Buch S. 42 Nr. 1-4">
+          <md-icon slot="leading-icon">edit_note</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="schoolTaskSubject" label="Schulfach*" required placeholder="z. B. Mathematik, Deutsch, Englisch..." list="subjectsDatalist">
+          <md-icon slot="leading-icon">menu_book</md-icon>
+        </md-outlined-text-field>
+      </div>
+
+      <div class="grid-2">
+        <md-outlined-text-field id="schoolTaskClass" label="Zielklasse*" required value="09AR" placeholder="z. B. 09AR, 09BR oder ALL">
+          <md-icon slot="leading-icon">school</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="schoolTaskDeadlineDate" label="Deadline-Anzeige" placeholder="z. B. Do., 05. Nov.">
+          <md-icon slot="leading-icon">event</md-icon>
+        </md-outlined-text-field>
+      </div>
+
+      <div class="grid-2">
+        <md-outlined-text-field id="schoolTaskDueDate" label="Fälligkeitsdatum (JJJJ-MM-TT)" type="date">
+          <md-icon slot="leading-icon">calendar_today</md-icon>
+        </md-outlined-text-field>
+        <md-outlined-text-field id="schoolTaskDueTime" label="Uhrzeit (optional)" placeholder="z. B. 08:00 oder 13:00">
+          <md-icon slot="leading-icon">schedule</md-icon>
+        </md-outlined-text-field>
+      </div>
+
+      <md-outlined-text-field id="schoolTaskCreator" label="Erstellt von (Name der Lehrkraft)" value="Lehrkraft" placeholder="z. B. Hr. Thomas oder Fr. Riedel">
+        <md-icon slot="leading-icon">person</md-icon>
+      </md-outlined-text-field>
+
+      <md-outlined-text-field id="schoolTaskDescription" label="Beschreibung / Details zur Aufgabe" type="textarea" rows="3" placeholder="Zusätzliche Hinweise, Arbeitsanweisungen oder Buchseiten...">
+        <md-icon slot="leading-icon">notes</md-icon>
+      </md-outlined-text-field>
+    </form>
+    <div slot="actions">
+      <md-text-button onclick="document.getElementById('schoolTaskDialog').close()">Abbrechen</md-text-button>
+      <md-filled-button onclick="submitSchoolTask()">
+        <md-icon slot="icon">check</md-icon>
+        Speichern
+      </md-filled-button>
+    </div>
+  </md-dialog>
+
+  <!-- Modal Dialog: Schulaufgabe löschen -->
+  <md-dialog id="deleteSchoolTaskDialog">
+    <div slot="headline" style="color: var(--md-sys-color-error); display: flex; align-items: center; gap: 8px;">
+      <md-icon>delete_forever</md-icon>
+      Schulaufgabe löschen
+    </div>
+    <form slot="content" method="dialog">
+      <input type="hidden" id="deleteSchoolTaskId">
+      <p id="deleteSchoolTaskDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 8px;"></p>
+      <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px;">Diese Schulaufgabe wird bei allen Schülern der Klasse entfernt.</p>
+    </form>
+    <div slot="actions">
+      <md-text-button onclick="document.getElementById('deleteSchoolTaskDialog').close()">Abbrechen</md-text-button>
+      <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error); --md-filled-button-label-text-color: var(--md-sys-color-on-error);" onclick="submitDeleteSchoolTask()">
+        Löschen
+      </md-filled-button>
+    </div>
+  </md-dialog>
+
+  <datalist id="subjectsDatalist">
+    <option value="Mathematik">
+    <option value="Deutsch">
+    <option value="Englisch">
+    <option value="Biologie">
+    <option value="Chemie">
+    <option value="Physik">
+    <option value="Geschichte">
+    <option value="Politik & Wirtschaft">
+    <option value="Ethik">
+    <option value="Religion">
+    <option value="Kunst">
+    <option value="Musik">
+    <option value="Sport">
+    <option value="Französisch">
+    <option value="Latein">
+    <option value="Erdkunde">
+    <option value="Informatik">
+    <option value="Arbeitslehre">
+    <option value="WPU">
+    <option value="Klassenstunde">
+  </datalist>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">
     <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
@@ -1227,6 +1397,7 @@
         document.getElementById('panelSystem').classList.toggle('hidden', index !== 1);
         document.getElementById('panelSchulportal').classList.toggle('hidden', index !== 2);
         document.getElementById('panelTimetable').classList.toggle('hidden', index !== 3);
+        document.getElementById('panelSchoolTasks').classList.toggle('hidden', index !== 4);
 
         if (index === 0) loadUsers();
         if (index === 1) loadStats();
@@ -1237,6 +1408,9 @@
         if (index === 3) {
           loadGeminiKeyStatus();
           loadTimetableClasses();
+        }
+        if (index === 4) {
+          loadSchoolTasks();
         }
       });
 
@@ -2299,6 +2473,234 @@
         }
       } catch (err) {
         showToast(err.message, true);
+      }
+    }
+
+    // ----------------------------------------------------
+    // Schulaufgaben (School Tasks) Management
+    // ----------------------------------------------------
+    let allSchoolTasks = [];
+
+    async function loadSchoolTasks() {
+      const tbody = document.getElementById('schoolTasksTableBody');
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px;"><md-circular-progress indeterminate></md-circular-progress></td></tr>`;
+
+      try {
+        const res = await apiFetch('/api/admin/school-tasks');
+        if (!res.ok) throw new Error('Schulaufgaben konnten nicht geladen werden.');
+        allSchoolTasks = await res.json();
+        renderSchoolTasks(allSchoolTasks);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--md-sys-color-error);">${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function renderSchoolTasks(tasks) {
+      const tbody = document.getElementById('schoolTasksTableBody');
+      
+      const totalCount = tasks.length;
+      const classes = new Set(tasks.map(t => t.targetClass || '09AR'));
+      const subjects = new Set(tasks.map(t => t.subject).filter(Boolean));
+
+      document.getElementById('totalSchoolTasksCount').textContent = totalCount;
+      document.getElementById('schoolTasksClassesCount').textContent = classes.size;
+      document.getElementById('schoolTasksSubjectsCount').textContent = subjects.size;
+
+      if (tasks.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 36px; color: var(--md-sys-color-on-surface-variant);">
+              <md-icon style="font-size: 36px; margin-bottom: 8px;">assignment_late</md-icon>
+              <div>Keine Schulaufgaben vorhanden. Klicke auf "Neue Schulaufgabe", um eine anzulegen.</div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = tasks.map(task => {
+        const title = escapeHtml(task.title || '-');
+        const desc = task.description ? `<div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px;">${escapeHtml(task.description)}</div>` : '';
+        const subject = escapeHtml(task.subject || 'Allgemein');
+        const targetClass = escapeHtml(task.targetClass || '09AR');
+        const deadline = escapeHtml(task.deadlineDate || task.dueDate || '-');
+        const dueTime = task.dueTime ? ` (${escapeHtml(task.dueTime)} Uhr)` : '';
+        const created = escapeHtml(task.createdDate || '-');
+        const creator = task.creatorName ? ` • ${escapeHtml(task.creatorName)}` : '';
+
+        return `
+          <tr>
+            <td>
+              <span class="role-badge role-user" style="font-weight: 600; font-size: 13px;">${subject}</span>
+            </td>
+            <td>
+              <div style="font-weight: 500; font-size: 14px;">${title}</div>
+              ${desc}
+            </td>
+            <td>
+              <span class="role-badge ${targetClass === 'ALL' ? 'role-admin' : 'role-user'}">${targetClass}</span>
+            </td>
+            <td>
+              <div style="font-size: 13px; font-weight: 500;">${deadline}${dueTime}</div>
+            </td>
+            <td>
+              <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">${created}${creator}</div>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <md-icon-button title="Schulaufgabe bearbeiten" onclick="openEditSchoolTaskDialog('${escapeHtml(task.id)}')">
+                <md-icon>edit</md-icon>
+              </md-icon-button>
+              <md-icon-button title="Schulaufgabe löschen" onclick="openDeleteSchoolTaskDialog('${escapeHtml(task.id)}', '${escapeHtml(task.title)}')">
+                <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
+              </md-icon-button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterSchoolTasks() {
+      const q = (document.getElementById('schoolTaskSearch').value || '').trim().toLowerCase();
+      const classFilter = (document.getElementById('schoolTaskClassFilter').value || '').trim().toLowerCase();
+
+      const filtered = allSchoolTasks.filter(t => {
+        const matchesQuery = !q ||
+          (t.title && t.title.toLowerCase().includes(q)) ||
+          (t.subject && t.subject.toLowerCase().includes(q)) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
+          (t.targetClass && t.targetClass.toLowerCase().includes(q));
+
+        const matchesClass = !classFilter ||
+          (t.targetClass && t.targetClass.toLowerCase() === classFilter);
+
+        return matchesQuery && matchesClass;
+      });
+
+      renderSchoolTasks(filtered);
+    }
+
+    function openCreateSchoolTaskDialog() {
+      document.getElementById('schoolTaskId').value = '';
+      document.getElementById('schoolTaskDialogTitle').textContent = 'Neue Schulaufgabe anlegen';
+      document.getElementById('schoolTaskTitle').value = '';
+      document.getElementById('schoolTaskSubject').value = '';
+      document.getElementById('schoolTaskClass').value = '09AR';
+      document.getElementById('schoolTaskDueDate').value = '';
+      document.getElementById('schoolTaskDeadlineDate').value = '';
+      document.getElementById('schoolTaskDueTime').value = '';
+      document.getElementById('schoolTaskCreator').value = 'Lehrkraft';
+      document.getElementById('schoolTaskDescription').value = '';
+
+      document.getElementById('schoolTaskDialog').show();
+    }
+
+    function openEditSchoolTaskDialog(id) {
+      const task = allSchoolTasks.find(t => t.id === id);
+      if (!task) return;
+
+      document.getElementById('schoolTaskId').value = task.id;
+      document.getElementById('schoolTaskDialogTitle').textContent = 'Schulaufgabe bearbeiten';
+      document.getElementById('schoolTaskTitle').value = task.title || '';
+      document.getElementById('schoolTaskSubject').value = task.subject || '';
+      document.getElementById('schoolTaskClass').value = task.targetClass || '09AR';
+      document.getElementById('schoolTaskDueDate').value = task.dueDate || '';
+      document.getElementById('schoolTaskDeadlineDate').value = task.deadlineDate || '';
+      document.getElementById('schoolTaskDueTime').value = task.dueTime || '';
+      document.getElementById('schoolTaskCreator').value = task.creatorName || 'Lehrkraft';
+      document.getElementById('schoolTaskDescription').value = task.description || '';
+
+      document.getElementById('schoolTaskDialog').show();
+    }
+
+    async function submitSchoolTask() {
+      const id = document.getElementById('schoolTaskId').value.trim();
+      const title = document.getElementById('schoolTaskTitle').value.trim();
+      const subject = document.getElementById('schoolTaskSubject').value.trim();
+      const targetClass = document.getElementById('schoolTaskClass').value.trim().toUpperCase() || '09AR';
+      const dueDate = document.getElementById('schoolTaskDueDate').value.trim();
+      let deadlineDate = document.getElementById('schoolTaskDeadlineDate').value.trim();
+      const dueTime = document.getElementById('schoolTaskDueTime').value.trim();
+      const creatorName = document.getElementById('schoolTaskCreator').value.trim() || 'Lehrkraft';
+      const description = document.getElementById('schoolTaskDescription').value.trim();
+
+      if (!title) {
+        showToast('Bitte gib einen Titel für die Schulaufgabe an.', true);
+        return;
+      }
+      if (!subject) {
+        showToast('Bitte wähle ein Schulfach aus.', true);
+        return;
+      }
+
+      // Auto-format deadline if not manually given
+      if (!deadlineDate && dueDate) {
+        try {
+          const parts = dueDate.split('-');
+          if (parts.length === 3) {
+            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const dayNames = ['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.'];
+            const monthNames = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sept.', 'Okt.', 'Nov.', 'Dez.'];
+            deadlineDate = `${dayNames[d.getDay()]}, ${d.getDate()}. ${monthNames[d.getMonth()]}`;
+          }
+        } catch (_) {}
+      }
+
+      const payload = {
+        id: id || '',
+        title: title,
+        subject: subject,
+        targetClass: targetClass,
+        dueDate: dueDate,
+        deadlineDate: deadlineDate,
+        dueTime: dueTime,
+        creatorName: creatorName,
+        description: description,
+        updatedAt: Date.now()
+      };
+
+      try {
+        const res = await apiFetch('/api/admin/school-tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          document.getElementById('schoolTaskDialog').close();
+          showToast(data.message || 'Schulaufgabe erfolgreich gespeichert!');
+          loadSchoolTasks();
+        } else {
+          showToast(data.message || 'Fehler beim Speichern der Schulaufgabe.', true);
+        }
+      } catch (err) {
+        showToast('Netzwerkfehler: ' + err.message, true);
+      }
+    }
+
+    function openDeleteSchoolTaskDialog(id, title) {
+      document.getElementById('deleteSchoolTaskId').value = id;
+      document.getElementById('deleteSchoolTaskDesc').textContent = `Möchtest du die Schulaufgabe "${title}" wirklich unwiderruflich löschen?`;
+      document.getElementById('deleteSchoolTaskDialog').show();
+    }
+
+    async function submitDeleteSchoolTask() {
+      const id = document.getElementById('deleteSchoolTaskId').value;
+      if (!id) return;
+
+      try {
+        const res = await apiFetch('/api/admin/school-tasks/' + encodeURIComponent(id), {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          document.getElementById('deleteSchoolTaskDialog').close();
+          showToast('Schulaufgabe erfolgreich gelöscht!');
+          loadSchoolTasks();
+        } else {
+          showToast(data.message || 'Fehler beim Löschen der Schulaufgabe.', true);
+        }
+      } catch (err) {
+        showToast('Netzwerkfehler: ' + err.message, true);
       }
     }
   </script>

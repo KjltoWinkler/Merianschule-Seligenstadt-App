@@ -44,6 +44,23 @@ object TaskWebSocketManager {
         }
     }
 
+    suspend fun broadcastTaskUpdate(reason: String = "tasks_updated") {
+        val message = """{"event":"tasks_updated","reason":"$reason","origin":null,"timestamp":${System.currentTimeMillis()}}"""
+        coroutineScope {
+            for ((_, sessions) in userSessions) {
+                for (session in sessions) {
+                    launch {
+                        try {
+                            session.send(Frame.Text(message))
+                        } catch (_: Exception) {
+                            // Ignore dead sessions
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fun getActiveSessionCount(userId: String): Int {
         return userSessions[userId]?.size ?: 0
     }

@@ -6,12 +6,15 @@ import de.kjltowinkler.msapp.data.auth.SimpleApiResponse
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import de.kjltowinkler.msapp.data.sync.AdminStatusResponse
 import de.kjltowinkler.msapp.data.sync.ClassTimetableDto
+import de.kjltowinkler.msapp.data.task.SchoolTaskItem
 import de.kjltowinkler.msapp.server.config.ServerConfig
+import de.kjltowinkler.msapp.server.repository.SchoolTaskRepository
 import de.kjltowinkler.msapp.server.repository.SubstitutionServerRepository
 import de.kjltowinkler.msapp.server.repository.TaskRepository
 import de.kjltowinkler.msapp.server.repository.TimetableServerRepository
 import de.kjltowinkler.msapp.server.repository.UserRepository
 import de.kjltowinkler.msapp.server.security.JwtService
+import de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.header
@@ -538,6 +541,55 @@ fun Route.adminRoutes() {
                 } else {
                     val err = result.exceptionOrNull()?.message ?: "Unbekannter Fehler"
                     call.respond(HttpStatusCode.BadGateway, SimpleApiResponse(false, "Synchronisation fehlgeschlagen: $err"))
+                }
+            }
+        }
+
+        // Schulaufgaben (School Tasks) Management
+        route("/school-tasks") {
+            get {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@get
+                }
+                val tasks = SchoolTaskRepository.getAllSchoolTasks()
+                call.respond(HttpStatusCode.OK, tasks)
+            }
+
+            post {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+                val task = runCatching { call.receive<SchoolTaskItem>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Schulaufgabendaten."))
+                    return@post
+                }
+                if (task.title.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Titel der Schulaufgabe darf nicht leer sein."))
+                    return@post
+                }
+                val saved = SchoolTaskRepository.upsertSchoolTask(task)
+                TaskWebSocketManager.broadcastTaskUpdate(reason = "school_task_updated")
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Schulaufgabe '${saved.title}' erfolgreich gespeichert."))
+            }
+
+            delete("/{id}") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@delete
+                }
+                val taskId = call.parameters["id"]
+                if (taskId.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Aufgaben-ID fehlt."))
+                    return@delete
+                }
+                val deleted = SchoolTaskRepository.deleteSchoolTask(taskId)
+                if (deleted) {
+                    TaskWebSocketManager.broadcastTaskUpdate(reason = "school_task_deleted")
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Schulaufgabe erfolgreich gelöscht."))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Schulaufgabe nicht gefunden."))
                 }
             }
         }
