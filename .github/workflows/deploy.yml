@@ -47,6 +47,15 @@ jobs:
           cache-from: type=gha,scope=server
           cache-to: type=gha,mode=max,scope=server
 
+      - name: Trigger Coolify Redeploy
+        if: success()
+        run: |
+          curl -s -X POST "https://panel.getgoonifyed.de/api/v1/deploy" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN || '2|cnEcgd86NV1v0jNwdELdO92Yx8yb8Cjl9cA0ipZIc413b14c' }}" \
+            -H "Content-Type: application/json" \
+            -d '{"uuid": "wwzcnlotgkzznu3xl2bitiuw", "force": true}'
+
+
   build-webapp:
     runs-on: ubuntu-latest
     permissions:
