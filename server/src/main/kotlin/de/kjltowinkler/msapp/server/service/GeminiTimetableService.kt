@@ -192,7 +192,7 @@ Das JSON MUSS exakt folgender Struktur entsprechen:
         "subject": "Deutsch",
         "room": "Raum B208",
         "teacherCode": "Af",
-        "teacherName": "Fr. Affeldt",
+        "teacherName": "Af",
         "teacherEmail": "",
         "teacherOfficeHours": "",
         "breakAfterMinutes": 5,
@@ -220,16 +220,10 @@ Regeln:
    - 7. Stunde: 13:30 - 14:15
    - 8. Stunde: 14:15 - 15:00
    Falls im Bild konkrete abweichende Uhrzeiten stehen, übernimm diese; ansonsten nutze die Standardzeiten oben.
-4. Häufige Lehrer-Kürzel an der Merianschule:
-   - Af: Fr. Affeldt (Deutsch, Ethik)
-   - Ky: Hr. Kaya (Mathematik, Informatik)
-   - Tho / Za: Hr. Thomas / Fr. Zander (Geschichte, PoWi)
-   - Des: Fr. Desch (Englisch, Spanisch)
-   - Me: Fr. Meyer (Biologie, Chemie)
-   - Sn: Hr. Schneider (Physik, Mathematik)
-   - Wb: Hr. Weber (Sport, Erdkunde)
-   - Kr: Fr. Krause (Kunst, Musik)
-   Falls das Kürzel erkannt wird, trage den vollen Lehrernamen bei "teacherName" ein.
+4. Lehrer-Kürzel:
+   - Lies das Lehrer-Kürzel exakt so ab, wie es im Stundenplan-Bild steht (z. B. "Af", "Reu", "Tho", "Ky", "Kne", "Bü", "Hol", "Car").
+   - Trage dieses Kürzel bei "teacherCode" und bei "teacherName" ein.
+   - WICHTIG: Erfinde KEINESFALLS vollständige Vor- oder Nachnamen (wie z. B. "Hr. Knecht" oder "Fr. Reuter")! Bleibe bei Lehrkräften ausnahmslos und strikt bei dem reinen Kürzel aus dem Bild.
 5. Achte darauf, dass für jede erkannte Stunde eine eindeutige ID vergeben wird (z. B. "mon_1", "mon_2", "tue_1" usw.).
 6. Gib AUSSCHLIESSLICH das pure JSON-Objekt zurück. Kein Markdown, keine Backticks.
         """.trimIndent()
@@ -364,18 +358,17 @@ Regeln:
                 val pNum = if (lesson.periodNumber > 0) lesson.periodNumber else (idx + 1)
                 val lessonId = if (lesson.id.isNotBlank()) lesson.id else "${dayId}_$pNum"
                 
-                // Lookup teacher if teacherName missing
-                val teacherInfo = TimetableRepository.teacherDirectory[lesson.teacherCode.trim()]
-                val teacherName = lesson.teacherName.ifBlank { teacherInfo?.fullName ?: "" }
-                val teacherEmail = lesson.teacherEmail.ifBlank { teacherInfo?.email ?: "" }
-                val teacherOfficeHours = lesson.teacherOfficeHours.ifBlank { teacherInfo?.officeHours ?: "" }
+                // Always stick strictly to the original abbreviation/code without invented names
+                val cleanCode = lesson.teacherCode.trim().ifBlank { lesson.teacherName.trim() }
+                val teacherName = cleanCode
 
                 lesson.copy(
                     id = lessonId,
                     periodNumber = pNum,
+                    teacherCode = cleanCode,
                     teacherName = teacherName,
-                    teacherEmail = teacherEmail,
-                    teacherOfficeHours = teacherOfficeHours
+                    teacherEmail = "",
+                    teacherOfficeHours = ""
                 )
             }
         }
