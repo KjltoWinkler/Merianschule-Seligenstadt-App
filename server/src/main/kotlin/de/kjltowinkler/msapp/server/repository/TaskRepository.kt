@@ -6,6 +6,26 @@ import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TaskList
 import de.kjltowinkler.msapp.server.database.DatabaseFactory
 import java.sql.ResultSet
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class AdminUserTaskDto(
+    val id: String,
+    val userId: String,
+    val username: String = "",
+    val fullName: String = "",
+    val className: String = "",
+    val title: String,
+    val description: String = "",
+    val subject: String = "",
+    val dueDate: String = "",
+    val dueTime: String = "",
+    val isCompleted: Boolean = false,
+    val isStarred: Boolean = false,
+    val isSchoolTask: Boolean = false,
+    val listId: String = "my_tasks",
+    val updatedAt: Long = 0L
+)
 
 object TaskRepository {
 
@@ -142,11 +162,55 @@ object TaskRepository {
     }
 
     suspend fun deleteTask(userId: String, taskId: String): Boolean = DatabaseFactory.query { conn ->
-        val sql = "DELETE FROM tasks WHERE id = ? AND user_id = ? AND is_school_task = 0;"
+        val sql = "DELETE FROM tasks WHERE id = ? AND user_id = ? AND (is_school_task = 0 OR id NOT LIKE 'school_task_%');"
         conn.prepareStatement(sql).use { stmt ->
             stmt.setString(1, taskId)
             stmt.setString(2, userId)
             stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun adminDeleteTask(taskId: String): Boolean = DatabaseFactory.query { conn ->
+        val sql = "DELETE FROM tasks WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, taskId)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun getAllUserTasks(): List<AdminUserTaskDto> = DatabaseFactory.query { conn ->
+        val sql = """
+            SELECT t.*, u.username, u.full_name, u.class_name 
+            FROM tasks t 
+            LEFT JOIN users u ON t.user_id = u.id 
+            ORDER BY t.updated_at DESC;
+        """.trimIndent()
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.executeQuery().use { rs ->
+                val list = mutableListOf<AdminUserTaskDto>()
+                while (rs.next()) {
+                    list.add(
+                        AdminUserTaskDto(
+                            id = rs.getString("id"),
+                            userId = rs.getString("user_id"),
+                            username = rs.getString("username") ?: "Unbekannt",
+                            fullName = rs.getString("full_name") ?: "",
+                            className = rs.getString("class_name") ?: "",
+                            title = rs.getString("title"),
+                            description = rs.getString("description") ?: "",
+                            subject = rs.getString("subject") ?: "",
+                            dueDate = rs.getString("due_date") ?: "",
+                            dueTime = rs.getString("due_time") ?: "",
+                            isCompleted = rs.getInt("is_completed") == 1,
+                            isStarred = rs.getInt("is_starred") == 1,
+                            isSchoolTask = rs.getInt("is_school_task") == 1,
+                            listId = rs.getString("list_id") ?: "my_tasks",
+                            updatedAt = rs.getLong("updated_at")
+                        )
+                    )
+                }
+                list
+            }
         }
     }
 
@@ -174,7 +238,7 @@ object TaskRepository {
     suspend fun deleteList(userId: String, listId: String): Boolean = DatabaseFactory.query { conn ->
         if (listId == "my_tasks") return@query false // Cannot delete default list
 
-        conn.prepareStatement("DELETE FROM tasks WHERE list_id = ? AND user_id = ? AND is_school_task = 0;").use { stmt ->
+        conn.prepareStatement("DELETE FROM tasks WHERE list_id = ? AND user_id = ? AND (is_school_task = 0 OR id NOT LIKE 'school_task_%');").use { stmt ->
             stmt.setString(1, listId)
             stmt.setString(2, userId)
             stmt.executeUpdate()
@@ -195,9 +259,9 @@ object TaskRepository {
         return DatabaseFactory.query { conn ->
             val now = System.currentTimeMillis()
 
-            // 0. Löschungen des Clients in der Datenbank anwenden (Schulaufgaben können vom Client nicht gelöscht werden)
+            // 0. Löschungen des Clients in der Datenbank anwenden (Nur offizielle school_task_ Schulaufgaben können vom Client nicht gelöscht werden)
             if (request.deletedTaskIds.isNotEmpty()) {
-                conn.prepareStatement("DELETE FROM tasks WHERE user_id = ? AND id = ? AND is_school_task = 0;").use { stmt ->
+                conn.prepareStatement("DELETE FROM tasks WHERE user_id = ? AND id = ? AND (is_school_task = 0 OR id NOT LIKE 'school_task_%');").use { stmt ->
                     for (id in request.deletedTaskIds) {
                         stmt.setString(1, userId)
                         stmt.setString(2, id)

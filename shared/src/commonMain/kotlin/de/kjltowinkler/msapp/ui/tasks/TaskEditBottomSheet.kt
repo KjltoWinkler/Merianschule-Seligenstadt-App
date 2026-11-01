@@ -121,6 +121,8 @@ fun TaskEditBottomSheet(
     val bottomBrickShape = RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
     val singleBrickShape = RoundedCornerShape(20.dp)
 
+    val isOfficialSchoolTask = task.isSchoolTask && task.id.startsWith("school_task_")
+
     // Speichern bei jeder relevanten Änderung
     fun saveChanges(
         newTitle: String = title,
@@ -133,11 +135,11 @@ fun TaskEditBottomSheet(
         newIsStarred: Boolean = isStarred
     ) {
         val updated = task.copy(
-            title = if (task.isSchoolTask) task.title else newTitle.ifBlank { task.title },
+            title = if (isOfficialSchoolTask) task.title else newTitle.ifBlank { task.title },
             description = newDescription,
-            deadlineDate = if (task.isSchoolTask) task.deadlineDate else newDeadline,
-            dueDate = if (task.isSchoolTask) task.dueDate else newDueDate,
-            dueTime = if (task.isSchoolTask) task.dueTime else newDueTime,
+            deadlineDate = if (isOfficialSchoolTask) task.deadlineDate else newDeadline,
+            dueDate = if (isOfficialSchoolTask) task.dueDate else newDueDate,
+            dueTime = if (isOfficialSchoolTask) task.dueTime else newDueTime,
             isCompleted = newIsCompleted,
             completedDate = newCompletedDate,
             createdDate = createdDate,
@@ -181,24 +183,24 @@ fun TaskEditBottomSheet(
                 BasicTextField(
                     value = title,
                     onValueChange = {
-                        if (!task.isSchoolTask) {
+                        if (!isOfficialSchoolTask) {
                             title = it
                             saveChanges(newTitle = it)
                         }
                     },
-                    readOnly = task.isSchoolTask,
+                    readOnly = isOfficialSchoolTask,
                     textStyle = TextStyle(
                         fontFamily = getQuicksandFontFamily(),
                         color = colorScheme.onSurface,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    cursorBrush = if (task.isSchoolTask) SolidColor(Color.Transparent) else SolidColor(colorScheme.primary),
+                    cursorBrush = if (isOfficialSchoolTask) SolidColor(Color.Transparent) else SolidColor(colorScheme.primary),
                     singleLine = false,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .then(if (!task.isSchoolTask) Modifier.textCursor() else Modifier)
+                        .then(if (!isOfficialSchoolTask) Modifier.textCursor() else Modifier)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -283,7 +285,7 @@ fun TaskEditBottomSheet(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(if (task.isSchoolTask) singleBrickShape else topBrickShape)
+                            .clip(if (isOfficialSchoolTask) singleBrickShape else topBrickShape)
                             .background(brickBackgroundColor)
                     ) {
                         Row(
@@ -346,8 +348,8 @@ fun TaskEditBottomSheet(
                         }
                     }
 
-                    // Bei Schul-Aufgaben können Datum und Uhrzeit nicht geändert werden (von Schule vorgegeben)
-                    if (!task.isSchoolTask) {
+                    // Bei offiziellen Schul-Aufgaben können Datum und Uhrzeit nicht geändert werden (vom Admin vorgegeben)
+                    if (!isOfficialSchoolTask) {
                         // Box 2: Datum hinzufügen (mittlerer Brick)
                         Row(
                             modifier = Modifier
@@ -570,8 +572,8 @@ fun TaskEditBottomSheet(
                     }
                 }
 
-                // --- 6. BUTTON: Löschen (Rot akzentuiert - nur für eigene Aufgaben, nicht für Schulaufgaben) ---
-                if (!task.isSchoolTask) {
+                // --- 6. BUTTON: Löschen (Rot akzentuiert - nur für eigene Aufgaben, nicht für offizielle Schulaufgaben) ---
+                if (!isOfficialSchoolTask) {
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
@@ -606,7 +608,7 @@ fun TaskEditBottomSheet(
     }
 
     // --- BESTÄTIGUNGSDIALOG: Aufgabe löschen ---
-    if (showDeleteConfirmDialog && !task.isSchoolTask) {
+    if (showDeleteConfirmDialog && !isOfficialSchoolTask) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
             icon = {
@@ -640,7 +642,7 @@ fun TaskEditBottomSheet(
                         coroutineScope.launch {
                             sheetState.hide()
                         }.invokeOnCompletion {
-                            if (!task.isSchoolTask) {
+                            if (!isOfficialSchoolTask) {
                                 onDeleteTask(task.id)
                             }
                             onDismissRequest()
@@ -670,7 +672,7 @@ fun TaskEditBottomSheet(
     }
 
     // --- DIALOGS (Datum & Zeit) ---
-    if (showDatePicker && !task.isSchoolTask) {
+    if (showDatePicker && !isOfficialSchoolTask) {
         TaskDatePickerDialog(
             selectedDate = null,
             onDateSelected = { date ->
@@ -692,7 +694,7 @@ fun TaskEditBottomSheet(
         )
     }
 
-    if (showTimePicker && !task.isSchoolTask) {
+    if (showTimePicker && !isOfficialSchoolTask) {
         val initialHour = dueTime.split(":").firstOrNull()?.toIntOrNull() ?: 12
         val initialMinute = dueTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
 
