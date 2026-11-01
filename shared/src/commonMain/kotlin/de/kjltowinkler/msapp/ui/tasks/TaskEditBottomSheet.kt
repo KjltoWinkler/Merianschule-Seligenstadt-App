@@ -133,11 +133,11 @@ fun TaskEditBottomSheet(
         newIsStarred: Boolean = isStarred
     ) {
         val updated = task.copy(
-            title = newTitle.ifBlank { task.title },
+            title = if (task.isSchoolTask) task.title else newTitle.ifBlank { task.title },
             description = newDescription,
-            deadlineDate = newDeadline,
-            dueDate = newDueDate,
-            dueTime = newDueTime,
+            deadlineDate = if (task.isSchoolTask) task.deadlineDate else newDeadline,
+            dueDate = if (task.isSchoolTask) task.dueDate else newDueDate,
+            dueTime = if (task.isSchoolTask) task.dueTime else newDueTime,
             isCompleted = newIsCompleted,
             completedDate = newCompletedDate,
             createdDate = createdDate,
@@ -181,21 +181,24 @@ fun TaskEditBottomSheet(
                 BasicTextField(
                     value = title,
                     onValueChange = {
-                        title = it
-                        saveChanges(newTitle = it)
+                        if (!task.isSchoolTask) {
+                            title = it
+                            saveChanges(newTitle = it)
+                        }
                     },
+                    readOnly = task.isSchoolTask,
                     textStyle = TextStyle(
                         fontFamily = getQuicksandFontFamily(),
                         color = colorScheme.onSurface,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    cursorBrush = SolidColor(colorScheme.primary),
+                    cursorBrush = if (task.isSchoolTask) SolidColor(Color.Transparent) else SolidColor(colorScheme.primary),
                     singleLine = false,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .textCursor()
+                        .then(if (!task.isSchoolTask) Modifier.textCursor() else Modifier)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -276,11 +279,11 @@ fun TaskEditBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    // Box 1: Details hinzufügen / bearbeiten (oberer Brick)
+                    // Box 1: Details hinzufügen / bearbeiten (oberer Brick bzw. single brick bei Schul-Aufgaben)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(topBrickShape)
+                            .clip(if (task.isSchoolTask) singleBrickShape else topBrickShape)
                             .background(brickBackgroundColor)
                     ) {
                         Row(
@@ -343,110 +346,113 @@ fun TaskEditBottomSheet(
                         }
                     }
 
-                    // Box 2: Datum hinzufügen (mittlerer Brick)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(middleBrickShape)
-                            .background(brickBackgroundColor)
-                            .clickable { showDatePicker = true }
-                            .handCursor()
-                            .defaultMinSize(minHeight = 54.dp)
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    // Bei Schul-Aufgaben können Datum und Uhrzeit nicht geändert werden (von Schule vorgegeben)
+                    if (!task.isSchoolTask) {
+                        // Box 2: Datum hinzufügen (mittlerer Brick)
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(middleBrickShape)
+                                .background(brickBackgroundColor)
+                                .clickable { showDatePicker = true }
+                                .handCursor()
+                                .defaultMinSize(minHeight = 54.dp)
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.weight(1f, fill = false)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_today),
-                                contentDescription = null,
-                                tint = actionIconTint,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Text(
-                                text = if (dueDate.isNotBlank()) "Datum: $dueDate" else "Datum hinzufügen",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colorScheme.onSurface
-                            )
-                        }
-
-                        if (dueDate.isNotBlank()) {
-                            IconButton(
-                                onClick = {
-                                    dueDate = ""
-                                    val newDeadline = if (dueTime.isNotBlank()) "$dueTime Uhr" else ""
-                                    deadlineDate = newDeadline
-                                    saveChanges(newDueDate = "", newDeadline = newDeadline)
-                                },
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .handCursor()
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                modifier = Modifier.weight(1f, fill = false)
                             ) {
                                 Icon(
-                                    painter = painterResource(Res.drawable.ic_close),
-                                    contentDescription = "Datum entfernen",
-                                    tint = colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    painter = painterResource(Res.drawable.ic_today),
+                                    contentDescription = null,
+                                    tint = actionIconTint,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = if (dueDate.isNotBlank()) "Datum: $dueDate" else "Datum hinzufügen",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
                                 )
                             }
-                        }
-                    }
 
-                    // Box 3: Zeit hinzufügen (unterer Brick)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(bottomBrickShape)
-                            .background(brickBackgroundColor)
-                            .clickable { showTimePicker = true }
-                            .handCursor()
-                            .defaultMinSize(minHeight = 54.dp)
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                            if (dueDate.isNotBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        dueDate = ""
+                                        val newDeadline = if (dueTime.isNotBlank()) "$dueTime Uhr" else ""
+                                        deadlineDate = newDeadline
+                                        saveChanges(newDueDate = "", newDeadline = newDeadline)
+                                    },
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .handCursor()
+                                    ) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_close),
+                                        contentDescription = "Datum entfernen",
+                                        tint = colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Box 3: Zeit hinzufügen (unterer Brick)
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(bottomBrickShape)
+                                .background(brickBackgroundColor)
+                                .clickable { showTimePicker = true }
+                                .handCursor()
+                                .defaultMinSize(minHeight = 54.dp)
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.weight(1f, fill = false)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_schedule),
-                                contentDescription = null,
-                                tint = actionIconTint,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Text(
-                                text = if (dueTime.isNotBlank()) "Zeit: $dueTime Uhr" else "Zeit hinzufügen",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colorScheme.onSurface
-                            )
-                        }
-
-                        if (dueTime.isNotBlank()) {
-                            IconButton(
-                                onClick = {
-                                    dueTime = ""
-                                    val newDeadline = dueDate
-                                    deadlineDate = newDeadline
-                                    saveChanges(newDueTime = "", newDeadline = newDeadline)
-                                },
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .handCursor()
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                modifier = Modifier.weight(1f, fill = false)
                             ) {
                                 Icon(
-                                    painter = painterResource(Res.drawable.ic_close),
-                                    contentDescription = "Zeit entfernen",
-                                    tint = colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp)
+                                    painter = painterResource(Res.drawable.ic_schedule),
+                                    contentDescription = null,
+                                    tint = actionIconTint,
+                                    modifier = Modifier.size(22.dp)
                                 )
+                                Text(
+                                    text = if (dueTime.isNotBlank()) "Zeit: $dueTime Uhr" else "Zeit hinzufügen",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
+                                )
+                            }
+
+                            if (dueTime.isNotBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        dueTime = ""
+                                        val newDeadline = dueDate
+                                        deadlineDate = newDeadline
+                                        saveChanges(newDueTime = "", newDeadline = newDeadline)
+                                    },
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .handCursor()
+                                    ) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_close),
+                                        contentDescription = "Zeit entfernen",
+                                        tint = colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -664,7 +670,7 @@ fun TaskEditBottomSheet(
     }
 
     // --- DIALOGS (Datum & Zeit) ---
-    if (showDatePicker) {
+    if (showDatePicker && !task.isSchoolTask) {
         TaskDatePickerDialog(
             selectedDate = null,
             onDateSelected = { date ->
@@ -686,7 +692,7 @@ fun TaskEditBottomSheet(
         )
     }
 
-    if (showTimePicker) {
+    if (showTimePicker && !task.isSchoolTask) {
         val initialHour = dueTime.split(":").firstOrNull()?.toIntOrNull() ?: 12
         val initialMinute = dueTime.split(":").getOrNull(1)?.toIntOrNull() ?: 0
 

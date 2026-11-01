@@ -367,7 +367,7 @@ fun TasksScreen(
                                     IconButton(
                                         onClick = { showSortBottomSheet = true },
                                         modifier = Modifier
-                                            .size(32.dp)
+                                            .size(48.dp)
                                             .handCursor()
                                     ) {
                                         Icon(
@@ -390,7 +390,7 @@ fun TasksScreen(
                                             }
                                         },
                                         modifier = Modifier
-                                            .size(32.dp)
+                                            .size(48.dp)
                                             .handCursor()
                                     ) {
                                         Icon(

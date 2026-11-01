@@ -185,17 +185,17 @@ object SubstitutionRepository {
     private var cachedLiveEntries: List<SubstitutionEntry>? = null
 
     /**
-     * Liefert sofort verfügbare Einträge aus dem Speicher (Cache oder Fallback-Daten),
+     * Liefert sofort verfügbare Einträge aus dem Speicher (nur noch echter Cache, keine veralteten Mock-Daten),
      * ohne eine Netzwerk- oder I/O-Verzögerung.
      */
     fun getInitialOrCachedEntries(): List<SubstitutionEntry> {
-        return cachedLiveEntries ?: defaultEntries
+        return cachedLiveEntries ?: emptyList()
     }
 
     /**
      * Zuletzt vom Schulportal übermittelter Zeitstempel der Aktualisierung.
      */
-    var lastUpdatedText: String = "Letzte Aktualisierung: 22.10.2026 um 10:25:48 Uhr"
+    var lastUpdatedText: String = ""
         private set
 
     /**
