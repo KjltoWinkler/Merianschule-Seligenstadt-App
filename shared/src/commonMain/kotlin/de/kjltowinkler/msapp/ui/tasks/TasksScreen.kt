@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -204,94 +205,91 @@ fun TasksScreen(
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val tabInteractionSource = remember { MutableInteractionSource() }
-                    ToggleButton(
-                        checked = pagerState.currentPage == index,
-                        onCheckedChange = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
-                            }
-                        },
-                        interactionSource = tabInteractionSource,
-                        shapes = when (index) {
-                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                            tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                        },
-                        modifier = Modifier
-                            .handCursor()
-                            .pointerInput(index) {
-                                detectTapGestures(
-                                    onPress = { offset ->
-                                        val press = PressInteraction.Press(offset)
-                                        tabInteractionSource.emit(press)
-                                        val released = tryAwaitRelease()
-                                        if (released) {
-                                            tabInteractionSource.emit(PressInteraction.Release(press))
-                                        } else {
-                                            tabInteractionSource.emit(PressInteraction.Cancel(press))
-                                        }
-                                    },
-                                    onTap = {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(index)
-                                        }
-                                    },
-                                    onLongPress = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        showReorderListsSheet = true
-                                    }
-                                )
-                            }
-                            .semantics { role = Role.RadioButton },
-                    ) {
-                        when (tab) {
-                            TasksTab.Starred -> {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_star_filled),
-                                    contentDescription = "Markiert",
-                                    modifier = Modifier.size(ToggleButtonDefaults.IconSize),
-                                )
-                            }
-                            TasksTab.School -> {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = "Schul-Aufgaben",
-                                        softWrap = false
+                    Box(modifier = Modifier.wrapContentSize()) {
+                        ToggleButton(
+                            checked = pagerState.currentPage == index,
+                            onCheckedChange = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            },
+                            interactionSource = tabInteractionSource,
+                            shapes = when (index) {
+                                0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                            },
+                            modifier = Modifier.handCursor()
+                        ) {
+                            when (tab) {
+                                TasksTab.Starred -> {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_star_filled),
+                                        contentDescription = "Markiert",
+                                        modifier = Modifier.size(ToggleButtonDefaults.IconSize),
                                     )
-                                    if (schoolTasksCount > 0) {
-                                        TaskCountBadge(
-                                            count = schoolTasksCount,
-                                            backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
-                                            textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                }
+                                TasksTab.School -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "Schul-Aufgaben",
+                                            softWrap = false
                                         )
+                                        if (schoolTasksCount > 0) {
+                                            TaskCountBadge(
+                                                count = schoolTasksCount,
+                                                backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
+                                                textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            is TasksTab.Private -> {
-                                val count = allTasks.count {
-                                    !it.isSchoolTask && !it.isCompleted && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
-                                }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = tab.list.title,
-                                        softWrap = false
-                                    )
-                                    if (count > 0) {
-                                        TaskCountBadge(
-                                            count = count,
-                                            backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
-                                            textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                is TasksTab.Private -> {
+                                    val count = allTasks.count {
+                                        !it.isSchoolTask && !it.isCompleted && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = tab.list.title,
+                                            softWrap = false
                                         )
+                                        if (count > 0) {
+                                            TaskCountBadge(
+                                                count = count,
+                                                backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
+                                                textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
+
+                        // Unsichtbarer Touch-Interceptor darüber, der Klick & Long-Press zuverlässig abfängt
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .combinedClickable(
+                                    interactionSource = tabInteractionSource,
+                                    indication = null,
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        showReorderListsSheet = true
+                                    }
+                                )
+                                .semantics { role = Role.RadioButton }
+                        )
                     }
                 }
             }
@@ -918,6 +916,11 @@ fun TasksScreen(
                 onDismissRequest = {
                     showEditListSheet = false
                     selectedListForEdit = null
+                },
+                onReorderLists = {
+                    showEditListSheet = false
+                    selectedListForEdit = null
+                    showReorderListsSheet = true
                 },
                 onRenameList = { newTitle ->
                     TasksRepository.renamePrivateList(list.id, newTitle)

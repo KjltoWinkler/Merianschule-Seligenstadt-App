@@ -43,6 +43,7 @@ fun EditListBottomSheet(
     onDeleteCompletedTasks: () -> Unit = {},
     onDeleteAllTasks: () -> Unit = {},
     onDeleteList: (() -> Unit)? = null,
+    onReorderLists: () -> Unit = {},
     areAllCompleted: Boolean = false,
     areAllStarred: Boolean = false,
     useMaterialYou: Boolean = true,
@@ -303,30 +304,63 @@ fun EditListBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 1. BLOCK: Liste umbenennen ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(singleBrickShape)
-                    .background(brickBackgroundColor)
-                    .clickable { showRenameDialog = true }
-                    .defaultMinSize(minHeight = 54.dp)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            // --- 1. BLOCK: Liste umbenennen & Listen neu anordnen ---
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_edit),
-                    contentDescription = null,
-                    tint = actionIconTint,
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = "Liste umbenennen",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorScheme.onSurface
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(topBrickShape)
+                        .background(brickBackgroundColor)
+                        .clickable { showRenameDialog = true }
+                        .defaultMinSize(minHeight = 54.dp)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_edit),
+                        contentDescription = null,
+                        tint = actionIconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Liste umbenennen",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colorScheme.onSurface
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(bottomBrickShape)
+                        .background(brickBackgroundColor)
+                        .clickable {
+                            onDismissRequest()
+                            onReorderLists()
+                        }
+                        .defaultMinSize(minHeight = 54.dp)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_drag_indicator),
+                        contentDescription = null,
+                        tint = actionIconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Listen neu anordnen",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colorScheme.onSurface
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
