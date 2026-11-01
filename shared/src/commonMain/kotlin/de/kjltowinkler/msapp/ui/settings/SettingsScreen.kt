@@ -22,8 +22,6 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.ui.components.handCursor
  
@@ -42,16 +40,6 @@ fun SettingsScreen(
     onSchoolWayClicked: () -> Unit = {},
     onCoursesClicked: () -> Unit = {}
 ) {
-    val clipboardManager = LocalClipboardManager.current
-    var isCopied by remember { mutableStateOf(false) }
-
-    if (isCopied) {
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(2000)
-            isCopied = false
-        }
-    }
-
     var delayWarningsEnabled by rememberSaveable { mutableStateOf(true) }
     var relaxedDismissalEnabled by rememberSaveable { mutableStateOf(true) }
     var taskReminderEnabled by rememberSaveable { mutableStateOf(true) }
@@ -121,79 +109,6 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // --- BEREICH: Schüler-Account & ID ---
-            CategoryHeader(title = "Schüler-Account & Ausweis", color = categoryHeader)
-
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = cardBackground,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Schüler-ID",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    color = textSecondary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = studentId.ifBlank { "#104829" },
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 22.sp,
-                                    letterSpacing = 1.sp
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Mit dieser ID oder deinem Nutzernamen kannst du dich jederzeit anmelden.",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = textSecondary,
-                                    lineHeight = 16.sp
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        FilledTonalButton(
-                            onClick = {
-                                clipboardManager.setText(AnnotatedString(studentId.ifBlank { "#104829" }))
-                                isCopied = true
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            modifier = Modifier.handCursor()
-                        ) {
-                            Icon(
-                                painter = painterResource(if (isCopied) Res.drawable.ic_check else Res.drawable.ic_content_copy),
-                                contentDescription = "Kopieren",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isCopied) "Kopiert" else "Kopieren",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // --- BEREICH 0: Unterricht & Kurse ---
             CategoryHeader(title = "Unterricht & Kurse", color = categoryHeader)

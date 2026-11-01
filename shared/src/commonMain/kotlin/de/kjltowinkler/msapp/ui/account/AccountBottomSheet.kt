@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +27,7 @@ import de.kjltowinkler.msapp.theme.FigmaBackgroundDark
 import de.kjltowinkler.msapp.theme.FigmaButtonSecondaryDark
 import de.kjltowinkler.msapp.theme.FigmaLinkGreen
 import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
+import kotlinx.coroutines.delay
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -63,6 +66,16 @@ fun AccountBottomSheet(
     modifier: Modifier = Modifier
 ) {
     val uriHandler = LocalUriHandler.current
+    val clipboardManager = LocalClipboardManager.current
+    var isStudentIdCopied by remember { mutableStateOf(false) }
+
+    if (isStudentIdCopied) {
+        LaunchedEffect(Unit) {
+            delay(2000)
+            isStudentIdCopied = false
+        }
+    }
+
     var showAvatarPicker by remember { mutableStateOf(false) }
 
     // Dynamische Material You-Farben mit Figma-Fallback wie in SubstitutionDetailBottomSheet & TaskEditBottomSheet
@@ -332,9 +345,19 @@ fun AccountBottomSheet(
                     )
                 }
 
-                // Schüler-ID
+                // Schüler-ID mit Copy-Icon
                 if (studentId.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                clipboardManager.setText(AnnotatedString(studentId))
+                                isStudentIdCopied = true
+                            }
+                            .handCursor()
+                            .padding(vertical = 2.dp, horizontal = 2.dp)
+                    ) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_person),
                             contentDescription = null,
@@ -349,6 +372,13 @@ fun AccountBottomSheet(
                                 fontWeight = FontWeight.Bold,
                                 color = textSecondaryColor
                             )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(if (isStudentIdCopied) Res.drawable.ic_check else Res.drawable.ic_content_copy),
+                            contentDescription = "Schüler-ID kopieren",
+                            tint = if (isStudentIdCopied) MaterialTheme.colorScheme.primary else metaIconTint,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
