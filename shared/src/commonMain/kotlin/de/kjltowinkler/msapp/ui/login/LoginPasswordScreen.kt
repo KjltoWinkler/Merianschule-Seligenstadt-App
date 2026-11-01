@@ -52,6 +52,8 @@ fun LoginPasswordScreen(
     avatarPainter: Painter? = null,
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onBackClicked: () -> Unit = {},
     onNextClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
@@ -70,6 +72,9 @@ fun LoginPasswordScreen(
         }
     }
 
+    val hasError = isError || !errorMessage.isNullOrBlank()
+    val displayErrorText = errorMessage ?: if (isError) "Bitte gib dein Passwort ein" else null
+
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -79,6 +84,8 @@ fun LoginPasswordScreen(
                 avatarPainter = avatarPainter,
                 initialPassword = initialPassword,
                 passwordState = passwordState,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onNextClicked = onNextClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onForgotPasswordClicked = onForgotPasswordClicked
@@ -186,18 +193,19 @@ fun LoginPasswordScreen(
                 // 6. OutlinedSecureTextField mit Sichtbarkeits-Toggle & Error-Status
                 OutlinedSecureTextField(
                     state = passwordState,
-                    label = { Text(if (isError) "Passwort*" else "Passwort") },
-                    isError = isError,
+                    label = { Text(if (hasError) "Passwort*" else "Passwort") },
+                    isError = hasError,
                     colors = OutlinedTextFieldDefaults.colors(
                         errorBorderColor = customErrorColor,
                         errorLabelColor = customErrorColor,
                         errorSupportingTextColor = customErrorColor,
                         errorCursorColor = customErrorColor
                     ),
-                    supportingText = if (isError) {
+                    supportingText = if (displayErrorText != null) {
                         {
                             Text(
-                                text = "Bitte gib dein Passwort ein",
+                                text = displayErrorText,
+                                color = customErrorColor,
                                 modifier = Modifier.clearAndSetSemantics {}
                             )
                         }
@@ -210,12 +218,14 @@ fun LoginPasswordScreen(
                         imeAction = ImeAction.Done
                     ),
                     onKeyboardAction = {
-                        val password = passwordState.text.toString().trim()
-                        if (password.isNotBlank()) {
-                            keyboardController?.hide()
-                            onNextClicked(password)
-                        } else {
-                            isError = true
+                        if (!isLoading) {
+                            val password = passwordState.text.toString().trim()
+                            if (password.isNotBlank()) {
+                                keyboardController?.hide()
+                                onNextClicked(password)
+                            } else {
+                                isError = true
+                            }
                         }
                     },
                     trailingIcon = {
@@ -232,7 +242,7 @@ fun LoginPasswordScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics {
-                            if (isError) error("Bitte gib dein Passwort ein")
+                            if (hasError) error(displayErrorText ?: "Fehler bei der Passworteingabe")
                         }
                 )
 
@@ -268,10 +278,13 @@ fun LoginPasswordScreen(
                         isError = true
                     }
                 },
+                enabled = !isLoading,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                 ),
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
@@ -283,24 +296,32 @@ fun LoginPasswordScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Weiter",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Weiter",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
 
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_arrow_forward),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 28.dp)
-                            .size(31.dp)
-                    )
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_forward),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 28.dp)
+                                .size(31.dp)
+                        )
+                    }
                 }
             }
         }

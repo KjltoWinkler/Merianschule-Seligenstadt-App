@@ -24,14 +24,18 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import de.kjltowinkler.msapp.data.auth.LoginRequest
+import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.ui.components.LocalPredictiveBackEnabled
 import de.kjltowinkler.msapp.ui.onboarding.OnboardingOneTimePasswordScreen
 import de.kjltowinkler.msapp.ui.onboarding.OnboardingUsernameScreen
 import de.kjltowinkler.msapp.ui.onboarding.OnboardingWelcomeScreen
+import kotlinx.coroutines.launch
 
 object AppRoutes {
     const val WELCOME = "welcome"
@@ -123,7 +127,7 @@ fun createMockAccount(
         lower.contains("wagner") || lower.contains("sebastian") -> {
             MockAccountState(
                 username = if (clean.isNotBlank()) clean else "Sebastian Wagner",
-                email = "sebastian.wagner@mssof.onmicrosoft.com",
+                email = if (clean.contains("@")) clean else "sebastian.wagner@mssof.onmicrosoft.com",
                 className = "9aR",
                 schoolType = "Realschule",
                 classTeacher = "Hr. Thomas",
@@ -135,10 +139,13 @@ fun createMockAccount(
         }
         else -> {
             val name = if (clean.isNotBlank()) clean else "Sebastian Wagner"
-            val emailPrefix = name.lowercase().replace("\\s+".toRegex(), ".")
+            val email = if (clean.contains("@")) clean else {
+                val emailPrefix = name.lowercase().replace("\\s+".toRegex(), ".")
+                "$emailPrefix@mssof.onmicrosoft.com"
+            }
             MockAccountState(
                 username = name,
-                email = "$emailPrefix@mssof.onmicrosoft.com",
+                email = email,
                 className = "8bR",
                 schoolType = "Realschule",
                 classTeacher = "Fr. Hoffmann",
@@ -166,9 +173,13 @@ fun App() {
 
             PlatformNavigationBackHandler(navController)
 
-        // Beispiel-Status für Demozwecke (später durch Backend / Admin-Verwaltung ersetzt)
-        var currentAccount by androidx.compose.runtime.remember {
-            androidx.compose.runtime.mutableStateOf(
+        val coroutineScope = rememberCoroutineScope()
+        var loginError by remember { mutableStateOf<String?>(null) }
+        var isLoggingIn by remember { mutableStateOf(false) }
+
+        // Aktueller Account-Status
+        var currentAccount by remember {
+            mutableStateOf(
                 MockAccountState()
             )
         }
@@ -241,17 +252,18 @@ fun App() {
                         OnboardingUsernameScreen(
                             onBackClicked = {},
                             onNextClicked = { enteredUsername ->
-                                val hasCustomPwd = enteredUsername.contains("login", ignoreCase = true) ||
-                                                  enteredUsername.contains("wagner", ignoreCase = true)
+                                val hasOtp = enteredUsername.contains("otp", ignoreCase = true) ||
+                                            enteredUsername.contains("einmal", ignoreCase = true)
                                 val has2Fa = enteredUsername.contains("2fa", ignoreCase = true)
 
                                 currentAccount = createMockAccount(
                                     enteredUsername = enteredUsername,
-                                    hasCustomPassword = hasCustomPwd,
+                                    hasCustomPassword = !hasOtp,
                                     isTwoFactorEnabled = has2Fa
                                 )
+                                loginError = null
 
-                                if (!hasCustomPwd) {
+                                if (hasOtp) {
                                     navController.navigate(AppRoutes.ONE_TIME_PASSWORD)
                                 } else {
                                     navController.navigate(AppRoutes.LOGIN_PASSWORD)
@@ -276,29 +288,26 @@ fun App() {
                                 navController.popBackStack()
                             }
                         },
-                    onNextClicked = { enteredUsername ->
-                        // Falls der Nutzername "login" oder "test" enthält, simulieren wir einen bestehenden Account mit eigenem Passwort
-                        val hasCustomPwd = enteredUsername.contains("login", ignoreCase = true) ||
-                                          enteredUsername.contains("wagner", ignoreCase = true)
-                        // Prüfen ob 2FA aktiv ist (z. B. wenn "2fa" im Namen steht)
-                        val has2Fa = enteredUsername.contains("2fa", ignoreCase = true)
+                        onNextClicked = { enteredUsername ->
+                            val hasOtp = enteredUsername.contains("otp", ignoreCase = true) ||
+                                        enteredUsername.contains("einmal", ignoreCase = true)
+                            val has2Fa = enteredUsername.contains("2fa", ignoreCase = true)
 
-                        currentAccount = createMockAccount(
-                            enteredUsername = enteredUsername,
-                            hasCustomPassword = hasCustomPwd,
-                            isTwoFactorEnabled = has2Fa
-                        )
+                            currentAccount = createMockAccount(
+                                enteredUsername = enteredUsername,
+                                hasCustomPassword = !hasOtp,
+                                isTwoFactorEnabled = has2Fa
+                            )
+                            loginError = null
 
-                        if (!hasCustomPwd) {
-                            // Account hat noch kein eigenes Passwort -> Einmal-Passwort Screen
-                            navController.navigate(AppRoutes.ONE_TIME_PASSWORD)
-                        } else {
-                            // Account hat schon ein eigenes Passwort -> Regulärer Login-Passwort Screen
-                            navController.navigate(AppRoutes.LOGIN_PASSWORD)
+                            if (hasOtp) {
+                                navController.navigate(AppRoutes.ONE_TIME_PASSWORD)
+                            } else {
+                                navController.navigate(AppRoutes.LOGIN_PASSWORD)
+                            }
                         }
-                    }
-                )
-            }
+                    )
+                }
             
             // --- PFAD A: ONBOARDING / ERSTEINRICHTUNG (Einmalpasswort) ---
             composable(AppRoutes.ONE_TIME_PASSWORD) {
@@ -401,24 +410,85 @@ fun App() {
             composable(AppRoutes.LOGIN_PASSWORD) {
                 de.kjltowinkler.msapp.ui.login.LoginPasswordScreen(
                     accountName = currentAccount.username,
+                    isLoading = isLoggingIn,
+                    errorMessage = loginError,
                     onBackClicked = {
+                        loginError = null
                         navController.popBackStack()
                     },
                     onChangeAccountClicked = {
+                        loginError = null
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
                     onNextClicked = { password ->
-                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedSchoolId = "4322"
-                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedUsername = currentAccount.username
-                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedPassword = password
+                        loginError = null
+                        isLoggingIn = true
 
-                        // Nach Passworteingabe: Prüfen ob 2FA an ist
-                        if (currentAccount.isTwoFactorEnabled) {
-                            // Wenn 2FA an ist -> Willkommen zurück Screen
-                            navController.navigate(AppRoutes.LOGIN_READY)
+                        val identifier = if (currentAccount.email.isNotBlank() && currentAccount.email.contains("@")) {
+                            currentAccount.email
                         } else {
-                            // Wenn 2FA noch nicht an ist -> Nachfragen / 2FA Einrichten anbieten
-                            navController.navigate(AppRoutes.TWO_FACTOR_AUTH)
+                            currentAccount.username
+                        }
+
+                        coroutineScope.launch {
+                            val result = BackendApiClient.login(LoginRequest(usernameOrEmail = identifier, password = password))
+                                .recoverCatching {
+                                    // Fallback: Wenn Login mit E-Mail fehlschlug, versuchen wir es mit dem Benutzernamen
+                                    if (identifier != currentAccount.username && currentAccount.username.isNotBlank()) {
+                                        BackendApiClient.login(LoginRequest(usernameOrEmail = currentAccount.username, password = password)).getOrThrow()
+                                    } else {
+                                        throw it
+                                    }
+                                }
+
+                            result.onSuccess { auth ->
+                                isLoggingIn = false
+                                loginError = null
+
+                                currentAccount = MockAccountState(
+                                    username = auth.user.fullName.ifBlank { auth.user.username },
+                                    email = auth.user.email,
+                                    className = auth.user.className,
+                                    schoolType = auth.user.schoolType,
+                                    classTeacher = auth.user.classTeacher,
+                                    avatarType = auth.user.avatarType,
+                                    avatarColorHex = auth.user.avatarColorHex,
+                                    hasCustomPassword = true,
+                                    isTwoFactorEnabled = currentAccount.isTwoFactorEnabled
+                                )
+
+                                // Kurse synchronisieren / laden
+                                BackendApiClient.fetchUserCourses().onSuccess { courses ->
+                                    de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
+                                }
+
+                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedSchoolId = "4322"
+                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedUsername = auth.user.username
+                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedPassword = password
+
+                                if (currentAccount.isTwoFactorEnabled) {
+                                    navController.navigate(AppRoutes.LOGIN_READY)
+                                } else {
+                                    navController.navigate(AppRoutes.HOME) {
+                                        popUpTo(initialRoute) { inclusive = true }
+                                    }
+                                }
+                            }.onFailure { err ->
+                                isLoggingIn = false
+                                val msg = err.message ?: "Anmeldung fehlgeschlagen."
+                                loginError = when {
+                                    msg.contains("ConnectException") || msg.contains("UnresolvedAddressException") || msg.contains("Failed to connect") -> {
+                                        "Verbindung zum Server fehlgeschlagen. Bitte prüfe deine Internetverbindung."
+                                    }
+                                    msg.contains("401") || msg.contains("falsch", ignoreCase = true) || msg.contains("ungültig", ignoreCase = true) -> {
+                                        "Benutzername oder Passwort ist falsch."
+                                    }
+                                    else -> {
+                                        msg.removePrefix("java.lang.IllegalStateException: ")
+                                           .removePrefix("IllegalStateException: ")
+                                    }
+                                }
+                            }
                         }
                     }
                 )
@@ -457,6 +527,8 @@ fun App() {
                         navController.navigate(AppRoutes.SETTINGS)
                     },
                     onLogoutClicked = {
+                        BackendApiClient.logout()
+                        de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(emptyList())
                         navController.navigate(initialRoute) {
                             popUpTo(0) { inclusive = true }
                         }

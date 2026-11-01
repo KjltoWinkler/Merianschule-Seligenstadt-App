@@ -41,6 +41,8 @@ fun DesktopLoginPasswordScreen(
     avatarPainter: Painter? = null,
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onNextClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onForgotPasswordClicked: () -> Unit = {}
@@ -57,6 +59,9 @@ fun DesktopLoginPasswordScreen(
     }
 
     val customErrorColor = Color(0xFFFF7164)
+
+    val hasError = isError || !errorMessage.isNullOrBlank()
+    val displayErrorText = errorMessage ?: if (isError) "Bitte gib dein Passwort ein" else null
 
     DesktopScreenScaffold(
         artworkVariant = DesktopArtworkVariant.LOGIN_PASSWORD
@@ -101,7 +106,7 @@ fun DesktopLoginPasswordScreen(
         OutlinedSecureTextField(
             state = passwordState,
             textObfuscationMode = if (passwordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
-            label = { Text(if (isError) "Passwort*" else "Passwort") },
+            label = { Text(if (hasError) "Passwort*" else "Passwort") },
             trailingIcon = {
                 IconButton(
                     onClick = { passwordHidden = !passwordHidden },
@@ -116,7 +121,7 @@ fun DesktopLoginPasswordScreen(
                     )
                 }
             },
-            isError = isError,
+            isError = hasError,
             shape = RoundedCornerShape(4.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = DesktopAccentBlue,
@@ -133,10 +138,11 @@ fun DesktopLoginPasswordScreen(
                 errorSupportingTextColor = customErrorColor,
                 errorCursorColor = customErrorColor
             ),
-            supportingText = if (isError) {
+            supportingText = if (displayErrorText != null) {
                 {
                     Text(
-                        text = "Bitte gib dein Passwort ein",
+                        text = displayErrorText,
+                        color = customErrorColor,
                         modifier = Modifier.clearAndSetSemantics {}
                     )
                 }
@@ -148,18 +154,20 @@ fun DesktopLoginPasswordScreen(
                 imeAction = ImeAction.Done
             ),
             onKeyboardAction = {
-                val pwd = passwordState.text.toString().trim()
-                if (pwd.isNotBlank()) {
-                    keyboardController?.hide()
-                    onNextClicked(pwd)
-                } else {
-                    isError = true
+                if (!isLoading) {
+                    val pwd = passwordState.text.toString().trim()
+                    if (pwd.isNotBlank()) {
+                        keyboardController?.hide()
+                        onNextClicked(pwd)
+                    } else {
+                        isError = true
+                    }
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
-                    if (isError) error("Bitte gib dein Passwort ein")
+                    if (hasError) error(displayErrorText ?: "Fehler bei der Passworteingabe")
                 }
         )
 
@@ -195,10 +203,13 @@ fun DesktopLoginPasswordScreen(
                     isError = true
                 }
             },
+            enabled = !isLoading,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = DesktopAccentBlue,
-                contentColor = DesktopOnAccentBlue
+                contentColor = DesktopOnAccentBlue,
+                disabledContainerColor = DesktopAccentBlue.copy(alpha = 0.6f),
+                disabledContentColor = DesktopOnAccentBlue.copy(alpha = 0.8f)
             ),
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier
@@ -207,14 +218,22 @@ fun DesktopLoginPasswordScreen(
                 .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
-            Text(
-                text = "Weiter",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = DesktopOnAccentBlue
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = DesktopOnAccentBlue,
+                    strokeWidth = 2.5.dp
+                )
+            } else {
+                Text(
+                    text = "Weiter",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = DesktopOnAccentBlue
+                )
+            }
         }
     }
 
