@@ -22,6 +22,8 @@ object TasksRepository {
     private const val KEY_CACHED_LISTS = "cached_task_lists"
     private const val KEY_PENDING_DEL_TASKS = "pending_deleted_tasks"
     private const val KEY_PENDING_DEL_LISTS = "pending_deleted_lists"
+    private const val KEY_DIRTY_TASKS = "dirty_tasks"
+    private const val KEY_DIRTY_LISTS = "dirty_task_lists"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -147,6 +149,8 @@ object TasksRepository {
             PlatformStorage.setString(KEY_CACHED_LISTS, json.encodeToString(privateLists.toList()))
             PlatformStorage.setString(KEY_PENDING_DEL_TASKS, json.encodeToString(_pendingDeletedTaskIds.toList()))
             PlatformStorage.setString(KEY_PENDING_DEL_LISTS, json.encodeToString(_pendingDeletedListIds.toList()))
+            PlatformStorage.setString(KEY_DIRTY_TASKS, json.encodeToString(_dirtyTaskIds.toList()))
+            PlatformStorage.setString(KEY_DIRTY_LISTS, json.encodeToString(_dirtyListIds.toList()))
         }
     }
 
@@ -161,6 +165,17 @@ object TasksRepository {
             if (!delListsJson.isNullOrBlank()) {
                 val ids = json.decodeFromString<List<String>>(delListsJson)
                 _pendingDeletedListIds.addAll(ids)
+            }
+
+            val dirtyTasksJson = PlatformStorage.getString(KEY_DIRTY_TASKS)
+            val dirtyListsJson = PlatformStorage.getString(KEY_DIRTY_LISTS)
+            if (!dirtyTasksJson.isNullOrBlank()) {
+                val ids = json.decodeFromString<List<String>>(dirtyTasksJson)
+                _dirtyTaskIds.addAll(ids)
+            }
+            if (!dirtyListsJson.isNullOrBlank()) {
+                val ids = json.decodeFromString<List<String>>(dirtyListsJson)
+                _dirtyListIds.addAll(ids)
             }
 
             val listsJson = PlatformStorage.getString(KEY_CACHED_LISTS)
@@ -224,17 +239,20 @@ object TasksRepository {
                 if (response != null) {
                     _pendingDeletedTaskIds.removeAll(delTasks.toSet())
                     _pendingDeletedListIds.removeAll(delLists.toSet())
-                    _dirtyTaskIds.clear()
-                    _dirtyListIds.clear()
+                    _dirtyTaskIds.removeAll(currentTasks.map { it.id }.toSet())
+                    _dirtyListIds.removeAll(currentLists.map { it.id }.toSet())
 
                     // In-place Abgleich, damit kein Flackern oder Statusverlust in Compose entsteht
                     val serverIds = response.tasks.map { it.id }.toSet()
-                    _tasks.removeAll { !serverIds.contains(it.id) }
+                    _tasks.removeAll { !serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id) }
                     for (serverTask in response.tasks) {
                         val index = _tasks.indexOfFirst { it.id == serverTask.id }
                         if (index != -1) {
-                            if (_tasks[index] != serverTask) {
-                                _tasks[index] = serverTask
+                            val local = _tasks[index]
+                            if (!_dirtyTaskIds.contains(local.id) || serverTask.updatedAt >= local.updatedAt) {
+                                if (local != serverTask) {
+                                    _tasks[index] = serverTask
+                                }
                             }
                         } else {
                             _tasks.add(serverTask)
@@ -242,7 +260,7 @@ object TasksRepository {
                     }
 
                     val serverListIds = response.lists.map { it.id }.toSet()
-                    privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) }
+                    privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) && !_dirtyListIds.contains(it.id) }
                     for (serverList in response.lists) {
                         val index = privateLists.indexOfFirst { it.id == serverList.id }
                         if (index != -1) {
@@ -305,16 +323,19 @@ object TasksRepository {
                     if (response != null) {
                         _pendingDeletedTaskIds.removeAll(delTasks.toSet())
                         _pendingDeletedListIds.removeAll(delLists.toSet())
-                        _dirtyTaskIds.clear()
-                        _dirtyListIds.clear()
+                        _dirtyTaskIds.removeAll(currentTasks.map { it.id }.toSet())
+                        _dirtyListIds.removeAll(currentLists.map { it.id }.toSet())
 
                         val serverIds = response.tasks.map { it.id }.toSet()
-                        _tasks.removeAll { !serverIds.contains(it.id) }
+                        _tasks.removeAll { !serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id) }
                         for (serverTask in response.tasks) {
                             val index = _tasks.indexOfFirst { it.id == serverTask.id }
                             if (index != -1) {
-                                if (_tasks[index] != serverTask) {
-                                    _tasks[index] = serverTask
+                                val local = _tasks[index]
+                                if (!_dirtyTaskIds.contains(local.id) || serverTask.updatedAt >= local.updatedAt) {
+                                    if (local != serverTask) {
+                                        _tasks[index] = serverTask
+                                    }
                                 }
                             } else {
                                 _tasks.add(serverTask)
@@ -322,7 +343,7 @@ object TasksRepository {
                         }
 
                         val serverListIds = response.lists.map { it.id }.toSet()
-                        privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) }
+                        privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) && !_dirtyListIds.contains(it.id) }
                         for (serverList in response.lists) {
                             val index = privateLists.indexOfFirst { it.id == serverList.id }
                             if (index != -1) {
@@ -505,7 +526,8 @@ object TasksRepository {
 
     fun deleteTask(taskId: String) {
         val task = _tasks.find { it.id == taskId }
-        if (task?.isSchoolTask == true) {
+        // Nur offizielle vom Admin/Lehrer erstellte Schulaufgaben (school_task_*) dürfen nicht gelöscht werden
+        if (task?.isSchoolTask == true && task.id.startsWith("school_task_")) {
             return
         }
         _pendingDeletedTaskIds.add(taskId)
@@ -516,14 +538,12 @@ object TasksRepository {
     }
 
     fun deleteCompletedTasks(isSchoolTask: Boolean = false) {
-        val toDelete = _tasks.filter { it.isSchoolTask == isSchoolTask && it.isCompleted }
+        val toDelete = _tasks.filter { it.isSchoolTask == isSchoolTask && it.isCompleted && (!it.isSchoolTask || !it.id.startsWith("school_task_")) }
         toDelete.forEach {
-            if (!it.isSchoolTask) {
-                _pendingDeletedTaskIds.add(it.id)
-                _dirtyTaskIds.remove(it.id)
-            }
+            _pendingDeletedTaskIds.add(it.id)
+            _dirtyTaskIds.remove(it.id)
         }
-        _tasks.removeAll { it.isSchoolTask == isSchoolTask && it.isCompleted }
+        _tasks.removeAll { toDelete.contains(it) }
         saveToCache()
         triggerBackgroundSync()
     }
