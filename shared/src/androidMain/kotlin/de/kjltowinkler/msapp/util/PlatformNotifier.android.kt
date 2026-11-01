@@ -11,15 +11,21 @@ import androidx.core.app.NotificationManagerCompat
 
 actual object PlatformNotifier {
 
-    private const val CHANNEL_ID = "merian_vplan_updates"
-    private const val CHANNEL_NAME = "Vertretungsplan"
-    private const val CHANNEL_DESC = "Benachrichtigungen über neue Änderungen, Vertretungen und Ausfälle"
+    private const val CHANNEL_ID = "merian_vplan_urgent_v2"
+    private const val CHANNEL_NAME = "Vertretungsplan-Änderungen"
+    private const val CHANNEL_DESC = "Sofortige Benachrichtigungen über Vertretungen, Raumänderungen und Ausfälle"
     private var notificationId = 2001
 
     private fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             if (notificationManager != null && notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+                val defaultSoundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+                val audioAttributes = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+
                 val channel = NotificationChannel(
                     CHANNEL_ID,
                     CHANNEL_NAME,
@@ -27,6 +33,9 @@ actual object PlatformNotifier {
                 ).apply {
                     description = CHANNEL_DESC
                     enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 300, 150, 300)
+                    setSound(defaultSoundUri, audioAttributes)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
                 notificationManager.createNotificationChannel(channel)
             }
@@ -50,13 +59,19 @@ actual object PlatformNotifier {
 
             val notifResId = context.resources.getIdentifier("ic_notification", "drawable", context.packageName)
             val smallIconRes = if (notifResId != 0) notifResId else (context.applicationInfo.icon.takeIf { it != 0 } ?: android.R.drawable.ic_dialog_info)
+            val defaultSoundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
 
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(smallIconRes)
                 .setColor(0xFF395A3C.toInt())
                 .setContentTitle(title)
                 .setContentText(summary)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setCategory(NotificationCompat.CATEGORY_EVENT)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setSound(defaultSoundUri)
+                .setVibrate(longArrayOf(0, 300, 150, 300))
                 .setAutoCancel(true)
 
             try {

@@ -70,7 +70,7 @@ fun HomeScreen(
     }
 
     LaunchedEffect(Unit) {
-        de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.startPeriodicSync(intervalMinutes = 15)
+        de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.startPeriodicSync(intervalMinutes = 5)
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

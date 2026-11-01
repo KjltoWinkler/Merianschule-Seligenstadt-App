@@ -220,40 +220,13 @@ fun SettingsScreen(
 
                     HorizontalDivider(thickness = 1.dp, color = dividerHorizontal)
 
-                    // Item 1b: Test-Benachrichtigung senden
-                    SettingsItemRow(
-                        title = "Test-Benachrichtigung",
-                        subtitle = "Beispiel-Push für Ausfall & Vertretung\nsofort testen",
-                        titleColor = textPrimary,
-                        subtitleColor = textSecondary,
-                        trailing = {
-                            FilledTonalButton(
-                                onClick = {
-                                    de.kjltowinkler.msapp.util.PlatformNotifier.sendNotification(
-                                        title = "Vertretungsplan: Unterrichtsentfall",
-                                        summary = "Heute • 3. Std Deutsch (Af) entfällt",
-                                        details = listOf(
-                                            "• Heute, 3. Std Deutsch (Af): Entfall ersatzlos",
-                                            "• Heute, 5. Std Klassenlehrerstunde (Tho): Entfall"
-                                        )
-                                    )
-                                },
-                                shape = CircleShape,
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                            ) {
-                                Text("Testen", fontSize = 13.sp, fontWeight = FontWeight.Normal)
-                            }
-                        }
-                    )
-
-                    HorizontalDivider(thickness = 1.dp, color = dividerHorizontal)
-
                     // Item 2: Aufgaben-Erinnerung mit Zeitauswahl-Chevron
                     SettingsItemRow(
                         title = "Aufgaben-Erinnerung",
                         subtitle = "Einstellbare Erinnerungszeit\nvor Ablauf einer Aufgabe.",
                         titleColor = textPrimary,
                         subtitleColor = textSecondary,
+                        onClick = { showPickTimeDialog = true },
                         trailing = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
@@ -495,7 +468,7 @@ private fun MaterialYouSwitch(
         checked = checked,
         onCheckedChange = onCheckedChange,
         colors = SwitchDefaults.colors(
-            checkedThumbColor = MaterialTheme.colorScheme.primaryContainer,
+            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
             checkedTrackColor = MaterialTheme.colorScheme.primary,
             checkedBorderColor = Color.Transparent,
             uncheckedThumbColor = MaterialTheme.colorScheme.outline,

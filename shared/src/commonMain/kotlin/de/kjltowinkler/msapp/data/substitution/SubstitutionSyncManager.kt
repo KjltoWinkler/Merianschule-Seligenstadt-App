@@ -80,12 +80,21 @@ object SubstitutionSyncManager {
 
     /**
      * Startet die automatische periodische Abfrage im Hintergrund, solange die App aktiv ist.
-     * @param intervalMinutes Intervall in Minuten (Standard: 15 Minuten)
+     * @param intervalMinutes Intervall in Minuten (Standard: 5 Minuten)
+     * @param initialDelayMs Verzögerung vor dem ersten Check (Standard: 5 Sekunden)
      */
-    fun startPeriodicSync(intervalMinutes: Long = 15) {
+    fun startPeriodicSync(intervalMinutes: Long = 5, initialDelayMs: Long = 5000L) {
         if (syncJob?.isActive == true) return
 
         syncJob = syncScope.launch {
+            if (initialDelayMs > 0) {
+                delay(initialDelayMs)
+                try {
+                    checkForUpdates(forceRefresh = true, notifyIfChanged = true)
+                } catch (e: Throwable) {
+                    println("SubstitutionSyncManager: Fehler beim initialen Sync: ${e.message}")
+                }
+            }
             while (isActive) {
                 delay(intervalMinutes * 60 * 1000L)
                 try {

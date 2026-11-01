@@ -78,6 +78,8 @@ fun SchoolWayScreen(
         Color(0xFF151B15)
     }
 
+    val backButtonBg = MaterialTheme.colorScheme.surfaceContainerHigh
+
     val textPrimary = if (useMaterialYou) {
         MaterialTheme.colorScheme.onSurface
     } else {
@@ -131,18 +133,20 @@ fun SchoolWayScreen(
                 IconButton(
                     onClick = onBackClicked,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(backButtonBg)
                         .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_arrow_back),
                         contentDescription = "Zurück",
                         tint = textPrimary,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Text(
                     text = "Mein Schulweg",

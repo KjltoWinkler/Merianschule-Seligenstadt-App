@@ -333,8 +333,11 @@ fun SubstitutionPlanScreen(
         isRefreshing = true
         coroutineScope.launch {
             try {
-                val loaded = SubstitutionRepository.loadSubstitutions(forceRefresh = true)
-                de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.initializeBaseline(loaded)
+                de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.checkForUpdates(
+                    forceRefresh = true,
+                    notifyIfChanged = true
+                )
+                val loaded = SubstitutionRepository.getInitialOrCachedEntries()
                 SubstitutionStateManager.initMarked(loaded)
                 allEntries = loaded.map { entry ->
                     entry.copy(
@@ -1025,20 +1028,6 @@ fun SubstitutionPlanScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(top = 10.dp, bottom = 12.dp)
-                                                .handCursor()
-                                                .clickable {
-                                                    de.kjltowinkler.msapp.util.PlatformNotifier.sendNotification(
-                                                        title = "Vertretungsplan: Unterrichtsentfall",
-                                                        summary = "Heute • 3. Std Deutsch (Af) entfällt",
-                                                        details = listOf(
-                                                            "• Heute, 3. Std Deutsch (Af): Entfall ersatzlos",
-                                                            "• Heute, 5. Std Klassenlehrerstunde (Tho): Entfall"
-                                                        )
-                                                    )
-                                                    coroutineScope.launch {
-                                                        snackbarHostState.showSnackbar("Test-Push-Benachrichtigung gesendet!")
-                                                    }
-                                                }
                                         )
                                     }
                                 }
