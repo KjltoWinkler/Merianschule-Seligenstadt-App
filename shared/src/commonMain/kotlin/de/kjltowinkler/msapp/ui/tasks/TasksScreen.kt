@@ -104,7 +104,7 @@ private data class TasksFabMenuItem(
 fun TasksScreen(
     modifier: Modifier = Modifier,
     useMaterialYou: Boolean = true,
-    onAddTaskClicked: ((Boolean) -> Unit)? = null,
+    onAddTaskClicked: ((isStarred: Boolean, targetListId: String, isSchoolTask: Boolean) -> Unit)? = null,
     onNewListClicked: (() -> Unit)? = null
 ) {
     val privateLists = TasksRepository.privateLists
@@ -659,6 +659,7 @@ fun TasksScreen(
 
         val currentTab = tabs.getOrNull(pagerState.currentPage) ?: TasksTab.Starred
         val isCurrentTabStarred = currentTab is TasksTab.Starred
+        val isCurrentTabSchool = currentTab is TasksTab.School
         val currentTargetListId = (currentTab as? TasksTab.Private)?.list?.id ?: "my_tasks"
 
         val fabFocusRequester = remember { FocusRequester() }
@@ -691,7 +692,7 @@ fun TasksScreen(
                 onClick = {
                     fabMenuExpanded = false
                     if (onAddTaskClicked != null) {
-                        onAddTaskClicked(isCurrentTabStarred)
+                        onAddTaskClicked(isCurrentTabStarred, currentTargetListId, isCurrentTabSchool)
                     } else {
                         showNewTaskBottomSheet = true
                     }
@@ -845,6 +846,7 @@ fun TasksScreen(
         if (onAddTaskClicked == null && showNewTaskBottomSheet) {
             NewTaskBottomSheet(
                 initialIsStarred = isCurrentTabStarred,
+                initialIsSchoolTask = isCurrentTabSchool,
                 targetListId = currentTargetListId,
                 onDismissRequest = { showNewTaskBottomSheet = false },
                 onSaveTask = { newTask ->

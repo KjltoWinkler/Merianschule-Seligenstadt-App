@@ -201,6 +201,8 @@ fun MobileHomeScreen(
 
     var showNewTaskBottomSheet by remember { mutableStateOf(false) }
     var isNewTaskStarred by remember { mutableStateOf(false) }
+    var newTaskTargetListId by remember { mutableStateOf("my_tasks") }
+    var isNewTaskSchoolTask by remember { mutableStateOf(false) }
     var showNewListScreen by remember { mutableStateOf(false) }
 
     // Hinweis: Die Zurück-Gesten für Unter-Tabs und Suchleiste werden
@@ -338,6 +340,9 @@ fun MobileHomeScreen(
                                 useMaterialYou = useMaterialYou,
                                 onAddTaskForSubject = { subjectName ->
                                     selectedTab = 3
+                                    isNewTaskStarred = false
+                                    isNewTaskSchoolTask = true
+                                    newTaskTargetListId = "my_tasks"
                                     showNewTaskBottomSheet = true
                                 }
                             )
@@ -352,8 +357,10 @@ fun MobileHomeScreen(
                             de.kjltowinkler.msapp.ui.tasks.TasksScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 useMaterialYou = useMaterialYou,
-                                onAddTaskClicked = { isStarred ->
+                                onAddTaskClicked = { isStarred, targetListId, isSchoolTask ->
                                     isNewTaskStarred = isStarred
+                                    newTaskTargetListId = targetListId
+                                    isNewTaskSchoolTask = isSchoolTask
                                     showNewTaskBottomSheet = true
                                 },
                                 onNewListClicked = {
@@ -433,6 +440,8 @@ fun MobileHomeScreen(
         if (showNewTaskBottomSheet) {
             de.kjltowinkler.msapp.ui.tasks.NewTaskBottomSheet(
                 initialIsStarred = isNewTaskStarred,
+                initialIsSchoolTask = isNewTaskSchoolTask,
+                targetListId = newTaskTargetListId,
                 onDismissRequest = { showNewTaskBottomSheet = false },
                 onSaveTask = { newTask ->
                     de.kjltowinkler.msapp.data.task.TasksRepository.addTask(newTask)

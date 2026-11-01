@@ -36,6 +36,9 @@ import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.ui.components.textCursor
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import de.kjltowinkler.msapp.data.task.TasksRepository
 
 /**
  * Bottom-Sheet / Bottom-Bar "Neue Aufgaben" exakt nach Figma: tasks#neu+detail.png
@@ -47,6 +50,7 @@ import de.kjltowinkler.msapp.ui.components.textCursor
 @Composable
 fun NewTaskBottomSheet(
     initialIsStarred: Boolean = false,
+    initialIsSchoolTask: Boolean = false,
     targetListId: String = "my_tasks",
     onDismissRequest: () -> Unit,
     onSaveTask: (TaskItem) -> Unit
@@ -54,6 +58,8 @@ fun NewTaskBottomSheet(
     var taskTitle by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
     var isStarred by remember(initialIsStarred) { mutableStateOf(initialIsStarred) }
+    var isSchoolTask by remember(initialIsSchoolTask) { mutableStateOf(initialIsSchoolTask) }
+    var currentTargetListId by remember(targetListId) { mutableStateOf(targetListId) }
 
     var selectedDate by remember { mutableStateOf<SimpleDate?>(null) }
     var selectedHour by remember { mutableStateOf<Int?>(null) }
@@ -61,6 +67,7 @@ fun NewTaskBottomSheet(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showListPicker by remember { mutableStateOf(false) }
 
     var showDescription by remember { mutableStateOf(false) }
 
@@ -203,82 +210,149 @@ fun NewTaskBottomSheet(
                     }
                 }
 
-                // Anzeige von gewähltem Datum / Uhrzeit Chips falls aktiv
-                if (selectedDate != null || (selectedHour != null && selectedMinute != null)) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        selectedDate?.let { date ->
-                            InputChip(
-                                selected = true,
-                                onClick = { showDatePicker = true },
-                                modifier = Modifier.handCursor(),
-                                label = { Text("${date.dayOfMonth}.${date.monthNumber}.${date.year}") },
-                                trailingIcon = {
-                                    Icon(
-                                        painter = painterResource(Res.drawable.ic_close),
-                                        contentDescription = "Datum entfernen",
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                selectedDate = null
-                                            }
-                                            .handCursor()
-                                    )
-                                },
-                                colors = InputChipDefaults.inputChipColors(
-                                    containerColor = colorScheme.secondaryContainer,
-                                    labelColor = colorScheme.onSecondaryContainer,
-                                    trailingIconColor = colorScheme.onSecondaryContainer,
-                                    selectedContainerColor = colorScheme.secondaryContainer,
-                                    selectedLabelColor = colorScheme.onSecondaryContainer,
-                                    selectedTrailingIconColor = colorScheme.onSecondaryContainer
-                                ),
-                                border = null
-                            )
+                // Anzeige von gewähltem Datum / Uhrzeit / Liste Chips
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                ) {
+                    // Listen-Chip (Zeigt immer an, in welcher Liste gespeichert wird, und erlaubt Wechsel)
+                    Box {
+                        val currentListName = if (isSchoolTask) {
+                            "Schul-Aufgaben"
+                        } else {
+                            TasksRepository.privateLists.find { it.id == currentTargetListId }?.title ?: "Meine Aufgaben"
                         }
-                        if (selectedHour != null && selectedMinute != null) {
-                            InputChip(
-                                selected = true,
-                                onClick = { showTimePicker = true },
-                                modifier = Modifier.handCursor(),
-                                label = {
-                                    Text(
-                                        "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} Uhr"
-                                    )
+
+                        InputChip(
+                            selected = true,
+                            onClick = { showListPicker = true },
+                            modifier = Modifier.handCursor(),
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(if (isSchoolTask) Res.drawable.ic_school else Res.drawable.ic_nav_checklist),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            label = { Text(currentListName) },
+                            trailingIcon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
+                                    contentDescription = "Liste wechseln",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            },
+                            colors = InputChipDefaults.inputChipColors(
+                                containerColor = colorScheme.secondaryContainer,
+                                labelColor = colorScheme.onSecondaryContainer,
+                                selectedContainerColor = colorScheme.secondaryContainer,
+                                selectedLabelColor = colorScheme.onSecondaryContainer,
+                                selectedLeadingIconColor = colorScheme.onSecondaryContainer,
+                                selectedTrailingIconColor = colorScheme.onSecondaryContainer
+                            ),
+                            border = null
+                        )
+
+                        DropdownMenu(
+                            expanded = showListPicker,
+                            onDismissRequest = { showListPicker = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Schul-Aufgaben") },
+                                leadingIcon = {
+                                    Icon(painter = painterResource(Res.drawable.ic_school), contentDescription = null, modifier = Modifier.size(18.dp))
                                 },
-                                trailingIcon = {
-                                    Icon(
-                                        painter = painterResource(Res.drawable.ic_close),
-                                        contentDescription = "Uhrzeit entfernen",
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                selectedHour = null
-                                                selectedMinute = null
-                                            }
-                                            .handCursor()
-                                    )
-                                },
-                                colors = InputChipDefaults.inputChipColors(
-                                    containerColor = colorScheme.secondaryContainer,
-                                    labelColor = colorScheme.onSecondaryContainer,
-                                    trailingIconColor = colorScheme.onSecondaryContainer,
-                                    selectedContainerColor = colorScheme.secondaryContainer,
-                                    selectedLabelColor = colorScheme.onSecondaryContainer,
-                                    selectedTrailingIconColor = colorScheme.onSecondaryContainer
-                                ),
-                                border = null
+                                onClick = {
+                                    isSchoolTask = true
+                                    showListPicker = false
+                                }
                             )
+                            TasksRepository.privateLists.forEach { list ->
+                                DropdownMenuItem(
+                                    text = { Text(list.title) },
+                                    leadingIcon = {
+                                        Icon(painter = painterResource(Res.drawable.ic_nav_checklist), contentDescription = null, modifier = Modifier.size(18.dp))
+                                    },
+                                    onClick = {
+                                        isSchoolTask = false
+                                        currentTargetListId = list.id
+                                        showListPicker = false
+                                    }
+                                )
+                            }
                         }
+                    }
+
+                    selectedDate?.let { date ->
+                        InputChip(
+                            selected = true,
+                            onClick = { showDatePicker = true },
+                            modifier = Modifier.handCursor(),
+                            label = { Text("${date.dayOfMonth}.${date.monthNumber}.${date.year}") },
+                            trailingIcon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_close),
+                                    contentDescription = "Datum entfernen",
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            selectedDate = null
+                                        }
+                                        .handCursor()
+                                )
+                            },
+                            colors = InputChipDefaults.inputChipColors(
+                                containerColor = colorScheme.secondaryContainer,
+                                labelColor = colorScheme.onSecondaryContainer,
+                                trailingIconColor = colorScheme.onSecondaryContainer,
+                                selectedContainerColor = colorScheme.secondaryContainer,
+                                selectedLabelColor = colorScheme.onSecondaryContainer,
+                                selectedTrailingIconColor = colorScheme.onSecondaryContainer
+                            ),
+                            border = null
+                        )
+                    }
+                    if (selectedHour != null && selectedMinute != null) {
+                        InputChip(
+                            selected = true,
+                            onClick = { showTimePicker = true },
+                            modifier = Modifier.handCursor(),
+                            label = {
+                                Text(
+                                    "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} Uhr"
+                                )
+                            },
+                            trailingIcon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_close),
+                                    contentDescription = "Uhrzeit entfernen",
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            selectedHour = null
+                                            selectedMinute = null
+                                        }
+                                        .handCursor()
+                                )
+                            },
+                            colors = InputChipDefaults.inputChipColors(
+                                containerColor = colorScheme.secondaryContainer,
+                                labelColor = colorScheme.onSecondaryContainer,
+                                trailingIconColor = colorScheme.onSecondaryContainer,
+                                selectedContainerColor = colorScheme.secondaryContainer,
+                                selectedLabelColor = colorScheme.onSecondaryContainer,
+                                selectedTrailingIconColor = colorScheme.onSecondaryContainer
+                            ),
+                            border = null
+                        )
                     }
                 }
 
@@ -379,8 +453,8 @@ fun NewTaskBottomSheet(
                                     dueDate = dueDateString,
                                     dueTime = dueTimeString,
                                     isStarred = isStarred,
-                                    isSchoolTask = false,
-                                    listId = targetListId
+                                    isSchoolTask = isSchoolTask,
+                                    listId = if (isSchoolTask) "my_tasks" else currentTargetListId
                                 )
                                 onSaveTask(newTask)
                                 keyboardController?.hide()

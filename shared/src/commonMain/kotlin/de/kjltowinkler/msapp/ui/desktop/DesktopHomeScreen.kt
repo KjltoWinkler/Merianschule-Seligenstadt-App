@@ -45,6 +45,8 @@ fun DesktopHomeScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     var showNewTaskDialog by remember { mutableStateOf(false) }
     var isNewTaskStarred by remember { mutableStateOf(false) }
+    var newTaskTargetListId by remember { mutableStateOf("my_tasks") }
+    var isNewTaskSchoolTask by remember { mutableStateOf(false) }
 
     val searchFocusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
@@ -190,8 +192,10 @@ fun DesktopHomeScreen(
                                     // Aufgaben
                                     TasksScreen(
                                         modifier = Modifier.fillMaxSize(),
-                                        onAddTaskClicked = { isStarred ->
+                                        onAddTaskClicked = { isStarred, targetListId, isSchoolTask ->
                                             isNewTaskStarred = isStarred
+                                            newTaskTargetListId = targetListId
+                                            isNewTaskSchoolTask = isSchoolTask
                                             showNewTaskDialog = true
                                         }
                                     )
@@ -206,6 +210,8 @@ fun DesktopHomeScreen(
             if (showNewTaskDialog) {
                 DesktopNewTaskDialog(
                     initialIsStarred = isNewTaskStarred,
+                    initialIsSchoolTask = isNewTaskSchoolTask,
+                    targetListId = newTaskTargetListId,
                     onDismissRequest = {
                         showNewTaskDialog = false
                         isNewTaskStarred = false
