@@ -50,6 +50,7 @@ fun OnboardingTwoFactorConnectScreen(
     totpUri: String = "otpauth://totp/Merianschule:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
     backupCode: String = "ABCD EFGH 1234 5678",
     isLoading: Boolean = false,
+    showAccountBadge: Boolean = false,
     onBackClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
     onHelpClicked: () -> Unit = {},
@@ -74,6 +75,7 @@ fun OnboardingTwoFactorConnectScreen(
                 totpUri = totpUri,
                 backupCode = backupCode,
                 isLoading = isLoading,
+                showAccountBadge = showAccountBadge,
                 onNextClicked = onNextClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onHelpClicked = onHelpClicked
@@ -136,14 +138,15 @@ fun OnboardingTwoFactorConnectScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 3. Account-Chip ("Sebastian Wagner" mit Avatar)
-                MerianAccountBadge(
-                    accountName = accountName,
-                    avatarPainter = avatarPainter,
-                    onClick = onChangeAccountClicked,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
+                if (showAccountBadge) {
+                    MerianAccountBadge(
+                        accountName = accountName,
+                        avatarPainter = avatarPainter,
+                        onClick = onChangeAccountClicked,
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
 
                 // 4. Beschreibungstext mit interaktivem "Hilfe"-Link
                 Row(

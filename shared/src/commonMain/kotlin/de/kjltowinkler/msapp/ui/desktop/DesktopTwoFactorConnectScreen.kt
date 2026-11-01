@@ -41,6 +41,7 @@ fun DesktopTwoFactorConnectScreen(
     totpUri: String = "otpauth://totp/Merianschule:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
     backupCode: String = "ABCD EFGH 1234 5678",
     isLoading: Boolean = false,
+    showAccountBadge: Boolean = false,
     onNextClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onHelpClicked: () -> Unit = {}
@@ -70,13 +71,14 @@ fun DesktopTwoFactorConnectScreen(
         Spacer(modifier = Modifier.height(14.dp))
 
         // 2. Account Chip
-        MerianAccountBadge(
-            accountName = accountName,
-            avatarPainter = avatarPainter,
-            onClick = onChangeAccountClicked
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
+        if (showAccountBadge) {
+            MerianAccountBadge(
+                accountName = accountName,
+                avatarPainter = avatarPainter,
+                onClick = onChangeAccountClicked
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // 3. Beschreibung & Link "Hilfe"
         Row(
