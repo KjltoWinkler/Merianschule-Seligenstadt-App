@@ -12,22 +12,24 @@ object TaskRepository {
     private fun mapTask(rs: ResultSet): TaskItem = TaskItem(
         id = rs.getString("id"),
         title = rs.getString("title"),
-        description = rs.getString("description"),
-        subject = rs.getString("subject"),
-        dueDate = rs.getString("due_date"),
-        dueTime = rs.getString("due_time"),
+        description = rs.getString("description") ?: "",
+        subject = rs.getString("subject") ?: "",
+        dueDate = rs.getString("due_date") ?: "",
+        dueTime = rs.getString("due_time") ?: "",
         isCompleted = rs.getInt("is_completed") == 1,
-        completedDate = rs.getString("completed_date"),
-        createdDate = rs.getString("created_date"),
-        deadlineDate = rs.getString("deadline_date"),
+        completedDate = rs.getString("completed_date") ?: "",
+        createdDate = rs.getString("created_date") ?: "",
+        deadlineDate = rs.getString("deadline_date") ?: "",
         isStarred = rs.getInt("is_starred") == 1,
         isSchoolTask = rs.getInt("is_school_task") == 1,
-        listId = rs.getString("list_id")
+        listId = rs.getString("list_id") ?: "my_tasks",
+        updatedAt = rs.getLong("updated_at")
     )
 
     private fun mapList(rs: ResultSet): TaskList = TaskList(
         id = rs.getString("id"),
-        title = rs.getString("title")
+        title = rs.getString("title"),
+        updatedAt = rs.getLong("updated_at")
     )
 
     suspend fun getTasks(userId: String): List<TaskItem> = DatabaseFactory.query { conn ->
@@ -62,7 +64,7 @@ object TaskRepository {
     }
 
     suspend fun upsertTask(userId: String, task: TaskItem): TaskItem = DatabaseFactory.query { conn ->
-        val now = System.currentTimeMillis()
+        val now = if (task.updatedAt > 0L) task.updatedAt else System.currentTimeMillis()
         val sql = """
             INSERT INTO tasks (
                 id, user_id, list_id, title, description, subject, 
@@ -82,7 +84,8 @@ object TaskRepository {
                 deadline_date = excluded.deadline_date,
                 is_starred = excluded.is_starred,
                 is_school_task = excluded.is_school_task,
-                updated_at = excluded.updated_at;
+                updated_at = excluded.updated_at
+            WHERE excluded.updated_at >= tasks.updated_at;
         """.trimIndent()
 
         conn.prepareStatement(sql).use { stmt ->
@@ -103,7 +106,7 @@ object TaskRepository {
             stmt.setLong(15, now)
             stmt.executeUpdate()
         }
-        task
+        task.copy(updatedAt = now)
     }
 
     suspend fun deleteTask(userId: String, taskId: String): Boolean = DatabaseFactory.query { conn ->
@@ -116,13 +119,14 @@ object TaskRepository {
     }
 
     suspend fun upsertList(userId: String, list: TaskList): TaskList = DatabaseFactory.query { conn ->
-        val now = System.currentTimeMillis()
+        val now = if (list.updatedAt > 0L) list.updatedAt else System.currentTimeMillis()
         val sql = """
             INSERT INTO task_lists (id, user_id, title, updated_at)
             VALUES (?, ?, ?, ?)
             ON CONFLICT(id, user_id) DO UPDATE SET
                 title = excluded.title,
-                updated_at = excluded.updated_at;
+                updated_at = excluded.updated_at
+            WHERE excluded.updated_at >= task_lists.updated_at;
         """.trimIndent()
 
         conn.prepareStatement(sql).use { stmt ->
@@ -132,7 +136,7 @@ object TaskRepository {
             stmt.setLong(4, now)
             stmt.executeUpdate()
         }
-        list
+        list.copy(updatedAt = now)
     }
 
     suspend fun deleteList(userId: String, listId: String): Boolean = DatabaseFactory.query { conn ->
@@ -193,14 +197,16 @@ object TaskRepository {
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT(id, user_id) DO UPDATE SET
                     title = excluded.title,
-                    updated_at = excluded.updated_at;
+                    updated_at = excluded.updated_at
+                WHERE excluded.updated_at >= task_lists.updated_at;
             """.trimIndent()
             conn.prepareStatement(listSql).use { stmt ->
                 for (l in request.lists) {
+                    val updateTime = if (l.updatedAt > 0L) l.updatedAt else now
                     stmt.setString(1, l.id)
                     stmt.setString(2, userId)
                     stmt.setString(3, l.title)
-                    stmt.setLong(4, now)
+                    stmt.setLong(4, updateTime)
                     stmt.addBatch()
                 }
                 stmt.executeBatch()
@@ -228,10 +234,12 @@ object TaskRepository {
                     deadline_date = excluded.deadline_date,
                     is_starred = excluded.is_starred,
                     is_school_task = excluded.is_school_task,
-                    updated_at = excluded.updated_at;
+                    updated_at = excluded.updated_at
+                WHERE excluded.updated_at >= tasks.updated_at;
             """.trimIndent()
             conn.prepareStatement(taskSql).use { stmt ->
                 for (t in request.tasks) {
+                    val updateTime = if (t.updatedAt > 0L) t.updatedAt else now
                     stmt.setString(1, t.id)
                     stmt.setString(2, userId)
                     stmt.setString(3, t.listId)
@@ -246,7 +254,7 @@ object TaskRepository {
                     stmt.setString(12, t.deadlineDate)
                     stmt.setInt(13, if (t.isStarred) 1 else 0)
                     stmt.setInt(14, if (t.isSchoolTask) 1 else 0)
-                    stmt.setLong(15, now)
+                    stmt.setLong(15, updateTime)
                     stmt.addBatch()
                 }
                 stmt.executeBatch()

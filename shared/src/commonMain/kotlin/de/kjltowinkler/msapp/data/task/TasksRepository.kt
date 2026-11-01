@@ -37,6 +37,8 @@ object TasksRepository {
 
     private val _pendingDeletedTaskIds = mutableSetOf<String>()
     private val _pendingDeletedListIds = mutableSetOf<String>()
+    private val _dirtyTaskIds = mutableSetOf<String>()
+    private val _dirtyListIds = mutableSetOf<String>()
 
     var isSyncing by mutableStateOf(false)
         private set
@@ -47,13 +49,16 @@ object TasksRepository {
     private val repositoryScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var syncJob: Job? = null
     private val syncMutex = Mutex()
+    private var hasPendingSync = false
 
     var myTasksTitle: String
         get() = privateLists.firstOrNull { it.id == "my_tasks" }?.title ?: "Meine Aufgaben"
         set(value) {
             val index = privateLists.indexOfFirst { it.id == "my_tasks" }
             if (index != -1) {
-                privateLists[index] = privateLists[index].copy(title = value)
+                val now = getCurrentEpochMillis()
+                privateLists[index] = privateLists[index].copy(title = value, updatedAt = now)
+                _dirtyListIds.add("my_tasks")
                 saveToCache()
                 triggerBackgroundSync()
             }
@@ -196,6 +201,7 @@ object TasksRepository {
     suspend fun syncWithServer(): Boolean {
         if (!BackendApiClient.isLoggedIn) return false
         if (!syncMutex.tryLock()) {
+            hasPendingSync = true
             return false
         }
         isSyncing = true
@@ -217,6 +223,8 @@ object TasksRepository {
                 if (response != null) {
                     _pendingDeletedTaskIds.removeAll(delTasks.toSet())
                     _pendingDeletedListIds.removeAll(delLists.toSet())
+                    _dirtyTaskIds.clear()
+                    _dirtyListIds.clear()
 
                     // In-place Abgleich, damit kein Flackern oder Statusverlust in Compose entsteht
                     val serverIds = response.tasks.map { it.id }.toSet()
@@ -260,6 +268,74 @@ object TasksRepository {
         } finally {
             isSyncing = false
             syncMutex.unlock()
+            if (hasPendingSync) {
+                hasPendingSync = false
+                triggerBackgroundSync(debounceMs = 100)
+            }
+        }
+    }
+
+    /**
+     * Zieht die neuesten Aufgaben und Listen vom Server (z.B. ausgelöst durch ein WebSocket-Event eines anderen Geräts),
+     * ohne lokale ungespeicherte Daten blind zu überschreiben oder einen Push-Loop auszulösen.
+     */
+    suspend fun pullFromServer(): Boolean {
+        if (!BackendApiClient.isLoggedIn) return false
+        if (!syncMutex.tryLock()) {
+            return false
+        }
+        return try {
+            val tasksResult = BackendApiClient.fetchTasks()
+            val listsResult = BackendApiClient.fetchTaskLists()
+            if (tasksResult.isSuccess && listsResult.isSuccess) {
+                val serverTasks = tasksResult.getOrNull() ?: emptyList()
+                val serverLists = listsResult.getOrNull() ?: emptyList()
+
+                val serverIds = serverTasks.map { it.id }.toSet()
+                _tasks.removeAll { !serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id) }
+                for (serverTask in serverTasks) {
+                    val index = _tasks.indexOfFirst { it.id == serverTask.id }
+                    if (index != -1) {
+                        val local = _tasks[index]
+                        if (!_dirtyTaskIds.contains(local.id) || serverTask.updatedAt > local.updatedAt) {
+                            if (local != serverTask) {
+                                _tasks[index] = serverTask
+                                _dirtyTaskIds.remove(local.id)
+                            }
+                        }
+                    } else {
+                        _tasks.add(serverTask)
+                    }
+                }
+
+                val serverListIds = serverLists.map { it.id }.toSet()
+                privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) && !_dirtyListIds.contains(it.id) }
+                for (serverList in serverLists) {
+                    val index = privateLists.indexOfFirst { it.id == serverList.id }
+                    if (index != -1) {
+                        val local = privateLists[index]
+                        if (!_dirtyListIds.contains(local.id) || serverList.updatedAt > local.updatedAt) {
+                            if (local != serverList) {
+                                privateLists[index] = serverList
+                                _dirtyListIds.remove(local.id)
+                            }
+                        }
+                    } else {
+                        privateLists.add(serverList)
+                    }
+                }
+                if (privateLists.none { it.id == "my_tasks" }) {
+                    privateLists.add(0, TaskList(id = "my_tasks", title = "Meine Aufgaben"))
+                }
+                saveToCache()
+                true
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
+        } finally {
+            syncMutex.unlock()
         }
     }
 
@@ -269,7 +345,7 @@ object TasksRepository {
     fun startRealtimeSync() {
         if (!BackendApiClient.isLoggedIn) return
         BackendApiClient.startRealtimeTaskUpdates {
-            syncWithServer()
+            pullFromServer()
         }
     }
 
@@ -285,6 +361,9 @@ object TasksRepository {
         privateLists.add(TaskList(id = "my_tasks", title = "Meine Aufgaben"))
         _pendingDeletedTaskIds.clear()
         _pendingDeletedListIds.clear()
+        _dirtyTaskIds.clear()
+        _dirtyListIds.clear()
+        hasPendingSync = false
         PlatformStorage.remove(KEY_CACHED_TASKS)
         PlatformStorage.remove(KEY_CACHED_LISTS)
         PlatformStorage.remove(KEY_PENDING_DEL_TASKS)
@@ -293,9 +372,11 @@ object TasksRepository {
     }
 
     fun addTask(task: TaskItem) {
+        val now = getCurrentEpochMillis()
         val taskWithDate = if (task.createdDate.isBlank()) {
-            task.copy(createdDate = getTodayDate().formattedCompletedGerman())
-        } else task
+            task.copy(createdDate = getTodayDate().formattedCompletedGerman(), updatedAt = now)
+        } else task.copy(updatedAt = now)
+        _dirtyTaskIds.add(taskWithDate.id)
         _tasks.add(0, taskWithDate)
         saveToCache()
         triggerBackgroundSync()
@@ -304,7 +385,10 @@ object TasksRepository {
     fun updateTask(task: TaskItem) {
         val index = _tasks.indexOfFirst { it.id == task.id }
         if (index != -1) {
-            _tasks[index] = task
+            val now = getCurrentEpochMillis()
+            val updated = task.copy(updatedAt = now)
+            _dirtyTaskIds.add(updated.id)
+            _tasks[index] = updated
             saveToCache()
             triggerBackgroundSync()
         }
@@ -314,7 +398,10 @@ object TasksRepository {
         val index = _tasks.indexOfFirst { it.id == taskId }
         if (index != -1) {
             val current = _tasks[index]
-            _tasks[index] = current.copy(isStarred = !current.isStarred)
+            val now = getCurrentEpochMillis()
+            val updated = current.copy(isStarred = !current.isStarred, updatedAt = now)
+            _dirtyTaskIds.add(updated.id)
+            _tasks[index] = updated
             saveToCache()
             triggerBackgroundSync()
         }
@@ -324,12 +411,16 @@ object TasksRepository {
         val index = _tasks.indexOfFirst { it.id == taskId }
         if (index != -1) {
             val current = _tasks[index]
+            val now = getCurrentEpochMillis()
             val willBeCompleted = !current.isCompleted
             val completedDate = if (willBeCompleted) getTodayDate().formattedCompletedGerman() else ""
-            _tasks[index] = current.copy(
+            val updated = current.copy(
                 isCompleted = willBeCompleted,
-                completedDate = completedDate
+                completedDate = completedDate,
+                updatedAt = now
             )
+            _dirtyTaskIds.add(updated.id)
+            _tasks[index] = updated
             saveToCache()
             triggerBackgroundSync()
         }
@@ -341,6 +432,7 @@ object TasksRepository {
             return
         }
         _pendingDeletedTaskIds.add(taskId)
+        _dirtyTaskIds.remove(taskId)
         _tasks.removeAll { it.id == taskId }
         saveToCache()
         triggerBackgroundSync()
@@ -351,6 +443,7 @@ object TasksRepository {
         toDelete.forEach {
             if (!it.isSchoolTask) {
                 _pendingDeletedTaskIds.add(it.id)
+                _dirtyTaskIds.remove(it.id)
             }
         }
         _tasks.removeAll { it.isSchoolTask == isSchoolTask && it.isCompleted }
@@ -362,6 +455,7 @@ object TasksRepository {
         val toDelete = _tasks.filter { !it.isSchoolTask }
         toDelete.forEach {
             _pendingDeletedTaskIds.add(it.id)
+            _dirtyTaskIds.remove(it.id)
         }
         _tasks.removeAll { !it.isSchoolTask }
         saveToCache()
@@ -369,8 +463,10 @@ object TasksRepository {
     }
 
     fun createPrivateList(title: String): TaskList {
+        val now = getCurrentEpochMillis()
         val id = "list_${(100000..999999).random()}"
-        val newList = TaskList(id = id, title = title.trim())
+        val newList = TaskList(id = id, title = title.trim(), updatedAt = now)
+        _dirtyListIds.add(newList.id)
         privateLists.add(newList)
         saveToCache()
         triggerBackgroundSync()
@@ -380,7 +476,10 @@ object TasksRepository {
     fun renamePrivateList(listId: String, newTitle: String) {
         val index = privateLists.indexOfFirst { it.id == listId }
         if (index != -1) {
-            privateLists[index] = privateLists[index].copy(title = newTitle.trim())
+            val now = getCurrentEpochMillis()
+            val updated = privateLists[index].copy(title = newTitle.trim(), updatedAt = now)
+            _dirtyListIds.add(updated.id)
+            privateLists[index] = updated
             saveToCache()
             triggerBackgroundSync()
         }
@@ -395,10 +494,12 @@ object TasksRepository {
         toDeleteTasks.forEach {
             if (!it.isSchoolTask) {
                 _pendingDeletedTaskIds.add(it.id)
+                _dirtyTaskIds.remove(it.id)
             }
         }
         _tasks.removeAll { it.listId == listId }
         privateLists.removeAll { it.id == listId }
+        _dirtyListIds.remove(listId)
         _pendingDeletedListIds.add(listId)
         saveToCache()
         triggerBackgroundSync()
@@ -412,6 +513,7 @@ object TasksRepository {
         }
         toDelete.forEach {
             _pendingDeletedTaskIds.add(it.id)
+            _dirtyTaskIds.remove(it.id)
         }
         if (listId == "my_tasks") {
             _tasks.removeAll { !it.isSchoolTask && (it.listId == "my_tasks" || it.listId.isEmpty()) && it.isCompleted }
@@ -430,6 +532,7 @@ object TasksRepository {
         }
         toDelete.forEach {
             _pendingDeletedTaskIds.add(it.id)
+            _dirtyTaskIds.remove(it.id)
         }
         if (listId == "my_tasks") {
             _tasks.removeAll { !it.isSchoolTask && (it.listId == "my_tasks" || it.listId.isEmpty()) }
@@ -442,11 +545,14 @@ object TasksRepository {
 
     fun markAllTasksInListCompleted(listId: String) {
         val today = getTodayDate().formattedCompletedGerman()
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             val matches = if (listId == "my_tasks") (!task.isSchoolTask && (task.listId == "my_tasks" || task.listId.isEmpty()))
                           else (!task.isSchoolTask && task.listId == listId)
             if (matches && !task.isCompleted) {
-                _tasks[index] = task.copy(isCompleted = true, completedDate = today)
+                val updated = task.copy(isCompleted = true, completedDate = today, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -454,11 +560,14 @@ object TasksRepository {
     }
 
     fun markAllTasksInListUncompleted(listId: String) {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             val matches = if (listId == "my_tasks") (!task.isSchoolTask && (task.listId == "my_tasks" || task.listId.isEmpty()))
                           else (!task.isSchoolTask && task.listId == listId)
             if (matches && task.isCompleted) {
-                _tasks[index] = task.copy(isCompleted = false, completedDate = "")
+                val updated = task.copy(isCompleted = false, completedDate = "", updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -466,11 +575,14 @@ object TasksRepository {
     }
 
     fun markAllTasksInListStarred(listId: String) {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             val matches = if (listId == "my_tasks") (!task.isSchoolTask && (task.listId == "my_tasks" || task.listId.isEmpty()))
                           else (!task.isSchoolTask && task.listId == listId)
             if (matches && !task.isStarred) {
-                _tasks[index] = task.copy(isStarred = true)
+                val updated = task.copy(isStarred = true, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -478,11 +590,14 @@ object TasksRepository {
     }
 
     fun unstarAllTasksInList(listId: String) {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             val matches = if (listId == "my_tasks") (!task.isSchoolTask && (task.listId == "my_tasks" || task.listId.isEmpty()))
                           else (!task.isSchoolTask && task.listId == listId)
             if (matches && task.isStarred) {
-                _tasks[index] = task.copy(isStarred = false)
+                val updated = task.copy(isStarred = false, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -490,9 +605,12 @@ object TasksRepository {
     }
 
     fun markAllSchoolTasksStarred() {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isSchoolTask && !task.isStarred) {
-                _tasks[index] = task.copy(isStarred = true)
+                val updated = task.copy(isStarred = true, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -500,9 +618,12 @@ object TasksRepository {
     }
 
     fun unstarAllSchoolTasks() {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isSchoolTask && task.isStarred) {
-                _tasks[index] = task.copy(isStarred = false)
+                val updated = task.copy(isStarred = false, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -511,9 +632,12 @@ object TasksRepository {
 
     fun markAllSchoolTasksCompleted() {
         val today = getTodayDate().formattedCompletedGerman()
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isSchoolTask && !task.isCompleted) {
-                _tasks[index] = task.copy(isCompleted = true, completedDate = today)
+                val updated = task.copy(isCompleted = true, completedDate = today, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -521,9 +645,12 @@ object TasksRepository {
     }
 
     fun markAllSchoolTasksUncompleted() {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isSchoolTask && task.isCompleted) {
-                _tasks[index] = task.copy(isCompleted = false, completedDate = "")
+                val updated = task.copy(isCompleted = false, completedDate = "", updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -534,6 +661,7 @@ object TasksRepository {
         val toDelete = _tasks.filter { it.isStarred && it.isCompleted && !it.isSchoolTask }
         toDelete.forEach {
             _pendingDeletedTaskIds.add(it.id)
+            _dirtyTaskIds.remove(it.id)
         }
         _tasks.removeAll { it.isStarred && it.isCompleted && !it.isSchoolTask }
         saveToCache()
@@ -544,6 +672,7 @@ object TasksRepository {
         val toDelete = _tasks.filter { it.isStarred && !it.isSchoolTask }
         toDelete.forEach {
             _pendingDeletedTaskIds.add(it.id)
+            _dirtyTaskIds.remove(it.id)
         }
         _tasks.removeAll { it.isStarred && !it.isSchoolTask }
         saveToCache()
@@ -551,9 +680,12 @@ object TasksRepository {
     }
 
     fun unstarAllTasks() {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isStarred) {
-                _tasks[index] = task.copy(isStarred = false)
+                val updated = task.copy(isStarred = false, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -562,9 +694,12 @@ object TasksRepository {
 
     fun markAllStarredTasksCompleted() {
         val today = getTodayDate().formattedCompletedGerman()
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isStarred && !task.isCompleted) {
-                _tasks[index] = task.copy(isCompleted = true, completedDate = today)
+                val updated = task.copy(isCompleted = true, completedDate = today, updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()
@@ -572,9 +707,12 @@ object TasksRepository {
     }
 
     fun markAllStarredTasksUncompleted() {
+        val now = getCurrentEpochMillis()
         _tasks.forEachIndexed { index, task ->
             if (task.isStarred && task.isCompleted) {
-                _tasks[index] = task.copy(isCompleted = false, completedDate = "")
+                val updated = task.copy(isCompleted = false, completedDate = "", updatedAt = now)
+                _dirtyTaskIds.add(updated.id)
+                _tasks[index] = updated
             }
         }
         saveToCache()

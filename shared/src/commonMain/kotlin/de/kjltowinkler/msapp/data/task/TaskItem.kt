@@ -12,7 +12,8 @@ enum class TaskCategory {
 @Serializable
 data class TaskList(
     val id: String,
-    val title: String
+    val title: String,
+    val updatedAt: Long = 0L
 )
 
 @Serializable
@@ -29,5 +30,6 @@ data class TaskItem(
     val deadlineDate: String = "",
     val isStarred: Boolean = false,
     val isSchoolTask: Boolean = false,
-    val listId: String = "my_tasks"
+    val listId: String = "my_tasks",
+    val updatedAt: Long = 0L
 )
