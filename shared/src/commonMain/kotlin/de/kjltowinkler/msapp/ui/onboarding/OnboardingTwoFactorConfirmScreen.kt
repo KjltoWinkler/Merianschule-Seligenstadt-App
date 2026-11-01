@@ -41,6 +41,10 @@ import de.kjltowinkler.msapp.ui.desktop.DesktopTwoFactorConfirmScreen
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.ui.platform.LocalClipboardManager
+import kotlinx.coroutines.delay
+
 /**
  * Onboarding-Screen: Code-Bestätigung (2FA Bestätigung)
  * Gemäß Figma-Design (onboarding#bestätigen.png).
@@ -64,7 +68,9 @@ fun OnboardingTwoFactorConfirmScreen(
 ) {
     var localError by rememberSaveable { mutableStateOf<String?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
+    var hasCheckedClipboard by rememberSaveable { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val clipboardManager = LocalClipboardManager.current
 
     val displayedError = errorMessage ?: localError
     val isError = displayedError != null
@@ -74,6 +80,30 @@ fun OnboardingTwoFactorConfirmScreen(
         snapshotFlow { codeState.text }.collect {
             if (localError != null) {
                 localError = null
+            }
+        }
+    }
+
+    // Automatische Erkennung eines gültigen 6-stelligen 2FA-Codes aus der Zwischenablage
+    LaunchedEffect(Unit) {
+        if (!hasCheckedClipboard && codeState.text.isEmpty()) {
+            hasCheckedClipboard = true
+            try {
+                val clipText = clipboardManager.getText()?.text?.trim()
+                if (!clipText.isNullOrBlank()) {
+                    val candidate = clipText.replace(" ", "").replace("-", "")
+                    // Strengste Validierung: Enthält ausschließlich Ziffern und ist exakt 6-stellig
+                    if (candidate.length == 6 && candidate.all { it.isDigit() } &&
+                        clipText.all { it.isDigit() || it == ' ' || it == '-' }
+                    ) {
+                        codeState.setTextAndPlaceCursorAtEnd(candidate)
+                        keyboardController?.hide()
+                        delay(250) // Kurze visuelle Bestätigung im Eingabefeld für den Nutzer
+                        onFinishClicked(candidate)
+                    }
+                }
+            } catch (_: Throwable) {
+                // Clipboard-Zugriff sicher abfangen (z. B. falls Permissions fehlen)
             }
         }
     }
