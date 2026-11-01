@@ -38,7 +38,10 @@ fun SettingsScreen(
     predictiveBackEnabled: Boolean = true,
     onPredictiveBackChanged: (Boolean) -> Unit = {},
     onSchoolWayClicked: () -> Unit = {},
-    onCoursesClicked: () -> Unit = {}
+    onCoursesClicked: () -> Unit = {},
+    isTwoFactorEnabled: Boolean = false,
+    onNavigateTo2FaSetup: () -> Unit = {},
+    onDisable2Fa: () -> Unit = {}
 ) {
     var delayWarningsEnabled by rememberSaveable { mutableStateOf(true) }
     var relaxedDismissalEnabled by rememberSaveable { mutableStateOf(true) }
@@ -50,6 +53,8 @@ fun SettingsScreen(
     var selectedReminderTime by rememberSaveable { mutableStateOf("10 Minuten vorher") }
     var showPickTimeDialog by rememberSaveable { mutableStateOf(false) }
     var showCustomPickTimeDialog by rememberSaveable { mutableStateOf(false) }
+    var isTwoFactorOn by remember(isTwoFactorEnabled) { mutableStateOf(isTwoFactorEnabled) }
+    var showDisable2FaDialog by remember { mutableStateOf(false) }
 
     // Dynamische Material You Farbwerte aus dem aktiven MaterialTheme
     val screenBackground = MaterialTheme.colorScheme.background
@@ -269,6 +274,50 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // --- BEREICH: Sicherheit & Konto ---
+            CategoryHeader(title = "Sicherheit & Konto", color = categoryHeader)
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = cardBackground,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SettingsItemRow(
+                        title = "Zwei-Faktor-Authentifizierung (2FA)",
+                        subtitle = if (isTwoFactorOn) {
+                            "Aktiviert • Authenticator-App verknüpft"
+                        } else {
+                            "Zusätzlicher Schutz bei der Anmeldung"
+                        },
+                        titleColor = textPrimary,
+                        subtitleColor = textSecondary,
+                        onClick = {
+                            if (!isTwoFactorOn) {
+                                onNavigateTo2FaSetup()
+                            } else {
+                                showDisable2FaDialog = true
+                            }
+                        },
+                        trailing = {
+                            MaterialYouSwitch(
+                                checked = isTwoFactorOn,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        onNavigateTo2FaSetup()
+                                    } else {
+                                        showDisable2FaDialog = true
+                                    }
+                                },
+                                contentDescription = "Zwei-Faktor-Authentifizierung"
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // --- BEREICH 3: Darstellung ---
             CategoryHeader(title = "Darstellung", color = categoryHeader)
 
@@ -379,6 +428,51 @@ fun SettingsScreen(
             },
             onDismissRequest = { showCustomPickTimeDialog = false },
             useMaterialYou = materialYouEnabled
+        )
+    }
+
+    // Dialog 3: 2FA Deaktivierung bestätigen
+    if (showDisable2FaDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisable2FaDialog = false },
+            title = {
+                Text(
+                    text = "2FA deaktivieren?",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = getQuicksandFontFamily(),
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "Möchtest du die Zwei-Faktor-Authentifizierung für deinen Account wirklich deaktivieren?\n\nDein Account ist danach nur noch mit deinem Passwort geschützt.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDisable2FaDialog = false
+                        onDisable2Fa()
+                    }
+                ) {
+                    Text(
+                        text = "Deaktivieren",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisable2FaDialog = false }) {
+                    Text(
+                        text = "Abbrechen",
+                        color = textPrimary
+                    )
+                }
+            }
         )
     }
 }

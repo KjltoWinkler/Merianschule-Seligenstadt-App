@@ -200,6 +200,7 @@ fun App() {
         var isConfirmingTwoFactor by remember { mutableStateOf(false) }
         var twoFactorConfirmError by remember { mutableStateOf<String?>(null) }
         var lastEnteredPassword by remember { mutableStateOf("") }
+        var isSettingUpTwoFactorFromSettings by remember { mutableStateOf(false) }
 
         // Aktueller Account-Status (wird bei bestehender Sitzung aus dem Speicher geladen)
         var currentAccount by remember {
@@ -641,9 +642,11 @@ fun App() {
                     backupCode = twoFactorBackupSecret ?: "ABCD EFGH 1234 5678",
                     isLoading = isLoadingTwoFactorSetup,
                     onBackClicked = {
+                        isSettingUpTwoFactorFromSettings = false
                         navController.popBackStack()
                     },
                     onChangeAccountClicked = {
+                        isSettingUpTwoFactorFromSettings = false
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
                     onNextClicked = {
@@ -663,6 +666,7 @@ fun App() {
                         navController.popBackStack()
                     },
                     onChangeAccountClicked = {
+                        isSettingUpTwoFactorFromSettings = false
                         twoFactorConfirmError = null
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
@@ -722,8 +726,13 @@ fun App() {
                                     .onSuccess {
                                         isConfirmingTwoFactor = false
                                         currentAccount = currentAccount.copy(isTwoFactorEnabled = true)
-                                        val targetRoute = if (isOnboardingFlow) AppRoutes.READY else AppRoutes.LOGIN_READY
-                                        navController.navigate(targetRoute)
+                                        if (isSettingUpTwoFactorFromSettings) {
+                                            isSettingUpTwoFactorFromSettings = false
+                                            navController.popBackStack(AppRoutes.SETTINGS, inclusive = false)
+                                        } else {
+                                            val targetRoute = if (isOnboardingFlow) AppRoutes.READY else AppRoutes.LOGIN_READY
+                                            navController.navigate(targetRoute)
+                                        }
                                     }
                                     .onFailure { err ->
                                         isConfirmingTwoFactor = false
@@ -938,6 +947,19 @@ fun App() {
                     },
                     onCoursesClicked = {
                         navController.navigate(AppRoutes.SETTINGS_COURSES)
+                    },
+                    isTwoFactorEnabled = currentAccount.isTwoFactorEnabled,
+                    onNavigateTo2FaSetup = {
+                        isSettingUpTwoFactorFromSettings = true
+                        twoFactorSetupUri = null
+                        navController.navigate(AppRoutes.TWO_FACTOR_CONNECT)
+                    },
+                    onDisable2Fa = {
+                        coroutineScope.launch {
+                            BackendApiClient.disable2Fa().onSuccess {
+                                currentAccount = currentAccount.copy(isTwoFactorEnabled = false)
+                            }
+                        }
                     }
                 )
             }
