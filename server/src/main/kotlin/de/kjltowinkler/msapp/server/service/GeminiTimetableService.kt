@@ -360,10 +360,10 @@ Regeln:
                 
                 // Match against verified teacher directory or stick strictly to the code (never invent fake names)
                 val cleanCode = lesson.teacherCode.trim().ifBlank { lesson.teacherName.trim() }
-                val teacherInfo = TimetableRepository.teacherDirectory[cleanCode]
-                val teacherName = teacherInfo?.fullName ?: cleanCode
-                val teacherEmail = teacherInfo?.email ?: ""
-                val teacherOfficeHours = teacherInfo?.officeHours ?: ""
+                val teacherInfo = TimetableRepository.getTeacherInfo(cleanCode)
+                val teacherName = teacherInfo.fullName
+                val teacherEmail = teacherInfo.email
+                val teacherOfficeHours = teacherInfo.officeHours
 
                 lesson.copy(
                     id = lessonId,
