@@ -292,13 +292,6 @@ fun SettingsScreen(
                         },
                         titleColor = textPrimary,
                         subtitleColor = textSecondary,
-                        onClick = {
-                            if (!isTwoFactorOn) {
-                                onNavigateTo2FaSetup()
-                            } else {
-                                showDisable2FaDialog = true
-                            }
-                        },
                         trailing = {
                             MaterialYouSwitch(
                                 checked = isTwoFactorOn,
