@@ -28,6 +28,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -142,8 +143,14 @@ fun TasksScreen(
     val onRefresh: () -> Unit = {
         isRefreshing = true
         coroutineScope.launch {
-            delay(1000)
+            TasksRepository.syncWithServer()
             isRefreshing = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (BackendApiClient.isLoggedIn) {
+            TasksRepository.syncWithServer()
         }
     }
 

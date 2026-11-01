@@ -4,6 +4,7 @@ import de.kjltowinkler.msapp.data.auth.RegisterRequest
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import de.kjltowinkler.msapp.data.sync.SyncTasksRequest
 import de.kjltowinkler.msapp.data.task.TaskItem
+import de.kjltowinkler.msapp.data.task.TaskList
 import de.kjltowinkler.msapp.server.config.ServerConfig
 import de.kjltowinkler.msapp.server.database.DatabaseFactory
 import de.kjltowinkler.msapp.server.repository.SubstitutionServerRepository
@@ -16,6 +17,7 @@ import org.junit.BeforeClass
 import org.junit.Test
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -81,6 +83,64 @@ class ServerTest {
         )
         val syncRes = TaskRepository.sync(user.id, syncReq)
         assertTrue(syncRes.tasks.first { it.id == "task-1" }.isCompleted)
+    }
+
+    @Test
+    fun testTaskSyncAndUserIsolation() = runBlocking {
+        val suffixA = System.currentTimeMillis()
+        val userA = UserRepository.createUser(
+            RegisterRequest("user_a_$suffixA", "usera_$suffixA@test.de", "Pw123!", "User A", "09AR")
+        )
+        val userB = UserRepository.createUser(
+            RegisterRequest("user_b_$suffixA", "userb_$suffixA@test.de", "Pw123!", "User B", "09AR")
+        )
+
+        // User A erzeugt Aufgaben und eine private Liste
+        val listA = TaskList(id = "list_chemie", title = "Chemie Projekt")
+        val taskA1 = TaskItem(id = "task_a1", title = "Protokoll schreiben", listId = "list_chemie")
+        val taskA2 = TaskItem(id = "task_a2", title = "Versuch 2 vorbereiten", listId = "my_tasks")
+
+        val syncResA = TaskRepository.sync(
+            userA.id,
+            SyncTasksRequest(tasks = listOf(taskA1, taskA2), lists = listOf(listA))
+        )
+        assertEquals(2, syncResA.tasks.size)
+        assertTrue(syncResA.lists.any { it.id == "list_chemie" })
+
+        // User B erzeugt eigene Aufgabe
+        val taskB1 = TaskItem(id = "task_b1", title = "Hausaufgabe Englisch", listId = "my_tasks")
+        val syncResB = TaskRepository.sync(
+            userB.id,
+            SyncTasksRequest(tasks = listOf(taskB1))
+        )
+        assertEquals(1, syncResB.tasks.size)
+        assertEquals("task_b1", syncResB.tasks[0].id)
+        assertFalse(syncResB.lists.any { it.id == "list_chemie" })
+
+        // User B versucht task_a1 von User A zu löschen -> darf keine Auswirkung auf User A haben
+        TaskRepository.sync(
+            userB.id,
+            SyncTasksRequest(deletedTaskIds = listOf("task_a1"))
+        )
+        val tasksAfterAttempt = TaskRepository.getTasks(userA.id)
+        assertTrue(tasksAfterAttempt.any { it.id == "task_a1" }, "User A's Task darf nicht von User B gelöscht werden")
+
+        // User A löscht task_a1 und list_chemie
+        val syncResA2 = TaskRepository.sync(
+            userA.id,
+            SyncTasksRequest(
+                deletedTaskIds = listOf("task_a1"),
+                deletedListIds = listOf("list_chemie")
+            )
+        )
+        assertFalse(syncResA2.tasks.any { it.id == "task_a1" })
+        assertFalse(syncResA2.lists.any { it.id == "list_chemie" })
+        assertTrue(syncResA2.tasks.any { it.id == "task_a2" })
+
+        // User B's Aufgabe existiert weiterhin unverändert
+        val tasksB = TaskRepository.getTasks(userB.id)
+        assertEquals(1, tasksB.size)
+        assertEquals("task_b1", tasksB[0].id)
     }
 
     @Test

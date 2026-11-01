@@ -58,6 +58,46 @@ class SharedCommonTest {
     }
 
     @Test
+    fun testTasksRepositoryCrudAndOfflinePersistence() {
+        val testTask = TaskItem(
+            id = "custom_task_99",
+            title = "Physik Referat ausarbeiten",
+            description = "Folien 1 bis 10",
+            isCompleted = false,
+            isStarred = false,
+            isSchoolTask = false
+        )
+        TasksRepository.addTask(testTask)
+        assertTrue(TasksRepository.tasks.any { it.id == "custom_task_99" })
+
+        // Toggle completed
+        TasksRepository.toggleCompleted("custom_task_99")
+        val toggled = TasksRepository.tasks.first { it.id == "custom_task_99" }
+        assertTrue(toggled.isCompleted)
+        assertTrue(toggled.completedDate.isNotBlank())
+
+        // Toggle starred
+        TasksRepository.toggleStarred("custom_task_99")
+        assertTrue(TasksRepository.tasks.first { it.id == "custom_task_99" }.isStarred)
+
+        // Create private list and move task
+        val list = TasksRepository.createPrivateList("Referate")
+        assertTrue(TasksRepository.privateLists.any { it.id == list.id })
+
+        TasksRepository.updateTask(toggled.copy(listId = list.id))
+        assertEquals(list.id, TasksRepository.tasks.first { it.id == "custom_task_99" }.listId)
+
+        // Delete list -> must delete all tasks in list
+        TasksRepository.deletePrivateList(list.id)
+        assertFalse(TasksRepository.privateLists.any { it.id == list.id })
+        assertFalse(TasksRepository.tasks.any { it.id == "custom_task_99" })
+
+        // Check PlatformStorage cached content
+        val cached = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("cached_tasks")
+        assertTrue(cached != null && cached.isNotBlank())
+    }
+
+    @Test
     fun testSchulportalHtmlParser() {
         val sampleHtml = """
             <table id="vtable22_10_2026" class="table">

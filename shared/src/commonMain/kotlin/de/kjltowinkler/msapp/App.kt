@@ -246,6 +246,7 @@ fun App() {
             // Automatische Sitzungsüberprüfung beim Start
             LaunchedEffect(Unit) {
                 if (BackendApiClient.isLoggedIn) {
+                    de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
                     BackendApiClient.fetchUserCourses().onSuccess { courses ->
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                     }
@@ -275,6 +276,7 @@ fun App() {
                         val msg = err.message ?: ""
                         if (msg.contains("401") || msg.contains("Nicht autorisiert", ignoreCase = true)) {
                             BackendApiClient.logout()
+                            de.kjltowinkler.msapp.data.task.TasksRepository.clearAndReset()
                             de.kjltowinkler.msapp.data.schulportal.SchulportalClient.clearCredentials()
                             de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(emptyList())
                             val defaultRoute = if (isDesktop) AppRoutes.USERNAME else AppRoutes.WELCOME
@@ -575,6 +577,7 @@ fun App() {
                                 BackendApiClient.fetchUserCourses().onSuccess { courses ->
                                     de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                 }
+                                de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
 
                                 de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, newPassword)
 
@@ -700,6 +703,7 @@ fun App() {
                                         BackendApiClient.fetchUserCourses().onSuccess { courses ->
                                             de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                         }
+                                        de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
 
                                         if (lastEnteredPassword.isNotBlank()) {
                                             de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, lastEnteredPassword)
@@ -836,6 +840,7 @@ fun App() {
                                     BackendApiClient.fetchUserCourses().onSuccess { courses ->
                                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                     }
+                                    de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
 
                                     de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, password)
 
@@ -920,6 +925,7 @@ fun App() {
                         twoFactorConfirmError = null
                         isLoginTwoFactorVerification = false
                         lastEnteredPassword = ""
+                        de.kjltowinkler.msapp.data.task.TasksRepository.clearAndReset()
                         de.kjltowinkler.msapp.data.schulportal.SchulportalClient.clearCredentials()
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(emptyList())
                         val defaultRoute = if (isDesktop) AppRoutes.USERNAME else AppRoutes.WELCOME

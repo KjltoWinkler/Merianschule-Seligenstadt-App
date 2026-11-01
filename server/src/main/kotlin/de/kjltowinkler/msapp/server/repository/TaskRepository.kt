@@ -154,6 +154,38 @@ object TaskRepository {
     suspend fun sync(userId: String, request: SyncTasksRequest): SyncTasksResponse = DatabaseFactory.query { conn ->
         val now = System.currentTimeMillis()
 
+        // 0. Löschungen des Clients in der Datenbank anwenden
+        if (request.deletedTaskIds.isNotEmpty()) {
+            conn.prepareStatement("DELETE FROM tasks WHERE user_id = ? AND id = ?;").use { stmt ->
+                for (id in request.deletedTaskIds) {
+                    stmt.setString(1, userId)
+                    stmt.setString(2, id)
+                    stmt.addBatch()
+                }
+                stmt.executeBatch()
+            }
+        }
+        if (request.deletedListIds.isNotEmpty()) {
+            conn.prepareStatement("DELETE FROM tasks WHERE user_id = ? AND list_id = ?;").use { stmt ->
+                for (id in request.deletedListIds) {
+                    stmt.setString(1, userId)
+                    stmt.setString(2, id)
+                    stmt.addBatch()
+                }
+                stmt.executeBatch()
+            }
+            conn.prepareStatement("DELETE FROM task_lists WHERE user_id = ? AND id = ?;").use { stmt ->
+                for (id in request.deletedListIds) {
+                    if (id != "my_tasks") {
+                        stmt.setString(1, userId)
+                        stmt.setString(2, id)
+                        stmt.addBatch()
+                    }
+                }
+                stmt.executeBatch()
+            }
+        }
+
         // 1. Upsert lists from client
         if (request.lists.isNotEmpty()) {
             val listSql = """

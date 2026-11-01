@@ -7,8 +7,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SyncTasksRequest(
-    val tasks: List<TaskItem>,
+    val tasks: List<TaskItem> = emptyList(),
     val lists: List<TaskList> = emptyList(),
+    val deletedTaskIds: List<String> = emptyList(),
+    val deletedListIds: List<String> = emptyList(),
     val lastSyncTimestamp: Long = 0L
 )
 

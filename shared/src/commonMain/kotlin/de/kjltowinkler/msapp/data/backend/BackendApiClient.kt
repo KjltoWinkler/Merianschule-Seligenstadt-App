@@ -306,9 +306,19 @@ object BackendApiClient {
     // AUFGABEN-SYNCHRONISATION
     // ==========================================
 
-    suspend fun syncTasks(tasks: List<TaskItem>, lists: List<TaskList>): Result<SyncTasksResponse> = runCatching {
+    suspend fun syncTasks(
+        tasks: List<TaskItem>,
+        lists: List<TaskList>,
+        deletedTaskIds: List<String> = emptyList(),
+        deletedListIds: List<String> = emptyList()
+    ): Result<SyncTasksResponse> = runCatching {
         val token = authToken ?: error("Für die Synchronisation ist eine Anmeldung erforderlich.")
-        val request = SyncTasksRequest(tasks = tasks, lists = lists)
+        val request = SyncTasksRequest(
+            tasks = tasks,
+            lists = lists,
+            deletedTaskIds = deletedTaskIds,
+            deletedListIds = deletedListIds
+        )
 
         val response = client.post("$serverUrl/api/tasks/sync") {
             header("Authorization", "Bearer $token")
@@ -321,6 +331,32 @@ object BackendApiClient {
             json.decodeFromString<SyncTasksResponse>(body)
         } else {
             error("Aufgaben-Sync fehlgeschlagen: $body")
+        }
+    }
+
+    suspend fun fetchTasks(): Result<List<TaskItem>> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/tasks") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<List<TaskItem>>(body)
+        } else {
+            error("Aufgaben konnten nicht geladen werden")
+        }
+    }
+
+    suspend fun fetchTaskLists(): Result<List<TaskList>> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/tasks/lists") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<List<TaskList>>(body)
+        } else {
+            error("Listen konnten nicht geladen werden")
         }
     }
 
