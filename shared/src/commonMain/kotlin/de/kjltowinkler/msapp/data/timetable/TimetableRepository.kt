@@ -465,6 +465,34 @@ object TimetableRepository {
             officeHours = "Nach Vereinbarung"
         )
     }
+
+    /**
+     * Lädt den aktuellen Stundenplan vom Backend-Server ab.
+     */
+    suspend fun loadFromServer(className: String = "09AR"): Boolean {
+        return try {
+            val userClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.takeIf { it.isNotBlank() } ?: className
+            val res = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTimetable(userClass)
+            if (res.isSuccess) {
+                val dto = res.getOrNull()
+                if (dto != null && dto.days.isNotEmpty()) {
+                    dto.days.forEach { (dayStr, lessons) ->
+                        val dayEnum = TimetableDay.entries.firstOrNull { 
+                            it.name.equals(dayStr, ignoreCase = true) || 
+                            it.id.equals(dayStr, ignoreCase = true) || 
+                            it.displayName.equals(dayStr, ignoreCase = true)
+                        }
+                        if (dayEnum != null && lessons.isNotEmpty()) {
+                            timetableMap[dayEnum] = lessons
+                        }
+                    }
+                    true
+                } else false
+            } else false
+        } catch (_: Exception) {
+            false
+        }
+    }
 }
 
 /**

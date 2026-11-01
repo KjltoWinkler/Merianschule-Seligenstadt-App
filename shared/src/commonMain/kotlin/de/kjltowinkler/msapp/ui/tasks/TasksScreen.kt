@@ -69,6 +69,7 @@ import de.kjltowinkler.msapp.PlatformBackHandler
 import de.kjltowinkler.msapp.data.task.TaskCategory
 import de.kjltowinkler.msapp.data.task.TaskList
 import de.kjltowinkler.msapp.data.task.TasksRepository
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
@@ -143,8 +144,13 @@ fun TasksScreen(
     val onRefresh: () -> Unit = {
         isRefreshing = true
         coroutineScope.launch {
-            TasksRepository.syncWithServer()
-            isRefreshing = false
+            try {
+                val minTimeJob = async { delay(400) }
+                TasksRepository.reloadAndSync()
+                minTimeJob.await()
+            } finally {
+                isRefreshing = false
+            }
         }
     }
 

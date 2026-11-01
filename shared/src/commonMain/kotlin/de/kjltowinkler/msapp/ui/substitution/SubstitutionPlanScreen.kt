@@ -52,6 +52,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -333,11 +334,12 @@ fun SubstitutionPlanScreen(
         isRefreshing = true
         coroutineScope.launch {
             try {
+                val minTimeJob = async { delay(400) }
+                val loaded = SubstitutionRepository.loadSubstitutions(forceRefresh = true)
                 de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.checkForUpdates(
                     forceRefresh = true,
-                    notifyIfChanged = true
+                    notifyIfChanged = false
                 )
-                val loaded = SubstitutionRepository.getInitialOrCachedEntries()
                 SubstitutionStateManager.initMarked(loaded)
                 allEntries = loaded.map { entry ->
                     entry.copy(
@@ -345,6 +347,7 @@ fun SubstitutionPlanScreen(
                         isMarked = SubstitutionStateManager.isMarked(entry.id)
                     )
                 }
+                minTimeJob.await()
             } catch (_: Exception) {
             } finally {
                 isRefreshing = false

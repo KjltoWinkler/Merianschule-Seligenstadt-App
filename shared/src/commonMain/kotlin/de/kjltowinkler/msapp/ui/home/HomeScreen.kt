@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -292,8 +293,17 @@ fun MobileHomeScreen(
                                 onRefresh = {
                                     isStartseiteRefreshing = true
                                     scope.launch {
-                                        delay(1000)
-                                        isStartseiteRefreshing = false
+                                        try {
+                                            val minTimeJob = async { delay(400) }
+                                            de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.loadSubstitutions(forceRefresh = true)
+                                            if (de.kjltowinkler.msapp.data.backend.BackendApiClient.isLoggedIn) {
+                                                de.kjltowinkler.msapp.data.task.TasksRepository.reloadAndSync()
+                                                de.kjltowinkler.msapp.data.timetable.TimetableRepository.loadFromServer()
+                                            }
+                                            minTimeJob.await()
+                                        } finally {
+                                            isStartseiteRefreshing = false
+                                        }
                                     }
                                 },
                                 state = startseitePullState,

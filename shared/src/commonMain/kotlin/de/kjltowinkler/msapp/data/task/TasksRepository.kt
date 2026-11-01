@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -271,6 +272,82 @@ object TasksRepository {
             if (hasPendingSync) {
                 hasPendingSync = false
                 triggerBackgroundSync(debounceMs = 100)
+            }
+        }
+    }
+
+    /**
+     * Führt einen vollständigen, erzwungenen Abgleich mit dem Backend-Server / der Datenbank durch (z. B. bei Pull-to-Refresh).
+     * Wartet via syncMutex.withLock zuverlässig auf eventuell laufende Hintergrund-Syncs, anstatt abzuweisen.
+     */
+    suspend fun reloadAndSync(): Boolean {
+        if (!BackendApiClient.isLoggedIn) {
+            loadFromCache()
+            return true
+        }
+        return syncMutex.withLock {
+            isSyncing = true
+            lastSyncError = null
+            try {
+                val currentTasks = _tasks.toList()
+                val currentLists = privateLists.toList()
+                val delTasks = _pendingDeletedTaskIds.toList()
+                val delLists = _pendingDeletedListIds.toList()
+
+                val result = BackendApiClient.syncTasks(
+                    tasks = currentTasks,
+                    lists = currentLists,
+                    deletedTaskIds = delTasks,
+                    deletedListIds = delLists
+                )
+                if (result.isSuccess) {
+                    val response = result.getOrNull()
+                    if (response != null) {
+                        _pendingDeletedTaskIds.removeAll(delTasks.toSet())
+                        _pendingDeletedListIds.removeAll(delLists.toSet())
+                        _dirtyTaskIds.clear()
+                        _dirtyListIds.clear()
+
+                        val serverIds = response.tasks.map { it.id }.toSet()
+                        _tasks.removeAll { !serverIds.contains(it.id) }
+                        for (serverTask in response.tasks) {
+                            val index = _tasks.indexOfFirst { it.id == serverTask.id }
+                            if (index != -1) {
+                                if (_tasks[index] != serverTask) {
+                                    _tasks[index] = serverTask
+                                }
+                            } else {
+                                _tasks.add(serverTask)
+                            }
+                        }
+
+                        val serverListIds = response.lists.map { it.id }.toSet()
+                        privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) }
+                        for (serverList in response.lists) {
+                            val index = privateLists.indexOfFirst { it.id == serverList.id }
+                            if (index != -1) {
+                                if (privateLists[index] != serverList) {
+                                    privateLists[index] = serverList
+                                }
+                            } else {
+                                privateLists.add(serverList)
+                            }
+                        }
+                        if (privateLists.none { it.id == "my_tasks" }) {
+                            privateLists.add(0, TaskList(id = "my_tasks", title = "Meine Aufgaben"))
+                        }
+                        saveToCache()
+                        true
+                    } else false
+                } else {
+                    lastSyncError = result.exceptionOrNull()?.message
+                    false
+                }
+            } catch (e: Exception) {
+                lastSyncError = e.message
+                false
+            } finally {
+                isSyncing = false
             }
         }
     }

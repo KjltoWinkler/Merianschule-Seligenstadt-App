@@ -34,6 +34,7 @@ import de.kjltowinkler.msapp.data.timetable.TimetableLesson
 import de.kjltowinkler.msapp.data.timetable.TimetableRepository
 import de.kjltowinkler.msapp.theme.FigmaLinkGreen
 import de.kjltowinkler.msapp.theme.FigmaPrimaryDark
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -80,6 +81,10 @@ fun TimetableScreen(
         tabScrollState.animateScrollTo(
             (pagerState.currentPage * buttonWidthEstimate).coerceAtLeast(0)
         )
+    }
+
+    LaunchedEffect(Unit) {
+        TimetableRepository.loadFromServer()
     }
 
     val teacherLinkColor = if (useMaterialYou) {
@@ -148,8 +153,13 @@ fun TimetableScreen(
                 onRefresh = {
                     isRefreshing = true
                     coroutineScope.launch {
-                        delay(700)
-                        isRefreshing = false
+                        try {
+                            val minTimeJob = async { delay(400) }
+                            TimetableRepository.loadFromServer()
+                            minTimeJob.await()
+                        } finally {
+                            isRefreshing = false
+                        }
                     }
                 },
                 state = pullToRefreshState,
