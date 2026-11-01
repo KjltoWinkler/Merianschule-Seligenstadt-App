@@ -387,37 +387,10 @@ fun SubstitutionPlanScreen(
     val distinctDates = remember(allEntries) {
         allEntries.mapNotNull { it.date.takeIf { d -> d.isNotBlank() } }.distinct().sorted()
     }
-    // Am Wochenende oder unter der Woche: Der Fokus-Tag für "Heute" ist heute, oder der nächste anstehende Schultag
-    val futureDates = remember(distinctDates, todayIso) {
-        distinctDates.filter { it >= todayIso }
-    }
+    // Der Schalter (Heute vs. Upcoming/Morgen) steuert strikt den heutigen bzw. morgigen Tag
+    val heuteDate = todayIso
+    val morgenDate = tomorrowIso
 
-    val heuteDate = remember(todayIso, futureDates) {
-        if (todayIso in futureDates) {
-            todayIso
-        } else if (futureDates.isNotEmpty()) {
-            futureDates.first()
-        } else {
-            todayIso
-        }
-    }
-
-    val morgenDate = remember(tomorrowIso, futureDates, heuteDate) {
-        if (tomorrowIso in futureDates) {
-            tomorrowIso
-        } else if (futureDates.isNotEmpty()) {
-            val idx = futureDates.indexOf(heuteDate)
-            if (idx != -1 && idx + 1 < futureDates.size) {
-                futureDates[idx + 1]
-            } else if (futureDates.first() != heuteDate) {
-                futureDates.first()
-            } else {
-                tomorrowIso
-            }
-        } else {
-            tomorrowIso
-        }
-    }
 
 
     val onItemDismissed: (SubstitutionEntry) -> Unit = { swipedEntry ->
@@ -704,6 +677,20 @@ fun SubstitutionPlanScreen(
                             val focusEntries = remember(entriesForTab, targetDate, isUpcoming) {
                                 entriesForTab.filter { it.date == targetDate || (it.date.isBlank() && !isUpcoming) }
                             }
+
+                            // Einträge für weitere kommende Schultage (z. B. nach morgen)
+                            val upcomingOtherDays: List<Pair<String, List<SubstitutionEntry>>> = remember(entriesForTab, morgenDate, isUpcoming) {
+                                if (isUpcoming) {
+                                    entriesForTab
+                                        .filter { it.date.isNotBlank() && it.date > morgenDate }
+                                        .groupBy { it.date }
+                                        .toList()
+                                        .sortedBy { it.first }
+                                } else {
+                                    emptyList()
+                                }
+                            }
+
                             val pastDays: List<Pair<String, List<SubstitutionEntry>>> = remember(entriesForTab, heuteDate) {
                                 entriesForTab
                                     .filter { it.date.isNotBlank() && it.date < heuteDate }
@@ -712,7 +699,8 @@ fun SubstitutionPlanScreen(
                                     .sortedByDescending { it.first }
                             }
 
-                            if (focusEntries.isEmpty() && pastDays.isEmpty()) {
+                            if (focusEntries.isEmpty() && pastDays.isEmpty() && upcomingOtherDays.isEmpty()) {
+
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -895,8 +883,50 @@ fun SubstitutionPlanScreen(
                                         }
                                     }
 
-                                    // --- 2. VERGANGENE EINTRÄGE (Weiter unten) ---
+                                    // --- 2. WEITERE KOMMENDE SCHULTAGE (wenn Switch auf Upcoming) ---
+                                    if (upcomingOtherDays.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        upcomingOtherDays.forEach { (dayDate, entriesForDay) ->
+                                            val dayHeader = formatDayHeader(dayDate, entriesForDay.firstOrNull()?.dayLabel ?: dayDate, todayIso, tomorrowIso)
+                                            Text(
+                                                text = dayHeader,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 8.dp),
+                                                textAlign = TextAlign.Start
+                                            )
+
+                                            entriesForDay.forEachIndexed { index, entry ->
+                                                val cardShape = when {
+                                                    entriesForDay.size == 1 -> RoundedCornerShape(20.dp)
+                                                    index == 0 -> RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 5.dp, bottomEnd = 5.dp)
+                                                    index == entriesForDay.lastIndex -> RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
+                                                    else -> RoundedCornerShape(5.dp)
+                                                }
+
+                                                key(entry.id) {
+                                                    SwipeableSubstitutionItem(
+                                                        entry = entry,
+                                                        cardShape = cardShape,
+                                                        animateOnDismiss = false,
+                                                        onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
+                                                        onDismissed = onItemDismissed,
+                                                        onItemClick = { onItemClicked(entry) }
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                        }
+                                    }
+
+                                    // --- 3. VERGANGENE EINTRÄGE (Weiter unten) ---
                                     if (pastDays.isNotEmpty()) {
+
                                         Spacer(modifier = Modifier.height(16.dp))
 
                                         Row(
