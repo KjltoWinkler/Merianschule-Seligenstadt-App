@@ -69,6 +69,46 @@ object GeminiTimetableService {
         return trimmed.take(6) + "••••••••" + trimmed.takeLast(4)
     }
 
+    private fun fetchAvailableModels(apiKey: String): List<String> {
+        val listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey"
+        return try {
+            val req = HttpRequest.newBuilder()
+                .uri(URI.create(listUrl))
+                .timeout(Duration.ofSeconds(7))
+                .GET()
+                .build()
+            val resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString())
+            if (resp.statusCode() == 200) {
+                val json = jsonParser.decodeFromString<JsonObject>(resp.body())
+                val modelsArr = json["models"]?.jsonArray ?: return emptyList()
+                val valid = mutableListOf<String>()
+                for (elem in modelsArr) {
+                    val obj = elem.jsonObject
+                    val name = obj["name"]?.jsonPrimitive?.content ?: continue
+                    val methods = obj["supportedGenerationMethods"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
+                    if (methods.contains("generateContent")) {
+                        val cleanName = name.removePrefix("models/")
+                        valid.add(cleanName)
+                    }
+                }
+                valid.filter { it.startsWith("gemini") && !it.contains("embedding") && !it.contains("aqa") && !it.contains("imagen") }
+                    .sortedWith(compareByDescending<String> {
+                        when {
+                            it.contains("flash") && (it.contains("2.0") || it.contains("2.5") || it.contains("3.")) -> 100
+                            it.contains("flash") -> 80
+                            it.contains("2.") -> 70
+                            it.contains("pro") -> 60
+                            else -> 50
+                        }
+                    })
+            } else {
+                emptyList()
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     suspend fun analyzeTimetableImage(
         imageBase64: String,
         mimeType: String,
@@ -181,14 +221,16 @@ Regeln:
             }
         }
 
-        val candidateModels = listOf(
+        val discoveredModels = fetchAvailableModels(key)
+        val defaultFallbackModels = listOf(
             "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-3.8-flash",
             "gemini-2.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash",
             "gemini-2.0-flash-lite",
-            "gemini-1.5-pro"
+            "gemini-1.5-pro-latest"
         )
+        val candidateModels = (discoveredModels + defaultFallbackModels).distinct().take(4)
         var lastError: Exception? = null
         var responseBody: String? = null
         val attemptedErrors = mutableListOf<String>()
@@ -199,7 +241,7 @@ Regeln:
             val request = HttpRequest.newBuilder()
                 .uri(URI.create(requestUrl))
                 .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(60))
+                .timeout(Duration.ofSeconds(25))
                 .POST(HttpRequest.BodyPublishers.ofString(requestPayload.toString()))
                 .build()
 

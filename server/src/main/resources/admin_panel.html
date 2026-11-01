@@ -2051,7 +2051,17 @@
           })
         });
 
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          if (res.status === 504 || res.status === 502) {
+            throw new Error('Zeitüberschreitung des Gateways (504). Die KI-Analyse hat zu lange gedauert. Bitte erneut versuchen.');
+          }
+          throw new Error('Server-Antwort ist kein JSON (Status ' + res.status + '): ' + text.substring(0, 100));
+        }
+
         if (res.ok && data.success && data.timetable) {
           currentScannedTimetable = data.timetable;
           renderTimetableResult(data.timetable);
