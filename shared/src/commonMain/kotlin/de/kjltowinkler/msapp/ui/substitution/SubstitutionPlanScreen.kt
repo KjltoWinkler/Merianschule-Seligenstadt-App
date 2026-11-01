@@ -723,6 +723,39 @@ fun SubstitutionPlanScreen(
                                     .sortedByDescending { it.first }
                             }
 
+                            // --- HAUPT-HEADER: Datum & Today/Upcoming Switch (Bleibt IMMER an exakt derselben Stelle) ---
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                AnimatedContent(
+                                    targetState = focusDayTitle,
+                                    transitionSpec = {
+                                        fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
+                                    },
+                                    label = "focusDayTitle",
+                                    modifier = Modifier.weight(1f, fill = false).padding(end = 12.dp)
+                                ) { title ->
+                                    Text(
+                                        text = title,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Start,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                AppSwitch(
+                                    checked = isUpcoming,
+                                    onCheckedChange = { isUpcoming = it }
+                                )
+                            }
+
                             if (focusEntries.isEmpty() && pastDays.isEmpty() && upcomingOtherDays.isEmpty()) {
 
                                 Card(
@@ -739,25 +772,6 @@ fun SubstitutionPlanScreen(
                                             .padding(horizontal = 20.dp, vertical = 22.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = focusDayTitle,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                textAlign = TextAlign.Start
-                                            )
-
-                                            AppSwitch(
-                                                checked = isUpcoming,
-                                                onCheckedChange = { isUpcoming = it }
-                                            )
-                                        }
-
                                         val emptyTitle = when (pageFilter) {
                                             SubstitutionFilter.ALL -> "Noch keine Vertretungen"
                                             SubstitutionFilter.CANCELLATION -> "Keine Unterrichtsausfälle"
@@ -782,7 +796,7 @@ fun SubstitutionPlanScreen(
                                             SubstitutionFilter.MARKED -> Res.drawable.marked_substitutions_character
                                         }
 
-                                        Spacer(modifier = Modifier.height(20.dp))
+                                        Spacer(modifier = Modifier.height(10.dp))
 
                                         Image(
                                             painter = painterResource(emptyGraphic),
@@ -834,28 +848,6 @@ fun SubstitutionPlanScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    // --- 1. HAUPTTAG (Heute oder Morgen je nach Switch) ---
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 10.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = focusDayTitle,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Start
-                                        )
-
-                                        AppSwitch(
-                                            checked = isUpcoming,
-                                            onCheckedChange = { isUpcoming = it }
-                                        )
-                                    }
-
                                     if (focusEntries.isEmpty()) {
                                         Card(
                                             modifier = Modifier

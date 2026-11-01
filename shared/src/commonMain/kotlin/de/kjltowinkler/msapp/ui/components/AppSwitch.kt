@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -288,17 +289,23 @@ fun AppSwitch(
                         )
                     }
                 } else {
-                    val painter = if (checked) {
-                        painterResource(Res.drawable.ic_event_upcoming)
-                    } else {
-                        painterResource(Res.drawable.ic_today)
+                    Crossfade(
+                        targetState = checked,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "switchIcon"
+                    ) { isChecked ->
+                        val painter = if (isChecked) {
+                            painterResource(Res.drawable.ic_event_upcoming)
+                        } else {
+                            painterResource(Res.drawable.ic_today)
+                        }
+                        Icon(
+                            painter = painter,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = iconColor
+                        )
                     }
-                    Icon(
-                        painter = painter,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = iconColor
-                    )
                 }
             }
         }
