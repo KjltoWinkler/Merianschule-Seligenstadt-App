@@ -5,6 +5,8 @@ import de.kjltowinkler.msapp.data.sync.SyncTasksRequest
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TaskList
 import de.kjltowinkler.msapp.server.repository.TaskRepository
+import de.kjltowinkler.msapp.server.security.JwtService
+import de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -12,8 +14,40 @@ import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import io.ktor.websocket.close
+import io.ktor.websocket.readText
 
 fun Route.taskRoutes() {
+    // Echtzeit-WebSocket-Kanal für sofortige Aufgaben-Synchronisation über alle Geräte des Nutzers
+    webSocket("/api/tasks/ws") {
+        val token = call.request.queryParameters["token"]
+            ?: call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()
+
+        val userId = if (!token.isNullOrBlank()) JwtService.verifyToken(token) else null
+        if (userId.isNullOrBlank()) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Ungültiges oder fehlendes Token"))
+            return@webSocket
+        }
+
+        TaskWebSocketManager.register(userId, this)
+        try {
+            send(Frame.Text("""{"event":"connected","userId":"$userId"}"""))
+            for (frame in incoming) {
+                if (frame is Frame.Text) {
+                    val text = frame.readText()
+                    if (text.contains("ping", ignoreCase = true)) {
+                        send(Frame.Text("""{"event":"pong"}"""))
+                    }
+                }
+            }
+        } finally {
+            TaskWebSocketManager.unregister(userId, this)
+        }
+    }
+
     authenticate("auth-jwt") {
         route("/api/tasks") {
 
@@ -33,6 +67,7 @@ fun Route.taskRoutes() {
                     return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Aufgabendaten"))
                 }
                 val saved = TaskRepository.upsertTask(userId, task)
+                TaskWebSocketManager.notifyTaskUpdate(userId, "task_created")
                 call.respond(HttpStatusCode.Created, saved)
             }
 
@@ -46,6 +81,7 @@ fun Route.taskRoutes() {
                 }
                 val toSave = if (task.id == taskId) task else task.copy(id = taskId)
                 val saved = TaskRepository.upsertTask(userId, toSave)
+                TaskWebSocketManager.notifyTaskUpdate(userId, "task_updated")
                 call.respond(HttpStatusCode.OK, saved)
             }
 
@@ -56,6 +92,7 @@ fun Route.taskRoutes() {
                     ?: return@delete call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
                 val success = TaskRepository.deleteTask(userId, taskId)
                 if (success) {
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "task_deleted")
                     call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Aufgabe gelöscht"))
                 } else {
                     call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Aufgabe nicht gefunden"))
@@ -78,6 +115,7 @@ fun Route.taskRoutes() {
                         return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Listendaten"))
                     }
                     val saved = TaskRepository.upsertList(userId, list)
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_created")
                     call.respond(HttpStatusCode.Created, saved)
                 }
 
@@ -91,6 +129,7 @@ fun Route.taskRoutes() {
                     }
                     val toSave = if (list.id == listId) list else list.copy(id = listId)
                     val saved = TaskRepository.upsertList(userId, toSave)
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_updated")
                     call.respond(HttpStatusCode.OK, saved)
                 }
 
@@ -101,6 +140,7 @@ fun Route.taskRoutes() {
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
                     val success = TaskRepository.deleteList(userId, listId)
                     if (success) {
+                        TaskWebSocketManager.notifyTaskUpdate(userId, "list_deleted")
                         call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Liste gelöscht"))
                     } else {
                         call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Liste konnte nicht gelöscht werden"))
@@ -116,6 +156,7 @@ fun Route.taskRoutes() {
                     return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Sync-Anfrage"))
                 }
                 val syncResult = TaskRepository.sync(userId, request)
+                TaskWebSocketManager.notifyTaskUpdate(userId, "tasks_synced")
                 call.respond(HttpStatusCode.OK, syncResult)
             }
         }

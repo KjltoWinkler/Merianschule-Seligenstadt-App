@@ -247,6 +247,7 @@ fun App() {
             LaunchedEffect(Unit) {
                 if (BackendApiClient.isLoggedIn) {
                     de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
+                    de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()
                     BackendApiClient.fetchUserCourses().onSuccess { courses ->
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                     }
@@ -578,6 +579,7 @@ fun App() {
                                     de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                 }
                                 de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
+                                de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()
 
                                 de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, newPassword)
 
@@ -704,6 +706,7 @@ fun App() {
                                             de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                         }
                                         de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
+                                        de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()
 
                                         if (lastEnteredPassword.isNotBlank()) {
                                             de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, lastEnteredPassword)
@@ -841,6 +844,7 @@ fun App() {
                                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                     }
                                     de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
+                                    de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()
 
                                     de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, password)
 

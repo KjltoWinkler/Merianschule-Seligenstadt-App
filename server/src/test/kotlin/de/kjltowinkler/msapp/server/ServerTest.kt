@@ -195,4 +195,29 @@ class ServerTest {
         // Verify with verifyCode()
         assertTrue(de.kjltowinkler.msapp.server.security.TotpService.verifyCode(base32Secret, "005924", timeMillis = 1234567890L * 1000L))
     }
+
+    @Test
+    fun testRealtimeWebSocketTokenVerificationAndManager() = runBlocking {
+        val userId = "user_ws_test_99"
+        val validToken = JwtService.generateToken(userId, "wstest", "USER")
+        val verifiedUserId = JwtService.verifyToken(validToken)
+        assertEquals(userId, verifiedUserId)
+
+        // Invalid token test
+        val invalidToken = validToken + "corrupted"
+        val invalidResult = JwtService.verifyToken(invalidToken)
+        assertEquals(null, invalidResult)
+
+        // Temp 2FA token darf nicht als reguläres Token für WebSockets verwendet werden
+        val tempToken = JwtService.generate2FaTempToken(userId, "wstest")
+        val tempResult = JwtService.verifyToken(tempToken)
+        assertEquals(null, tempResult)
+
+        // Test TaskWebSocketManager
+        val initialCount = de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager.getActiveSessionCount(userId)
+        assertEquals(0, initialCount)
+
+        // Notification an User ohne Sessions darf ohne Fehler durchlaufen
+        de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager.notifyTaskUpdate(userId, "test_event")
+    }
 }

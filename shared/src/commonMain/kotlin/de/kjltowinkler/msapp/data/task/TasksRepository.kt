@@ -66,6 +66,7 @@ object TasksRepository {
         }
         if (BackendApiClient.isLoggedIn) {
             triggerBackgroundSync(debounceMs = 0)
+            startRealtimeSync()
         }
     }
 
@@ -235,7 +236,22 @@ object TasksRepository {
         }
     }
 
+    /**
+     * Startet die permanente WebSocket-Echtzeitsynchronisation.
+     */
+    fun startRealtimeSync() {
+        if (!BackendApiClient.isLoggedIn) return
+        BackendApiClient.startRealtimeTaskUpdates {
+            syncWithServer()
+        }
+    }
+
+    fun stopRealtimeSync() {
+        BackendApiClient.stopRealtimeTaskUpdates()
+    }
+
     fun clearAndReset() {
+        stopRealtimeSync()
         syncJob?.cancel()
         _tasks.clear()
         privateLists.clear()

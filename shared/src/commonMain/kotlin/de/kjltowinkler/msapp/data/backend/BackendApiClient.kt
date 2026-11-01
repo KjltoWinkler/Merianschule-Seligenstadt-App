@@ -13,6 +13,18 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import de.kjltowinkler.msapp.data.storage.PlatformStorage
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -67,13 +79,57 @@ object BackendApiClient {
     }
 
     fun clearSession() {
+        stopRealtimeTaskUpdates()
         authToken = null
         currentUser = null
         PlatformStorage.remove(KEY_AUTH_TOKEN)
         PlatformStorage.remove(KEY_CURRENT_USER)
     }
 
-    private val client = HttpClient(CIO)
+    private val client = HttpClient(CIO) {
+        install(WebSockets)
+    }
+
+    private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var realTimeJob: Job? = null
+
+    /**
+     * Startet die permanente WebSocket-Verbindung für Aufgaben-Echtzeitaktualisierungen.
+     * Sobald ein anderes Gerät eine Änderung vornimmt, wird [onUpdate] ausgeführt.
+     */
+    fun startRealtimeTaskUpdates(onUpdate: suspend () -> Unit) {
+        if (!isLoggedIn) return
+        realTimeJob?.cancel()
+        realTimeJob = clientScope.launch {
+            while (isActive && isLoggedIn) {
+                try {
+                    val token = authToken ?: break
+                    val wsScheme = if (serverUrl.startsWith("https://")) "wss://" else "ws://"
+                    val cleanHost = serverUrl.removePrefix("https://").removePrefix("http://")
+                    val wsUrl = "$wsScheme$cleanHost/api/tasks/ws?token=$token"
+
+                    client.webSocket(wsUrl) {
+                        for (frame in incoming) {
+                            if (frame is Frame.Text) {
+                                val text = frame.readText()
+                                if (text.contains("tasks_updated", ignoreCase = true)) {
+                                    onUpdate()
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Automatische Wiederverbindung bei Verbindungsverlust (z.B. Wechsel WLAN/Mobilfunk)
+                }
+                delay(3000)
+            }
+        }
+    }
+
+    fun stopRealtimeTaskUpdates() {
+        realTimeJob?.cancel()
+        realTimeJob = null
+    }
 
     // ==========================================
     // AUTH & ACCOUNT

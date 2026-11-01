@@ -62,6 +62,18 @@ object JwtService {
         }
     }
 
+    fun verifyToken(token: String): String? {
+        return try {
+            val decoded = verifier.verify(token)
+            val purpose = decoded.getClaim("purpose").asString()
+            if (purpose == "2fa_challenge") return null
+            val userId = decoded.getClaim("userId").asString()
+            if (userId.isNullOrBlank()) null else userId
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun validateCredential(credential: JWTCredential): JWTPrincipal? {
         val userId = credential.payload.getClaim("userId").asString()
         val username = credential.payload.getClaim("username").asString()

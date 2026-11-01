@@ -22,6 +22,10 @@ import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.pingPeriod
+import io.ktor.server.websocket.timeout
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
@@ -74,6 +78,13 @@ fun main() {
 
 fun Application.module() {
     de.kjltowinkler.msapp.server.service.SchulportalSyncService.startBackgroundScheduler(this)
+
+    install(WebSockets) {
+        pingPeriod = 15.seconds
+        timeout = 15.seconds
+        maxFrameSize = Long.MAX_VALUE
+        masking = false
+    }
 
     install(ContentNegotiation) {
         json(Json {
