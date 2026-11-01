@@ -21,6 +21,8 @@ data class UserRecord(
     val avatarType: String,
     val avatarColorHex: Long,
     val role: String,
+    val hasCustomPassword: Boolean = true,
+    val isTwoFactorEnabled: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long
 ) {
@@ -35,28 +37,36 @@ data class UserRecord(
         avatarType = avatarType,
         avatarColorHex = avatarColorHex,
         role = role,
+        hasCustomPassword = hasCustomPassword,
+        isTwoFactorEnabled = isTwoFactorEnabled,
         createdAt = createdAt
     )
 }
 
 object UserRepository {
 
-    private fun mapResultSet(rs: ResultSet): UserRecord = UserRecord(
-        id = rs.getString("id"),
-        username = rs.getString("username"),
-        email = rs.getString("email"),
-        passwordHash = rs.getString("password_hash"),
-        passwordSalt = rs.getString("password_salt"),
-        fullName = rs.getString("full_name"),
-        className = rs.getString("class_name"),
-        schoolType = rs.getString("school_type"),
-        classTeacher = rs.getString("class_teacher"),
-        avatarType = rs.getString("avatar_type"),
-        avatarColorHex = rs.getLong("avatar_color_hex"),
-        role = rs.getString("role"),
-        createdAt = rs.getLong("created_at"),
-        updatedAt = rs.getLong("updated_at")
-    )
+    private fun mapResultSet(rs: ResultSet): UserRecord {
+        val hasCustom = runCatching { rs.getInt("has_custom_password") == 1 }.getOrDefault(true)
+        val is2fa = runCatching { rs.getInt("is_two_factor_enabled") == 1 }.getOrDefault(false)
+        return UserRecord(
+            id = rs.getString("id"),
+            username = rs.getString("username"),
+            email = rs.getString("email"),
+            passwordHash = rs.getString("password_hash"),
+            passwordSalt = rs.getString("password_salt"),
+            fullName = rs.getString("full_name"),
+            className = rs.getString("class_name"),
+            schoolType = rs.getString("school_type"),
+            classTeacher = rs.getString("class_teacher"),
+            avatarType = rs.getString("avatar_type"),
+            avatarColorHex = rs.getLong("avatar_color_hex"),
+            role = rs.getString("role"),
+            hasCustomPassword = hasCustom,
+            isTwoFactorEnabled = is2fa,
+            createdAt = rs.getLong("created_at"),
+            updatedAt = rs.getLong("updated_at")
+        )
+    }
 
     suspend fun findByUsernameOrEmail(identifier: String): UserRecord? = DatabaseFactory.query { conn ->
         val sql = "SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1;"
@@ -79,7 +89,12 @@ object UserRepository {
         }
     }
 
-    suspend fun createUser(request: RegisterRequest, role: String = "USER"): UserRecord = DatabaseFactory.query { conn ->
+    suspend fun createUser(
+        request: RegisterRequest,
+        role: String = "USER",
+        hasCustomPassword: Boolean = true,
+        isTwoFactorEnabled: Boolean = false
+    ): UserRecord = DatabaseFactory.query { conn ->
         val existing = findByUsernameOrEmailSync(conn, request.username) ?: findByUsernameOrEmailSync(conn, request.email)
         if (existing != null) {
             throw IllegalArgumentException("Benutzername oder E-Mail ist bereits vergeben.")
@@ -91,8 +106,8 @@ object UserRepository {
         val now = System.currentTimeMillis()
 
         val sql = """
-            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, has_custom_password, is_two_factor_enabled, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """.trimIndent()
 
         conn.prepareStatement(sql).use { stmt ->
@@ -108,8 +123,10 @@ object UserRepository {
             stmt.setString(10, request.avatarType)
             stmt.setLong(11, request.avatarColorHex)
             stmt.setString(12, role)
-            stmt.setLong(13, now)
-            stmt.setLong(14, now)
+            stmt.setInt(13, if (hasCustomPassword) 1 else 0)
+            stmt.setInt(14, if (isTwoFactorEnabled) 1 else 0)
+            stmt.setLong(15, now)
+            stmt.setLong(16, now)
             stmt.executeUpdate()
         }
 
@@ -134,9 +151,31 @@ object UserRepository {
             avatarType = request.avatarType,
             avatarColorHex = request.avatarColorHex,
             role = role,
+            hasCustomPassword = hasCustomPassword,
+            isTwoFactorEnabled = isTwoFactorEnabled,
             createdAt = now,
             updatedAt = now
         )
+    }
+
+    suspend fun setHasCustomPassword(userId: String, hasCustom: Boolean): Boolean = DatabaseFactory.query { conn ->
+        val sql = "UPDATE users SET has_custom_password = ?, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setInt(1, if (hasCustom) 1 else 0)
+            stmt.setLong(2, System.currentTimeMillis())
+            stmt.setString(3, userId)
+            stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun setTwoFactorEnabled(userId: String, enabled: Boolean): Boolean = DatabaseFactory.query { conn ->
+        val sql = "UPDATE users SET is_two_factor_enabled = ?, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setInt(1, if (enabled) 1 else 0)
+            stmt.setLong(2, System.currentTimeMillis())
+            stmt.setString(3, userId)
+            stmt.executeUpdate() > 0
+        }
     }
 
     private fun findByUsernameOrEmailSync(conn: java.sql.Connection, identifier: String): UserRecord? {

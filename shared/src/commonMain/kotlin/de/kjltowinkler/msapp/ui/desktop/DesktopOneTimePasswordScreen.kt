@@ -41,6 +41,8 @@ fun DesktopOneTimePasswordScreen(
     avatarPainter: Painter? = null,
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onNextClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onPasswordInfoClicked: () -> Unit = {},
@@ -118,6 +120,12 @@ fun DesktopOneTimePasswordScreen(
         Spacer(modifier = Modifier.height(36.dp))
 
         val customErrorColor = Color(0xFFFF7164)
+        val hasError = isError || !errorMessage.isNullOrBlank()
+        val displayErrorText = when {
+            !errorMessage.isNullOrBlank() -> errorMessage
+            isError -> "Bitte gib dein Einmalpasswort ein"
+            else -> null
+        }
 
         // 5. Eingabefeld Einmalpasswort
         OutlinedSecureTextField(
@@ -125,7 +133,7 @@ fun DesktopOneTimePasswordScreen(
             textObfuscationMode = if (passwordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
             label = {
                 Text(
-                    text = if (isError) "Einmalpasswort*" else "Einmalpasswort"
+                    text = if (hasError) "Einmalpasswort*" else "Einmalpasswort"
                 )
             },
             trailingIcon = {
@@ -142,7 +150,7 @@ fun DesktopOneTimePasswordScreen(
                     )
                 }
             },
-            isError = isError,
+            isError = hasError,
             shape = RoundedCornerShape(4.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = DesktopAccentBlue,
@@ -159,10 +167,10 @@ fun DesktopOneTimePasswordScreen(
                 errorSupportingTextColor = customErrorColor,
                 errorCursorColor = customErrorColor
             ),
-            supportingText = if (isError) {
+            supportingText = if (displayErrorText != null) {
                 {
                     Text(
-                        text = "Bitte gib dein Einmalpasswort ein",
+                        text = displayErrorText,
                         modifier = Modifier.clearAndSetSemantics {}
                     )
                 }
@@ -174,18 +182,20 @@ fun DesktopOneTimePasswordScreen(
                 imeAction = ImeAction.Done
             ),
             onKeyboardAction = {
-                val pwd = passwordState.text.toString().trim()
-                if (pwd.isNotBlank()) {
-                    keyboardController?.hide()
-                    onNextClicked(pwd)
-                } else {
-                    isError = true
+                if (!isLoading) {
+                    val pwd = passwordState.text.toString().trim()
+                    if (pwd.isNotBlank()) {
+                        keyboardController?.hide()
+                        onNextClicked(pwd)
+                    } else {
+                        isError = true
+                    }
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
-                    if (isError) error("Bitte gib dein Einmalpasswort ein")
+                    if (hasError) error(displayErrorText ?: "Bitte gib dein Einmalpasswort ein")
                 }
         )
 
@@ -214,13 +224,16 @@ fun DesktopOneTimePasswordScreen(
         // 7. Weiter Button
         Button(
             onClick = {
-                val pwd = passwordState.text.toString().trim()
-                if (pwd.isNotBlank()) {
-                    onNextClicked(pwd)
-                } else {
-                    isError = true
+                if (!isLoading) {
+                    val pwd = passwordState.text.toString().trim()
+                    if (pwd.isNotBlank()) {
+                        onNextClicked(pwd)
+                    } else {
+                        isError = true
+                    }
                 }
             },
+            enabled = !isLoading,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = DesktopAccentBlue,
@@ -233,14 +246,22 @@ fun DesktopOneTimePasswordScreen(
                 .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
-            Text(
-                text = "Weiter",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = DesktopOnAccentBlue
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = DesktopOnAccentBlue,
+                    strokeWidth = 2.5.dp
+                )
+            } else {
+                Text(
+                    text = "Weiter",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = DesktopOnAccentBlue
+                )
+            }
         }
     }
 

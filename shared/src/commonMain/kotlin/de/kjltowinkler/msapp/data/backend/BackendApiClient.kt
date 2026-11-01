@@ -99,6 +99,34 @@ object BackendApiClient {
         }
     }
 
+    suspend fun setInitialPassword(request: SetInitialPasswordRequest): Result<AuthResponse> = runCatching {
+        val response = client.post("$serverUrl/api/auth/set-initial-password") {
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(request))
+        }
+
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            val auth = json.decodeFromString<AuthResponse>(body)
+            authToken = auth.token
+            currentUser = auth.user
+            auth
+        } else {
+            val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(error)
+        }
+    }
+
+    suspend fun update2Fa(enabled: Boolean): Result<Boolean> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.post("$serverUrl/api/auth/2fa") {
+            header("Authorization", "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(Update2FaRequest(enabled)))
+        }
+        response.status == HttpStatusCode.OK
+    }
+
     suspend fun getProfile(): Result<UserProfileDto> = runCatching {
         val token = authToken ?: error("Nicht angemeldet")
         val response = client.get("$serverUrl/api/auth/me") {

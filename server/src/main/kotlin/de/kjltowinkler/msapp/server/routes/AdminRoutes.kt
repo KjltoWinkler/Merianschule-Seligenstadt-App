@@ -127,7 +127,8 @@ fun Route.adminRoutes() {
                             avatarType = "initials",
                             avatarColorHex = 0xFF1B65A4L
                         ),
-                        role = req.role.ifBlank { "USER" }.uppercase()
+                        role = req.role.ifBlank { "USER" }.uppercase(),
+                        hasCustomPassword = false
                     )
                     call.respond(HttpStatusCode.Created, user.toDto())
                 } catch (e: IllegalArgumentException) {
@@ -175,6 +176,7 @@ fun Route.adminRoutes() {
                 }
                 val success = UserRepository.resetPassword(id, req.newPassword)
                 if (success) {
+                    UserRepository.setHasCustomPassword(id, false)
                     call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Passwort erfolgreich zurückgesetzt."))
                 } else {
                     call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))

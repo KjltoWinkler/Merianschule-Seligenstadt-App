@@ -53,6 +53,8 @@ fun OnboardingOneTimePasswordScreen(
     avatarPainter: Painter? = null,
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onBackClicked: () -> Unit = {},
     onNextClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
@@ -81,6 +83,8 @@ fun OnboardingOneTimePasswordScreen(
                 avatarPainter = avatarPainter,
                 initialPassword = initialPassword,
                 passwordState = passwordState,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onNextClicked = onNextClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onPasswordInfoClicked = onPasswordInfoClicked,
@@ -186,22 +190,28 @@ fun OnboardingOneTimePasswordScreen(
                 Spacer(modifier = Modifier.height(36.dp))
 
                 val customErrorColor = Color(0xFFFF7164)
+                val hasError = isError || !errorMessage.isNullOrBlank()
+                val displayErrorText = when {
+                    !errorMessage.isNullOrBlank() -> errorMessage
+                    isError -> "Bitte gib dein Einmal-Passwort ein"
+                    else -> null
+                }
 
                 // 6. OutlinedSecureTextField mit Sichtbarkeits-Toggle & Error-Status
                 OutlinedSecureTextField(
                     state = passwordState,
-                    label = { Text(if (isError) "Einmalpasswort*" else "Einmalpasswort") },
-                    isError = isError,
+                    label = { Text(if (hasError) "Einmalpasswort*" else "Einmalpasswort") },
+                    isError = hasError,
                     colors = OutlinedTextFieldDefaults.colors(
                         errorBorderColor = customErrorColor,
                         errorLabelColor = customErrorColor,
                         errorSupportingTextColor = customErrorColor,
                         errorCursorColor = customErrorColor
                     ),
-                    supportingText = if (isError) {
+                    supportingText = if (displayErrorText != null) {
                         {
                             Text(
-                                text = "Bitte gib dein Einmal-Passwort ein",
+                                text = displayErrorText,
                                 modifier = Modifier.clearAndSetSemantics {}
                             )
                         }
@@ -214,12 +224,14 @@ fun OnboardingOneTimePasswordScreen(
                         imeAction = ImeAction.Done
                     ),
                     onKeyboardAction = {
-                        val password = passwordState.text.toString().trim()
-                        if (password.isNotBlank()) {
-                            keyboardController?.hide()
-                            onNextClicked(password)
-                        } else {
-                            isError = true
+                        if (!isLoading) {
+                            val password = passwordState.text.toString().trim()
+                            if (password.isNotBlank()) {
+                                keyboardController?.hide()
+                                onNextClicked(password)
+                            } else {
+                                isError = true
+                            }
                         }
                     },
                     trailingIcon = {
@@ -265,13 +277,16 @@ fun OnboardingOneTimePasswordScreen(
             // 8. "Weiter" Button – sitzt fest am unteren Rand bzw. direkt über der Tastatur
             Button(
                 onClick = {
-                    val password = passwordState.text.toString().trim()
-                    if (password.isNotBlank()) {
-                        onNextClicked(password)
-                    } else {
-                        isError = true
+                    if (!isLoading) {
+                        val password = passwordState.text.toString().trim()
+                        if (password.isNotBlank()) {
+                            onNextClicked(password)
+                        } else {
+                            isError = true
+                        }
                     }
                 },
+                enabled = !isLoading,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -283,28 +298,36 @@ fun OnboardingOneTimePasswordScreen(
                     .height(69.dp)
                     .semantics { contentDescription = "Weiter" }
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Weiter",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.5.dp
                     )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Weiter",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
 
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_arrow_forward),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 28.dp)
-                            .size(31.dp)
-                    )
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_forward),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 28.dp)
+                                .size(31.dp)
+                        )
+                    }
                 }
             }
         }

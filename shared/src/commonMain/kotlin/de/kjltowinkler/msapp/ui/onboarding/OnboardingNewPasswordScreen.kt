@@ -56,6 +56,8 @@ fun OnboardingNewPasswordScreen(
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
     confirmPasswordState: TextFieldState = rememberTextFieldState(),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onBackClicked: () -> Unit = {},
     onFinishClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
@@ -85,6 +87,7 @@ fun OnboardingNewPasswordScreen(
     }
 
     fun validateAndSubmit() {
+        if (isLoading) return
         val pwd = passwordState.text.toString()
         val confirmPwd = confirmPasswordState.text.toString()
 
@@ -126,6 +129,8 @@ fun OnboardingNewPasswordScreen(
                 initialPassword = initialPassword,
                 passwordState = passwordState,
                 confirmPasswordState = confirmPasswordState,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onFinishClicked = onFinishClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onPasswordInfoClicked = onPasswordInfoClicked
@@ -230,22 +235,23 @@ fun OnboardingNewPasswordScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 val customErrorColor = Color(0xFFFF7164)
+                val effectivePasswordError = errorMessage ?: passwordError
 
                 // 6. Erstes Passwort-Feld ("Neues Passwort")
                 OutlinedSecureTextField(
                     state = passwordState,
                     label = { Text("Neues Passwort") },
-                    isError = passwordError != null,
+                    isError = effectivePasswordError != null,
                     colors = OutlinedTextFieldDefaults.colors(
                         errorBorderColor = customErrorColor,
                         errorLabelColor = customErrorColor,
                         errorSupportingTextColor = customErrorColor,
                         errorCursorColor = customErrorColor
                     ),
-                    supportingText = if (passwordError != null) {
+                    supportingText = if (effectivePasswordError != null) {
                         {
                             Text(
-                                text = passwordError ?: "",
+                                text = effectivePasswordError ?: "",
                                 modifier = Modifier.clearAndSetSemantics {}
                             )
                         }
@@ -358,6 +364,7 @@ fun OnboardingNewPasswordScreen(
             // 9. "Weiter" Button unten
             Button(
                 onClick = { validateAndSubmit() },
+                enabled = !isLoading,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -369,28 +376,36 @@ fun OnboardingNewPasswordScreen(
                     .height(69.dp)
                     .semantics { contentDescription = "Weiter" }
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Weiter",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.5.dp
                     )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Weiter",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
 
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_arrow_forward),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 28.dp)
-                            .size(31.dp)
-                    )
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_forward),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 28.dp)
+                                .size(31.dp)
+                        )
+                    }
                 }
             }
         }

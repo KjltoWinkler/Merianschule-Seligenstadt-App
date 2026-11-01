@@ -37,7 +37,21 @@ data class CheckAccountResponse(
     val classTeacher: String? = null,
     val avatarType: String? = null,
     val avatarColorHex: Long? = null,
+    val hasCustomPassword: Boolean = true,
+    val isTwoFactorEnabled: Boolean = false,
     val message: String? = null
+)
+
+@Serializable
+data class SetInitialPasswordRequest(
+    val usernameOrEmail: String,
+    val initialPassword: String,
+    val newPassword: String
+)
+
+@Serializable
+data class Update2FaRequest(
+    val enabled: Boolean
 )
 
 @Serializable
@@ -52,6 +66,8 @@ data class UserProfileDto(
     val avatarType: String,
     val avatarColorHex: Long,
     val role: String = "USER",
+    val hasCustomPassword: Boolean = true,
+    val isTwoFactorEnabled: Boolean = false,
     val createdAt: Long = 0L
 )
 

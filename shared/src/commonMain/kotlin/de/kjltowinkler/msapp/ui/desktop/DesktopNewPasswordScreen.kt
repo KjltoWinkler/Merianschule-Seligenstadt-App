@@ -42,6 +42,8 @@ fun DesktopNewPasswordScreen(
     initialPassword: String = "",
     passwordState: TextFieldState = rememberTextFieldState(initialPassword),
     confirmPasswordState: TextFieldState = rememberTextFieldState(""),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onFinishClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onPasswordInfoClicked: () -> Unit = {}
@@ -69,6 +71,7 @@ fun DesktopNewPasswordScreen(
     }
 
     fun validateAndProceed() {
+        if (isLoading) return
         val pwd = passwordState.text.toString()
         val confirm = confirmPasswordState.text.toString()
 
@@ -255,6 +258,15 @@ fun DesktopNewPasswordScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (!errorMessage.isNullOrBlank()) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = customErrorColor,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
         // 7. Passwort-Kriterien
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -275,6 +287,7 @@ fun DesktopNewPasswordScreen(
         // 8. Weiter Button
         Button(
             onClick = { validateAndProceed() },
+            enabled = !isLoading,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = DesktopAccentBlue,
@@ -287,14 +300,22 @@ fun DesktopNewPasswordScreen(
                 .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
-            Text(
-                text = "Weiter",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = DesktopOnAccentBlue
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = DesktopOnAccentBlue,
+                    strokeWidth = 2.5.dp
+                )
+            } else {
+                Text(
+                    text = "Weiter",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = DesktopOnAccentBlue
+                )
+            }
         }
     }
 

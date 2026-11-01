@@ -46,10 +46,20 @@ object DatabaseFactory {
                         avatar_type TEXT NOT NULL,
                         avatar_color_hex INTEGER NOT NULL,
                         role TEXT NOT NULL DEFAULT 'USER',
+                        has_custom_password INTEGER NOT NULL DEFAULT 1,
+                        is_two_factor_enabled INTEGER NOT NULL DEFAULT 0,
                         created_at INTEGER NOT NULL,
                         updated_at INTEGER NOT NULL
                     );
                 """.trimIndent())
+
+                try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN has_custom_password INTEGER NOT NULL DEFAULT 1;")
+                } catch (_: Exception) {}
+
+                try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN is_two_factor_enabled INTEGER NOT NULL DEFAULT 0;")
+                } catch (_: Exception) {}
 
                 stmt.execute("""
                     CREATE TABLE IF NOT EXISTS task_lists (

@@ -41,7 +41,9 @@ fun Route.authRoutes() {
                     schoolType = user.schoolType,
                     classTeacher = user.classTeacher,
                     avatarType = user.avatarType,
-                    avatarColorHex = user.avatarColorHex
+                    avatarColorHex = user.avatarColorHex,
+                    hasCustomPassword = user.hasCustomPassword,
+                    isTwoFactorEnabled = user.isTwoFactorEnabled
                 ))
             } else {
                 call.respond(HttpStatusCode.NotFound, CheckAccountResponse(
@@ -69,7 +71,9 @@ fun Route.authRoutes() {
                     schoolType = user.schoolType,
                     classTeacher = user.classTeacher,
                     avatarType = user.avatarType,
-                    avatarColorHex = user.avatarColorHex
+                    avatarColorHex = user.avatarColorHex,
+                    hasCustomPassword = user.hasCustomPassword,
+                    isTwoFactorEnabled = user.isTwoFactorEnabled
                 ))
             } else {
                 call.respond(HttpStatusCode.NotFound, CheckAccountResponse(
@@ -77,6 +81,33 @@ fun Route.authRoutes() {
                     message = "Dieser Account existiert nicht."
                 ))
             }
+        }
+
+        post("/set-initial-password") {
+            val req = runCatching { call.receive<SetInitialPasswordRequest>() }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Anfrage."))
+                return@post
+            }
+
+            val user = UserRepository.findByUsernameOrEmail(req.usernameOrEmail.trim())
+            if (user == null || !PasswordHasher.verifyPassword(req.initialPassword, user.passwordSalt, user.passwordHash)) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Das Einmal-Passwort ist nicht korrekt."))
+                return@post
+            }
+
+            if (req.newPassword.trim().length < 6) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Das neue Passwort muss mindestens 6 Zeichen lang sein."))
+                return@post
+            }
+
+            val newSalt = PasswordHasher.generateSalt()
+            val newHash = PasswordHasher.hashPassword(req.newPassword.trim(), newSalt)
+            UserRepository.updatePassword(user.id, newHash, newSalt)
+            UserRepository.setHasCustomPassword(user.id, true)
+
+            val updatedUser = UserRepository.findById(user.id) ?: user
+            val token = JwtService.generateToken(user.id, user.username, user.role)
+            call.respond(HttpStatusCode.OK, AuthResponse(token, updatedUser.toDto()))
         }
 
         post("/register") {
@@ -188,6 +219,27 @@ fun Route.authRoutes() {
                     call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Passwort erfolgreich geändert."))
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Fehler beim Ändern des Passworts."))
+                }
+            }
+
+            post("/2fa") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                if (userId == null) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert."))
+                    return@post
+                }
+
+                val req = runCatching { call.receive<Update2FaRequest>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Anfrage."))
+                    return@post
+                }
+
+                val success = UserRepository.setTwoFactorEnabled(userId, req.enabled)
+                if (success) {
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "2FA-Status erfolgreich aktualisiert."))
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Fehler beim Aktualisieren des 2FA-Status."))
                 }
             }
         }
