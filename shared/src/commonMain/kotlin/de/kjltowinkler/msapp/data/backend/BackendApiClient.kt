@@ -90,6 +90,8 @@ object BackendApiClient {
         install(WebSockets)
     }
 
+    val clientInstanceId: String = "inst_" + (100000..999999).random()
+
     private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var realTimeJob: Job? = null
 
@@ -113,7 +115,10 @@ object BackendApiClient {
                             if (frame is Frame.Text) {
                                 val text = frame.readText()
                                 if (text.contains("tasks_updated", ignoreCase = true)) {
-                                    onUpdate()
+                                    val isOwnEcho = text.contains("\"origin\":\"$clientInstanceId\"")
+                                    if (!isOwnEcho) {
+                                        onUpdate()
+                                    }
                                 }
                             }
                         }
@@ -378,6 +383,7 @@ object BackendApiClient {
 
         val response = client.post("$serverUrl/api/tasks/sync") {
             header("Authorization", "Bearer $token")
+            header("X-Client-Instance-Id", clientInstanceId)
             contentType(ContentType.Application.Json)
             setBody(json.encodeToString(request))
         }

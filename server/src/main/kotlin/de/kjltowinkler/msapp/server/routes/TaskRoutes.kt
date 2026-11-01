@@ -67,7 +67,8 @@ fun Route.taskRoutes() {
                     return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Aufgabendaten"))
                 }
                 val saved = TaskRepository.upsertTask(userId, task)
-                TaskWebSocketManager.notifyTaskUpdate(userId, "task_created")
+                val origin = call.request.headers["X-Client-Instance-Id"]
+                TaskWebSocketManager.notifyTaskUpdate(userId, "task_created", origin)
                 call.respond(HttpStatusCode.Created, saved)
             }
 
@@ -81,7 +82,8 @@ fun Route.taskRoutes() {
                 }
                 val toSave = if (task.id == taskId) task else task.copy(id = taskId)
                 val saved = TaskRepository.upsertTask(userId, toSave)
-                TaskWebSocketManager.notifyTaskUpdate(userId, "task_updated")
+                val origin = call.request.headers["X-Client-Instance-Id"]
+                TaskWebSocketManager.notifyTaskUpdate(userId, "task_updated", origin)
                 call.respond(HttpStatusCode.OK, saved)
             }
 
@@ -92,7 +94,8 @@ fun Route.taskRoutes() {
                     ?: return@delete call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
                 val success = TaskRepository.deleteTask(userId, taskId)
                 if (success) {
-                    TaskWebSocketManager.notifyTaskUpdate(userId, "task_deleted")
+                    val origin = call.request.headers["X-Client-Instance-Id"]
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "task_deleted", origin)
                     call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Aufgabe gelöscht"))
                 } else {
                     call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Aufgabe nicht gefunden"))
@@ -115,7 +118,8 @@ fun Route.taskRoutes() {
                         return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Listendaten"))
                     }
                     val saved = TaskRepository.upsertList(userId, list)
-                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_created")
+                    val origin = call.request.headers["X-Client-Instance-Id"]
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_created", origin)
                     call.respond(HttpStatusCode.Created, saved)
                 }
 
@@ -129,7 +133,8 @@ fun Route.taskRoutes() {
                     }
                     val toSave = if (list.id == listId) list else list.copy(id = listId)
                     val saved = TaskRepository.upsertList(userId, toSave)
-                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_updated")
+                    val origin = call.request.headers["X-Client-Instance-Id"]
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_updated", origin)
                     call.respond(HttpStatusCode.OK, saved)
                 }
 
@@ -140,7 +145,8 @@ fun Route.taskRoutes() {
                         ?: return@delete call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
                     val success = TaskRepository.deleteList(userId, listId)
                     if (success) {
-                        TaskWebSocketManager.notifyTaskUpdate(userId, "list_deleted")
+                        val origin = call.request.headers["X-Client-Instance-Id"]
+                        TaskWebSocketManager.notifyTaskUpdate(userId, "list_deleted", origin)
                         call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Liste gelöscht"))
                     } else {
                         call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Liste konnte nicht gelöscht werden"))
@@ -156,7 +162,8 @@ fun Route.taskRoutes() {
                     return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Sync-Anfrage"))
                 }
                 val syncResult = TaskRepository.sync(userId, request)
-                TaskWebSocketManager.notifyTaskUpdate(userId, "tasks_synced")
+                val origin = call.request.headers["X-Client-Instance-Id"]
+                TaskWebSocketManager.notifyTaskUpdate(userId, "tasks_synced", origin)
                 call.respond(HttpStatusCode.OK, syncResult)
             }
         }

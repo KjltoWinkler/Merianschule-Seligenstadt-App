@@ -23,9 +23,14 @@ object TaskWebSocketManager {
         }
     }
 
-    suspend fun notifyTaskUpdate(userId: String, reason: String = "tasks_updated") {
+    suspend fun notifyTaskUpdate(
+        userId: String,
+        reason: String = "tasks_updated",
+        originInstanceId: String? = null
+    ) {
         val sessions = userSessions[userId] ?: return
-        val message = """{"event":"tasks_updated","reason":"$reason","timestamp":${System.currentTimeMillis()}}"""
+        val originJson = if (originInstanceId != null) "\"$originInstanceId\"" else "null"
+        val message = """{"event":"tasks_updated","reason":"$reason","origin":$originJson,"timestamp":${System.currentTimeMillis()}}"""
         coroutineScope {
             for (session in sessions) {
                 launch {

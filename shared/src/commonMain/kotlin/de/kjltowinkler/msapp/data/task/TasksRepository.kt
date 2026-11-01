@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -45,6 +46,7 @@ object TasksRepository {
 
     private val repositoryScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var syncJob: Job? = null
+    private val syncMutex = Mutex()
 
     var myTasksTitle: String
         get() = privateLists.firstOrNull { it.id == "my_tasks" }?.title ?: "Meine Aufgaben"
@@ -177,7 +179,7 @@ object TasksRepository {
         }.getOrDefault(false)
     }
 
-    fun triggerBackgroundSync(debounceMs: Long = 500) {
+    fun triggerBackgroundSync(debounceMs: Long = 300) {
         if (!BackendApiClient.isLoggedIn) return
         syncJob?.cancel()
         syncJob = repositoryScope.launch {
@@ -193,10 +195,13 @@ object TasksRepository {
      */
     suspend fun syncWithServer(): Boolean {
         if (!BackendApiClient.isLoggedIn) return false
+        if (!syncMutex.tryLock()) {
+            return false
+        }
         isSyncing = true
         lastSyncError = null
         return try {
-            val currentTasks = _tasks.filterNot { it.id.startsWith("sample_") }
+            val currentTasks = _tasks.toList()
             val currentLists = privateLists.toList()
             val delTasks = _pendingDeletedTaskIds.toList()
             val delLists = _pendingDeletedListIds.toList()
@@ -213,11 +218,32 @@ object TasksRepository {
                     _pendingDeletedTaskIds.removeAll(delTasks.toSet())
                     _pendingDeletedListIds.removeAll(delLists.toSet())
 
-                    _tasks.clear()
-                    _tasks.addAll(response.tasks)
+                    // In-place Abgleich, damit kein Flackern oder Statusverlust in Compose entsteht
+                    val serverIds = response.tasks.map { it.id }.toSet()
+                    _tasks.removeAll { !serverIds.contains(it.id) }
+                    for (serverTask in response.tasks) {
+                        val index = _tasks.indexOfFirst { it.id == serverTask.id }
+                        if (index != -1) {
+                            if (_tasks[index] != serverTask) {
+                                _tasks[index] = serverTask
+                            }
+                        } else {
+                            _tasks.add(serverTask)
+                        }
+                    }
 
-                    privateLists.clear()
-                    privateLists.addAll(response.lists)
+                    val serverListIds = response.lists.map { it.id }.toSet()
+                    privateLists.removeAll { it.id != "my_tasks" && !serverListIds.contains(it.id) }
+                    for (serverList in response.lists) {
+                        val index = privateLists.indexOfFirst { it.id == serverList.id }
+                        if (index != -1) {
+                            if (privateLists[index] != serverList) {
+                                privateLists[index] = serverList
+                            }
+                        } else {
+                            privateLists.add(serverList)
+                        }
+                    }
                     if (privateLists.none { it.id == "my_tasks" }) {
                         privateLists.add(0, TaskList(id = "my_tasks", title = "Meine Aufgaben"))
                     }
@@ -233,6 +259,7 @@ object TasksRepository {
             false
         } finally {
             isSyncing = false
+            syncMutex.unlock()
         }
     }
 
@@ -313,9 +340,7 @@ object TasksRepository {
         if (task?.isSchoolTask == true) {
             return
         }
-        if (!taskId.startsWith("sample_")) {
-            _pendingDeletedTaskIds.add(taskId)
-        }
+        _pendingDeletedTaskIds.add(taskId)
         _tasks.removeAll { it.id == taskId }
         saveToCache()
         triggerBackgroundSync()
@@ -324,7 +349,7 @@ object TasksRepository {
     fun deleteCompletedTasks(isSchoolTask: Boolean = false) {
         val toDelete = _tasks.filter { it.isSchoolTask == isSchoolTask && it.isCompleted }
         toDelete.forEach {
-            if (!it.isSchoolTask && !it.id.startsWith("sample_")) {
+            if (!it.isSchoolTask) {
                 _pendingDeletedTaskIds.add(it.id)
             }
         }
@@ -336,9 +361,7 @@ object TasksRepository {
     fun deleteAllMyTasks() {
         val toDelete = _tasks.filter { !it.isSchoolTask }
         toDelete.forEach {
-            if (!it.id.startsWith("sample_")) {
-                _pendingDeletedTaskIds.add(it.id)
-            }
+            _pendingDeletedTaskIds.add(it.id)
         }
         _tasks.removeAll { !it.isSchoolTask }
         saveToCache()
@@ -370,7 +393,7 @@ object TasksRepository {
         }
         val toDeleteTasks = _tasks.filter { it.listId == listId }
         toDeleteTasks.forEach {
-            if (!it.isSchoolTask && !it.id.startsWith("sample_")) {
+            if (!it.isSchoolTask) {
                 _pendingDeletedTaskIds.add(it.id)
             }
         }
@@ -388,9 +411,7 @@ object TasksRepository {
             _tasks.filter { it.listId == listId && it.isCompleted }
         }
         toDelete.forEach {
-            if (!it.id.startsWith("sample_")) {
-                _pendingDeletedTaskIds.add(it.id)
-            }
+            _pendingDeletedTaskIds.add(it.id)
         }
         if (listId == "my_tasks") {
             _tasks.removeAll { !it.isSchoolTask && (it.listId == "my_tasks" || it.listId.isEmpty()) && it.isCompleted }
@@ -408,9 +429,7 @@ object TasksRepository {
             _tasks.filter { it.listId == listId }
         }
         toDelete.forEach {
-            if (!it.id.startsWith("sample_")) {
-                _pendingDeletedTaskIds.add(it.id)
-            }
+            _pendingDeletedTaskIds.add(it.id)
         }
         if (listId == "my_tasks") {
             _tasks.removeAll { !it.isSchoolTask && (it.listId == "my_tasks" || it.listId.isEmpty()) }
@@ -514,9 +533,7 @@ object TasksRepository {
     fun deleteCompletedStarredTasks() {
         val toDelete = _tasks.filter { it.isStarred && it.isCompleted && !it.isSchoolTask }
         toDelete.forEach {
-            if (!it.id.startsWith("sample_")) {
-                _pendingDeletedTaskIds.add(it.id)
-            }
+            _pendingDeletedTaskIds.add(it.id)
         }
         _tasks.removeAll { it.isStarred && it.isCompleted && !it.isSchoolTask }
         saveToCache()
@@ -526,9 +543,7 @@ object TasksRepository {
     fun deleteAllStarredTasks() {
         val toDelete = _tasks.filter { it.isStarred && !it.isSchoolTask }
         toDelete.forEach {
-            if (!it.id.startsWith("sample_")) {
-                _pendingDeletedTaskIds.add(it.id)
-            }
+            _pendingDeletedTaskIds.add(it.id)
         }
         _tasks.removeAll { it.isStarred && !it.isSchoolTask }
         saveToCache()
