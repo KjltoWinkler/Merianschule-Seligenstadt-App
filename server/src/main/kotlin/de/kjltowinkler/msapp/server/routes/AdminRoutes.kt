@@ -319,35 +319,173 @@ fun Route.adminRoutes() {
             call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "$deleted Einträge gelöscht."))
         }
 
-        // Upload / Update Timetable (Stundenplan)
-
-        post("/timetable") {
-            if (!verifyAdminAccess(call)) {
-                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich (X-Admin-Key Header oder Admin-JWT)."))
-                return@post
+        // Timetable (Stundenplan) & Gemini AI Scan
+        route("/timetable") {
+            get("/classes") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@get
+                }
+                val list = TimetableServerRepository.getAllClassesWithTimetables()
+                call.respond(HttpStatusCode.OK, list)
             }
 
-            val rawText = call.receiveText()
-            if (rawText.isBlank()) {
-                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Anfrage-Body ist leer."))
-                return@post
+            get("/{className}") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@get
+                }
+                val className = call.parameters["className"]
+                if (className.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Klassenname fehlt."))
+                    return@get
+                }
+                val dto = TimetableServerRepository.getClassTimetable(className)
+                call.respond(HttpStatusCode.OK, dto)
             }
 
-            try {
-                val timetableDto = jsonParser.decodeFromString<ClassTimetableDto>(rawText)
-                val count = TimetableServerRepository.saveClassTimetable(
-                    className = timetableDto.className,
-                    days = timetableDto.days,
-                    rawJsonContent = rawText
-                )
-                call.respond(HttpStatusCode.OK, AdminStatusResponse(
-                    success = true,
-                    message = "Stundenplan für Klasse ${timetableDto.className} erfolgreich aktualisiert ($count Stunden hinterlegt).",
-                    entriesCount = count,
-                    timestamp = System.currentTimeMillis()
-                ))
-            } catch (e: Exception) {
-                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Fehler beim Parsen des Stundenplans: ${e.message}"))
+            delete("/{className}") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@delete
+                }
+                val className = call.parameters["className"]
+                if (className.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Klassenname fehlt."))
+                    return@delete
+                }
+                val success = TimetableServerRepository.deleteClassTimetable(className)
+                if (success) {
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Stundenplan für Klasse $className gelöscht."))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Stundenplan nicht gefunden."))
+                }
+            }
+
+            post {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+
+                val rawText = call.receiveText()
+                if (rawText.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Anfrage-Body ist leer."))
+                    return@post
+                }
+
+                try {
+                    val timetableDto = jsonParser.decodeFromString<ClassTimetableDto>(rawText)
+                    val count = TimetableServerRepository.saveClassTimetable(
+                        className = timetableDto.className,
+                        days = timetableDto.days,
+                        validFor = timetableDto.validFor,
+                        rawJsonContent = rawText
+                    )
+                    call.respond(HttpStatusCode.OK, AdminStatusResponse(
+                        success = true,
+                        message = "Stundenplan für Klasse ${timetableDto.className} erfolgreich gespeichert ($count Stunden hinterlegt).",
+                        entriesCount = count,
+                        timestamp = System.currentTimeMillis()
+                    ))
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Fehler beim Parsen des Stundenplans: ${e.message}"))
+                }
+            }
+
+            post("/gemini-scan") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+
+                val req = runCatching { call.receive<de.kjltowinkler.msapp.data.sync.GeminiTimetableScanRequest>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(
+                        success = false,
+                        message = "Ungültige Anfrage-Daten für den KI-Scan: ${it.message}"
+                    ))
+                    return@post
+                }
+
+                if (req.imageBase64.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(
+                        success = false,
+                        message = "Kein Bild übergeben."
+                    ))
+                    return@post
+                }
+
+                if (req.className.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(
+                        success = false,
+                        message = "Bitte gib eine Klasse an (z. B. '09AR')."
+                    ))
+                    return@post
+                }
+
+                try {
+                    val timetable = de.kjltowinkler.msapp.server.service.GeminiTimetableService.analyzeTimetableImage(
+                        imageBase64 = req.imageBase64,
+                        mimeType = req.mimeType,
+                        className = req.className,
+                        validFor = req.validFor,
+                        apiKeyOverride = req.apiKey
+                    )
+
+                    if (req.autoSave) {
+                        TimetableServerRepository.saveClassTimetable(
+                            className = timetable.className,
+                            days = timetable.days,
+                            validFor = timetable.validFor
+                        )
+                    }
+
+                    call.respond(HttpStatusCode.OK, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(
+                        success = true,
+                        message = "Stundenplan für Klasse ${timetable.className} erfolgreich per Gemini KI analysiert.",
+                        timetable = timetable
+                    ))
+                } catch (e: IllegalArgumentException) {
+                    call.respond(HttpStatusCode.BadRequest, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(
+                        success = false,
+                        message = e.message ?: "Ungültige Anfrage."
+                    ))
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.InternalServerError, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(
+                        success = false,
+                        message = "KI-Scan fehlgeschlagen: ${e.message}"
+                    ))
+                }
+            }
+        }
+
+        // Configuration & Gemini API Key
+        route("/config") {
+            get("/gemini-key") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@get
+                }
+                val hasKey = de.kjltowinkler.msapp.server.service.GeminiTimetableService.hasApiKey()
+                val masked = de.kjltowinkler.msapp.server.service.GeminiTimetableService.getMaskedApiKey()
+                call.respond(HttpStatusCode.OK, de.kjltowinkler.msapp.data.sync.GeminiKeyConfig(hasKey, masked))
+            }
+
+            post("/gemini-key") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+                val req = runCatching { call.receive<de.kjltowinkler.msapp.data.sync.SetGeminiKeyRequest>() }.getOrElse {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültiger API-Key Request."))
+                    return@post
+                }
+                if (req.apiKey.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Der API-Key darf nicht leer sein."))
+                    return@post
+                }
+                de.kjltowinkler.msapp.server.service.GeminiTimetableService.saveApiKey(req.apiKey)
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Gemini API-Key erfolgreich gespeichert."))
             }
         }
 

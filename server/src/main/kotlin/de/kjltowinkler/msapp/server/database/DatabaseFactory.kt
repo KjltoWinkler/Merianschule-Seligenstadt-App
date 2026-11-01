@@ -159,10 +159,15 @@ object DatabaseFactory {
                         class_name TEXT NOT NULL,
                         day_id TEXT NOT NULL,
                         lessons_json TEXT NOT NULL,
+                        valid_for TEXT NOT NULL DEFAULT '',
                         updated_at INTEGER NOT NULL,
                         PRIMARY KEY (class_name, day_id)
                     );
                 """.trimIndent())
+
+                try {
+                    stmt.execute("ALTER TABLE timetables ADD COLUMN valid_for TEXT NOT NULL DEFAULT '';")
+                } catch (_: Exception) {}
 
                 stmt.execute("""
                     CREATE TABLE IF NOT EXISTS user_courses (

@@ -1,6 +1,7 @@
 package de.kjltowinkler.msapp.server.repository
 
 import de.kjltowinkler.msapp.data.sync.ClassTimetableDto
+import de.kjltowinkler.msapp.data.sync.ClassTimetableSummary
 import de.kjltowinkler.msapp.data.timetable.TeacherInfo
 import de.kjltowinkler.msapp.data.timetable.TimetableDay
 import de.kjltowinkler.msapp.data.timetable.TimetableLesson
@@ -32,20 +33,23 @@ object TimetableServerRepository {
             TimetableDay.entries.forEach { day ->
                 daysMap[day.id] = TimetableRepository.getLessonsForDay(day)
             }
-            saveClassTimetable("09AR", daysMap)
+            saveClassTimetable("09AR", daysMap, validFor = "Schuljahr 2026/2027")
         }
     }
 
     suspend fun getClassTimetable(className: String): ClassTimetableDto = DatabaseFactory.query { conn ->
-        val sql = "SELECT day_id, lessons_json, updated_at FROM timetables WHERE lower(class_name) = ?;"
+        val sql = "SELECT day_id, lessons_json, valid_for, updated_at FROM timetables WHERE lower(class_name) = ?;"
         conn.prepareStatement(sql).use { stmt ->
             stmt.setString(1, className.trim().lowercase())
             stmt.executeQuery().use { rs ->
                 val days = mutableMapOf<String, List<TimetableLesson>>()
                 var lastUpdated = 0L
+                var validFor = ""
                 while (rs.next()) {
                     val dayId = rs.getString("day_id")
                     val raw = rs.getString("lessons_json")
+                    val vFor = rs.getString("valid_for") ?: ""
+                    if (vFor.isNotBlank()) validFor = vFor
                     val updated = rs.getLong("updated_at")
                     if (updated > lastUpdated) lastUpdated = updated
                     try {
@@ -57,7 +61,8 @@ object TimetableServerRepository {
                 ClassTimetableDto(
                     className = className,
                     days = days,
-                    lastUpdated = lastUpdated
+                    lastUpdated = lastUpdated,
+                    validFor = validFor
                 )
             }
         }
@@ -66,6 +71,7 @@ object TimetableServerRepository {
     suspend fun saveClassTimetable(
         className: String, 
         days: Map<String, List<TimetableLesson>>,
+        validFor: String = "",
         rawJsonContent: String? = null
     ): Int = DatabaseFactory.query { conn ->
         val now = System.currentTimeMillis()
@@ -79,13 +85,14 @@ object TimetableServerRepository {
                 stmt.executeUpdate()
             }
 
-            val sql = "INSERT INTO timetables (class_name, day_id, lessons_json, updated_at) VALUES (?, ?, ?, ?);"
+            val sql = "INSERT INTO timetables (class_name, day_id, lessons_json, valid_for, updated_at) VALUES (?, ?, ?, ?, ?);"
             conn.prepareStatement(sql).use { stmt ->
                 for ((dayId, lessons) in days) {
                     stmt.setString(1, normalizedClass)
                     stmt.setString(2, dayId)
                     stmt.setString(3, json.encodeToString(lessons))
-                    stmt.setLong(4, now)
+                    stmt.setString(4, validFor)
+                    stmt.setLong(5, now)
                     stmt.addBatch()
                     count += lessons.size
                 }
@@ -103,7 +110,7 @@ object TimetableServerRepository {
         try {
             ServerConfig.ensureDataDirectory()
             val textToSave = rawJsonContent ?: json.encodeToString(
-                ClassTimetableDto(className = normalizedClass, days = days, lastUpdated = now)
+                ClassTimetableDto(className = normalizedClass, days = days, lastUpdated = now, validFor = validFor)
             )
             getJsonFile(normalizedClass).writeText(textToSave)
         } catch (e: Exception) {
@@ -111,6 +118,44 @@ object TimetableServerRepository {
         }
 
         count
+    }
+
+    suspend fun getAllClassesWithTimetables(): List<ClassTimetableSummary> = DatabaseFactory.query { conn ->
+        val sql = """
+            SELECT class_name, valid_for, MAX(updated_at) as last_updated, COUNT(day_id) as day_count 
+            FROM timetables 
+            GROUP BY class_name, valid_for
+            ORDER BY class_name ASC;
+        """.trimIndent()
+        conn.createStatement().use { stmt ->
+            stmt.executeQuery(sql).use { rs ->
+                val list = mutableListOf<ClassTimetableSummary>()
+                while (rs.next()) {
+                    list.add(
+                        ClassTimetableSummary(
+                            className = rs.getString("class_name"),
+                            validFor = rs.getString("valid_for") ?: "",
+                            lastUpdated = rs.getLong("last_updated"),
+                            daysCount = rs.getInt("day_count")
+                        )
+                    )
+                }
+                list
+            }
+        }
+    }
+
+    suspend fun deleteClassTimetable(className: String): Boolean = DatabaseFactory.query { conn ->
+        val normalized = className.trim().uppercase()
+        val deleted = conn.prepareStatement("DELETE FROM timetables WHERE upper(class_name) = ?;").use { stmt ->
+            stmt.setString(1, normalized)
+            stmt.executeUpdate() > 0
+        }
+        try {
+            val file = getJsonFile(normalized)
+            if (file.exists()) file.delete()
+        } catch (_: Exception) {}
+        deleted
     }
 
     suspend fun getTeacherDirectory(): Map<String, TeacherInfo> {

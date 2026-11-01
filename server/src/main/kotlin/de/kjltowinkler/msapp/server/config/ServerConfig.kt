@@ -12,6 +12,7 @@ object ServerConfig {
     val jwtRealm: String = "Merianschule App Access"
 
     val adminKey: String = System.getProperty("ADMIN_SECRET_KEY") ?: System.getenv("ADMIN_SECRET_KEY") ?: "merian-admin-secret-2026"
+    val geminiApiKey: String? = System.getProperty("GEMINI_API_KEY") ?: System.getenv("GEMINI_API_KEY")
 
     val dataDir: String = System.getProperty("DATA_DIR") ?: System.getenv("DATA_DIR") ?: "data"
     val dbPath: String = System.getProperty("DB_PATH") ?: System.getenv("DB_PATH") ?: "$dataDir/merianschule.db"
