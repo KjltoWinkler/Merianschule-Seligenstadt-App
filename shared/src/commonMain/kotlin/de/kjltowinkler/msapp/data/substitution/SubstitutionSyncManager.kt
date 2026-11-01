@@ -35,6 +35,20 @@ object SubstitutionSyncManager {
     }
 
     private const val KEY_LAST_SEEN_IDS = "key_last_seen_live_entry_ids"
+    private const val KEY_LAST_SNAPSHOT_JSON = "key_last_snapshot_json"
+
+    private fun saveSnapshot(entries: List<SubstitutionEntry>) {
+        lastKnownSnapshot = entries
+        val currentIds = entries.map { it.id }.joinToString(",")
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_LAST_SEEN_IDS, currentIds)
+        try {
+            val json = kotlinx.serialization.json.Json.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(SubstitutionEntry.serializer()),
+                entries
+            )
+            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_LAST_SNAPSHOT_JSON, json)
+        } catch (_: Throwable) {}
+    }
 
     /**
      * Prüft auf Änderungen im Vertretungsplan (über Netzwerk / Schulportal).
@@ -53,12 +67,20 @@ object SubstitutionSyncManager {
             return SubstitutionDiffResult(hasChanges = false)
         }
 
-        val previous = lastKnownSnapshot
+        var previous = lastKnownSnapshot
         if (previous == null) {
-            // Erster Abruf nach App-Start -> als Baseline merken, keine Benachrichtigung
-            lastKnownSnapshot = newEntries
-            val currentIds = newEntries.map { it.id }.joinToString(",")
-            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_LAST_SEEN_IDS, currentIds)
+            val savedJson = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString(KEY_LAST_SNAPSHOT_JSON)
+            if (!savedJson.isNullOrBlank()) {
+                try {
+                    previous = kotlinx.serialization.json.Json.decodeFromString<List<SubstitutionEntry>>(savedJson)
+                    lastKnownSnapshot = previous
+                } catch (_: Throwable) {}
+            }
+        }
+
+        if (previous == null) {
+            // Erster Abruf nach App-Start ohne gespeicherten Snapshot -> als Baseline merken, keine Benachrichtigung
+            saveSnapshot(newEntries)
             return SubstitutionDiffResult(hasChanges = false)
         }
 
@@ -74,9 +96,7 @@ object SubstitutionSyncManager {
 
         if (diff.hasChanges) {
             // Snapshot aktualisieren
-            lastKnownSnapshot = newEntries
-            val currentIds = newEntries.map { it.id }.joinToString(",")
-            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_LAST_SEEN_IDS, currentIds)
+            saveSnapshot(newEntries)
 
             // Event für UI (z.B. SnackBar) auslösen
             _changeEvents.tryEmit(diff)
@@ -91,7 +111,7 @@ object SubstitutionSyncManager {
             }
         } else {
             // Keine inhaltlichen Änderungen, aber Snapshot aktualisieren
-            lastKnownSnapshot = newEntries
+            saveSnapshot(newEntries)
         }
 
         return diff

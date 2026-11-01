@@ -13,6 +13,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         de.kjltowinkler.msapp.util.AppContextProvider.init(this)
+        de.kjltowinkler.msapp.worker.SubstitutionWorkScheduler.schedulePeriodicSync(this)
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
