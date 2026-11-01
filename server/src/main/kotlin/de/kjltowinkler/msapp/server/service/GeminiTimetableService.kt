@@ -69,12 +69,13 @@ object GeminiTimetableService {
         return trimmed.take(6) + "••••••••" + trimmed.takeLast(4)
     }
 
-    private fun fetchAvailableModels(apiKey: String): List<String> {
+    fun fetchAvailableModels(apiKey: String): List<String> {
         val listUrl = "https://generativelanguage.googleapis.com/v1beta/models?key=$apiKey"
         return try {
             val req = HttpRequest.newBuilder()
                 .uri(URI.create(listUrl))
-                .timeout(Duration.ofSeconds(7))
+                .header("x-goog-api-key", apiKey)
+                .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build()
             val resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString())
@@ -91,22 +92,56 @@ object GeminiTimetableService {
                         valid.add(cleanName)
                     }
                 }
-                valid.filter { it.startsWith("gemini") && !it.contains("embedding") && !it.contains("aqa") && !it.contains("imagen") }
-                    .sortedWith(compareByDescending<String> {
-                        when {
-                            it.contains("flash") && (it.contains("2.0") || it.contains("2.5") || it.contains("3.")) -> 100
-                            it.contains("flash") -> 80
-                            it.contains("2.") -> 70
-                            it.contains("pro") -> 60
-                            else -> 50
-                        }
-                    })
+                valid.filter {
+                    val lower = it.lowercase()
+                    lower.startsWith("gemini") &&
+                        !lower.contains("embedding") &&
+                        !lower.contains("aqa") &&
+                        !lower.contains("imagen") &&
+                        !lower.contains("image") && // Excludes image-gen/preview-image models with 0 free tier quota
+                        !lower.contains("tts") &&
+                        !lower.contains("audio") &&
+                        !lower.contains("transcribe") &&
+                        !lower.contains("robotics") &&
+                        !lower.contains("computer") &&
+                        lower != "gemini-1.5-pro" // Explicitly avoid deprecated 1.5-pro that throws 404
+                }.sortedWith(compareBy<String> { model ->
+                    val lower = model.lowercase()
+                    when {
+                        lower == "gemini-2.5-flash" -> 0
+                        lower == "gemini-2.0-flash" -> 1
+                        lower == "gemini-2.0-flash-lite" -> 2
+                        lower == "gemini-1.5-flash" -> 3
+                        lower == "gemini-1.5-flash-8b" -> 4
+                        lower == "gemini-2.5-pro" -> 5
+                        lower.contains("flash") && (lower.contains("2.5") || lower.contains("2.0") || lower.contains("3.")) -> 10
+                        lower.contains("flash") -> 20
+                        lower.contains("2.5") -> 30
+                        lower.contains("2.0") -> 40
+                        else -> 50
+                    }
+                })
             } else {
                 emptyList()
             }
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    suspend fun getAvailableModels(apiKeyOverride: String? = null): List<String> {
+        val key = apiKeyOverride?.trim()?.takeIf { it.isNotBlank() } ?: getApiKey()
+        if (key.isNullOrBlank()) return emptyList()
+        val discovered = fetchAvailableModels(key)
+        val defaultFallbackModels = listOf(
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-2.5-pro"
+        )
+        return (discovered + defaultFallbackModels).distinct()
     }
 
     suspend fun analyzeTimetableImage(
@@ -223,14 +258,14 @@ Regeln:
 
         val discoveredModels = fetchAvailableModels(key)
         val defaultFallbackModels = listOf(
-            "gemini-2.0-flash",
             "gemini-2.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash",
+            "gemini-2.0-flash",
             "gemini-2.0-flash-lite",
-            "gemini-1.5-pro-latest"
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-2.5-pro"
         )
-        val candidateModels = (discoveredModels + defaultFallbackModels).distinct().take(4)
+        val candidateModels = (discoveredModels + defaultFallbackModels).distinct().take(6)
         var lastError: Exception? = null
         var responseBody: String? = null
         val attemptedErrors = mutableListOf<String>()
@@ -241,6 +276,7 @@ Regeln:
             val request = HttpRequest.newBuilder()
                 .uri(URI.create(requestUrl))
                 .header("Content-Type", "application/json")
+                .header("x-goog-api-key", key)
                 .timeout(Duration.ofSeconds(25))
                 .POST(HttpRequest.BodyPublishers.ofString(requestPayload.toString()))
                 .build()
@@ -281,6 +317,16 @@ Regeln:
 
         if (responseBody == null) {
             val errorSummary = attemptedErrors.joinToString("; ")
+            val anyQuotaExceeded = attemptedErrors.any { 
+                it.contains("quota", ignoreCase = true) || 
+                it.contains("429") || 
+                it.contains("rate limit", ignoreCase = true) 
+            }
+            if (anyQuotaExceeded) {
+                throw IllegalStateException(
+                    "Google Gemini Kontingent / Rate-Limit erreicht (Free Tier Limit). Bitte warte einen Moment oder überprüfe dein Google AI Studio Kontingent: $errorSummary"
+                )
+            }
             throw lastError ?: IllegalStateException("Keines der Gemini-Modelle konnte erfolgreich erreicht werden ($errorSummary).")
         }
 

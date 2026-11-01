@@ -471,6 +471,15 @@ fun Route.adminRoutes() {
                 call.respond(HttpStatusCode.OK, de.kjltowinkler.msapp.data.sync.GeminiKeyConfig(hasKey, masked))
             }
 
+            get("/gemini-models") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@get
+                }
+                val models = de.kjltowinkler.msapp.server.service.GeminiTimetableService.getAvailableModels()
+                call.respond(HttpStatusCode.OK, models)
+            }
+
             post("/gemini-key") {
                 if (!verifyAdminAccess(call)) {
                     call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))

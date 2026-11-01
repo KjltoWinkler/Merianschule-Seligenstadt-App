@@ -795,12 +795,13 @@
         </div>
 
         <p style="font-size: 14px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 16px; line-height: 1.5;">
-          Für die automatische Erkennung und Umwandlung hochgeladener Stundenplan-Bilder in strukturierte JSON-Daten nutzt die App das multimodale Modell <strong>Gemini 3.8 Flash</strong>.
+          Für die automatische Erkennung und Umwandlung hochgeladener Stundenplan-Bilder in strukturierte JSON-Daten nutzt die App modernste multimodale Gemini-Modelle (z. B. <strong>Gemini 2.5 Flash</strong> / <strong>Gemini 2.0 Flash</strong>).
         </p>
+        <div id="geminiModelsList" style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 12px; display: none;"></div>
 
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
           <div style="flex: 1; min-width: 280px;">
-            <md-outlined-text-field id="geminiApiKeyInput" label="Google Gemini API-Key" type="password" placeholder="AIzaSy..." style="width: 100%;">
+            <md-outlined-text-field id="geminiApiKeyInput" label="Google Gemini API-Key" type="password" placeholder="AQ... oder AIza..." style="width: 100%;">
               <md-icon slot="leading-icon">key</md-icon>
             </md-outlined-text-field>
           </div>
@@ -1972,16 +1973,30 @@
         if (!res.ok) return;
         const data = await res.json();
         const badge = document.getElementById('geminiKeyBadge');
+        const modelsDiv = document.getElementById('geminiModelsList');
         if (data.hasKey) {
           badge.textContent = 'API-Key Aktiv (' + data.maskedKey + ')';
           badge.style.background = 'rgba(129, 199, 132, 0.2)';
           badge.style.color = '#81c784';
           badge.style.border = '1px solid rgba(129, 199, 132, 0.4)';
+
+          // Load active models
+          try {
+            const mRes = await apiFetch('/api/admin/config/gemini-models');
+            if (mRes.ok) {
+              const models = await mRes.json();
+              if (Array.isArray(models) && models.length > 0) {
+                modelsDiv.style.display = 'block';
+                modelsDiv.innerHTML = 'Verfügbare & aktive Modelle: <code>' + models.slice(0, 4).join(', ') + '</code>';
+              }
+            }
+          } catch (_) {}
         } else {
           badge.textContent = 'Kein API-Key hinterlegt';
           badge.style.background = 'rgba(255, 180, 171, 0.2)';
           badge.style.color = '#ffb4ab';
           badge.style.border = '1px solid rgba(255, 180, 171, 0.4)';
+          modelsDiv.style.display = 'none';
         }
       } catch (err) {
         console.error('Fehler beim Laden des Gemini-Key Status:', err);
