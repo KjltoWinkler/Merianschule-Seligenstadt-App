@@ -181,29 +181,56 @@ Regeln:
             }
         }
 
-        val requestUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$key"
+        val candidateModels = listOf("gemini-3.8-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+        var lastError: Exception? = null
+        var responseBody: String? = null
 
-        val request = HttpRequest.newBuilder()
-            .uri(URI.create(requestUrl))
-            .header("Content-Type", "application/json")
-            .timeout(Duration.ofSeconds(60))
-            .POST(HttpRequest.BodyPublishers.ofString(requestPayload.toString()))
-            .build()
+        for (model in candidateModels) {
+            val requestUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key"
 
-        val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            val request = HttpRequest.newBuilder()
+                .uri(URI.create(requestUrl))
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(60))
+                .POST(HttpRequest.BodyPublishers.ofString(requestPayload.toString()))
+                .build()
 
-        if (response.statusCode() != 200) {
-            val errorBody = response.body()
-            var errorMsg = "Gemini API HTTP ${response.statusCode()}"
-            try {
-                val errObj = jsonParser.decodeFromString<JsonObject>(errorBody)
-                val apiErr = errObj["error"]?.jsonObject?.get("message")?.jsonPrimitive?.content
-                if (!apiErr.isNullOrBlank()) errorMsg = apiErr
-            } catch (_: Exception) {}
-            throw IllegalStateException("Fehler bei der KI-Analyse: $errorMsg")
+            val response = try {
+                httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+            } catch (e: Exception) {
+                lastError = e
+                continue
+            }
+
+            if (response.statusCode() == 200) {
+                responseBody = response.body()
+                break
+            } else {
+                val errorBody = response.body()
+                var errorMsg = "Gemini API HTTP ${response.statusCode()}"
+                try {
+                    val errObj = jsonParser.decodeFromString<JsonObject>(errorBody)
+                    val apiErr = errObj["error"]?.jsonObject?.get("message")?.jsonPrimitive?.content
+                    if (!apiErr.isNullOrBlank()) errorMsg = apiErr
+                } catch (_: Exception) {}
+
+                val isModelUnavailable = response.statusCode() == 404 || 
+                    errorMsg.contains("no longer available", ignoreCase = true) || 
+                    errorMsg.contains("not found", ignoreCase = true)
+
+                if (isModelUnavailable) {
+                    lastError = IllegalStateException("Modell $model: $errorMsg")
+                    continue
+                } else {
+                    throw IllegalStateException("Fehler bei der KI-Analyse ($model): $errorMsg")
+                }
+            }
         }
 
-        val responseBody = response.body()
+        if (responseBody == null) {
+            throw lastError ?: IllegalStateException("Keines der Gemini-Modelle konnte erfolgreich erreicht werden.")
+        }
+
         val parsedJson = jsonParser.decodeFromString<JsonObject>(responseBody)
         val candidates = parsedJson["candidates"]?.jsonArray
         if (candidates.isNullOrEmpty()) {
