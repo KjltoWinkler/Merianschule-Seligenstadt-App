@@ -387,26 +387,38 @@ fun SubstitutionPlanScreen(
     val distinctDates = remember(allEntries) {
         allEntries.mapNotNull { it.date.takeIf { d -> d.isNotBlank() } }.distinct().sorted()
     }
-    val isWeekend = remember(today) { today.dayOfWeek == 0 || today.dayOfWeek == 6 }
+    // Am Wochenende oder unter der Woche: Der Fokus-Tag für "Heute" ist heute, oder der nächste anstehende Schultag
+    val futureDates = remember(distinctDates, todayIso) {
+        distinctDates.filter { it >= todayIso }
+    }
 
-    val heuteDate = remember(distinctDates, todayIso, isWeekend) {
-        if (todayIso in distinctDates) {
+    val heuteDate = remember(todayIso, futureDates) {
+        if (todayIso in futureDates) {
             todayIso
-        } else if (isWeekend && distinctDates.isNotEmpty()) {
-            distinctDates[0]
+        } else if (futureDates.isNotEmpty()) {
+            futureDates.first()
         } else {
             todayIso
         }
     }
 
-    val morgenDate = remember(distinctDates, heuteDate, tomorrowIso) {
-        if (heuteDate in distinctDates) {
-            val idx = distinctDates.indexOf(heuteDate)
-            distinctDates.getOrNull(idx + 1) ?: tomorrowIso
+    val morgenDate = remember(tomorrowIso, futureDates, heuteDate) {
+        if (tomorrowIso in futureDates) {
+            tomorrowIso
+        } else if (futureDates.isNotEmpty()) {
+            val idx = futureDates.indexOf(heuteDate)
+            if (idx != -1 && idx + 1 < futureDates.size) {
+                futureDates[idx + 1]
+            } else if (futureDates.first() != heuteDate) {
+                futureDates.first()
+            } else {
+                tomorrowIso
+            }
         } else {
             tomorrowIso
         }
     }
+
 
     val onItemDismissed: (SubstitutionEntry) -> Unit = { swipedEntry ->
         val previousMarkedState = swipedEntry.isMarked
