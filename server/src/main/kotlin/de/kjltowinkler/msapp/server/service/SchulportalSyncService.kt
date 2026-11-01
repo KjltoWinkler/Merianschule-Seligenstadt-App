@@ -165,10 +165,23 @@ object SchulportalSyncService {
                         stmt.setString(2, updatedTime)
                         stmt.setLong(3, lastSyncTimestamp)
                         stmt.executeUpdate()
+
+                        stmt.setString(1, "schulportal_last_sync_time")
+                        stmt.setString(2, lastSyncTimestamp.toString())
+                        stmt.setLong(3, lastSyncTimestamp)
+                        stmt.executeUpdate()
                     }
                 }
                 return Result.success(savedCount)
             } else {
+                DatabaseFactory.query { conn ->
+                    val sql = "INSERT INTO server_metadata (key, value, updated_at) VALUES ('schulportal_last_sync_time', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;"
+                    conn.prepareStatement(sql).use { stmt ->
+                        stmt.setString(1, lastSyncTimestamp.toString())
+                        stmt.setLong(2, lastSyncTimestamp)
+                        stmt.executeUpdate()
+                    }
+                }
                 lastStatusMessage = "Keine Änderungen im Schulportal vorhanden. ($updatedTime)"
                 println(lastStatusMessage)
                 return Result.success(remoteEntries.size)

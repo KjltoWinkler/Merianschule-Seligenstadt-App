@@ -282,8 +282,8 @@ fun SubstitutionPlanScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { options.size })
     val tabScrollState = rememberScrollState()
 
-    // State für den Umschalter (z.B. Kommende Tage / Heute)
-    var isUpcoming by rememberSaveable { mutableStateOf(false) }
+    // State für den Umschalter (z.B. Kommende Tage / Heute) - persistent im Repository gespeichert
+    val isUpcoming = SubstitutionRepository.isUpcomingFilter
 
     // IDs von Einträgen, die aktuell gewischt werden → Pager-Scrolling sperren
     val draggingItemIds = remember { mutableStateListOf<String>() }
@@ -752,7 +752,7 @@ fun SubstitutionPlanScreen(
 
                                 AppSwitch(
                                     checked = isUpcoming,
-                                    onCheckedChange = { isUpcoming = it }
+                                    onCheckedChange = { SubstitutionRepository.isUpcomingFilter = it }
                                 )
                             }
 

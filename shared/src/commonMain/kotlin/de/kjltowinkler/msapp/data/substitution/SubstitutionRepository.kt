@@ -1,5 +1,8 @@
 package de.kjltowinkler.msapp.data.substitution
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import merianschuleseligenstadtapp.shared.generated.resources.Res
 
 /**
@@ -193,10 +196,47 @@ object SubstitutionRepository {
     }
 
     /**
-     * Zuletzt vom Schulportal übermittelter Zeitstempel der Aktualisierung.
+     * Ob aktuell der "Kommende Tage" (Upcoming) Filter aktiv ist.
+     * Bleibt auch beim Wechseln der Screens persistent erhalten.
      */
-    var lastUpdatedText: String = ""
-        private set
+    private var _isUpcomingFilter by mutableStateOf(
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("substitution_is_upcoming_filter") == "true"
+    )
+
+    var isUpcomingFilter: Boolean
+        get() = _isUpcomingFilter
+        set(value) {
+            _isUpcomingFilter = value
+            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("substitution_is_upcoming_filter", value.toString())
+        }
+
+    /**
+     * Zuletzt vom Backend übermittelter Zeitstempel der Aktualisierung (wann das Backend beim Schulportal nachgeschaut hat).
+     */
+    private var _lastUpdatedText by mutableStateOf(
+        sanitizeLastUpdated(de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("substitution_last_updated_text") ?: "")
+    )
+
+    var lastUpdatedText: String
+        get() = _lastUpdatedText
+        private set(value) {
+            _lastUpdatedText = value
+        }
+
+    fun updateLastUpdatedText(value: String) {
+        val clean = sanitizeLastUpdated(value)
+        lastUpdatedText = clean
+        if (clean.isNotBlank()) {
+            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("substitution_last_updated_text", clean)
+        }
+    }
+
+    private fun sanitizeLastUpdated(raw: String): String {
+        return raw
+            .removePrefix("Letzte Aktualisierung:")
+            .removePrefix("Stand:")
+            .trim()
+    }
 
     var isLiveDataSource: Boolean = false
         private set
@@ -221,7 +261,7 @@ object SubstitutionRepository {
                     cachedLiveEntries = serverEntries
                     isLiveDataSource = true
                     de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
-                        lastUpdatedText = it
+                        updateLastUpdatedText(it)
                     }
                     return serverEntries
                 }
@@ -235,7 +275,7 @@ object SubstitutionRepository {
             val liveResult = de.kjltowinkler.msapp.data.schulportal.SchulportalClient.fetchSubstitutionPlan()
             if (liveResult.isSuccess) {
                 de.kjltowinkler.msapp.data.schulportal.SchulportalClient.lastUpdated?.let {
-                    lastUpdatedText = it
+                    updateLastUpdatedText(it)
                 }
                 val liveEntries = liveResult.getOrNull()
                 if (!liveEntries.isNullOrEmpty()) {

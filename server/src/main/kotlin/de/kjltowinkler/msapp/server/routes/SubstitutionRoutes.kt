@@ -41,11 +41,28 @@ fun Route.substitutionRoutes() {
                 SubstitutionServerRepository.getAll()
             }
 
-            val lastUpdatedText = SubstitutionServerRepository.getLastUpdatedText().ifBlank {
-                syncService.lastSyncText.ifBlank { "Letzte Aktualisierung: " + java.time.LocalDate.now() }
+            val syncTs = if (syncService.lastSyncTimestamp > 0) {
+                syncService.lastSyncTimestamp
+            } else {
+                SubstitutionServerRepository.getLastUpdated()
             }
 
-            call.response.headers.append("X-Last-Updated", lastUpdatedText)
+            val lastUpdatedText = if (syncTs > 0) {
+                val zdt = java.time.Instant.ofEpochMilli(syncTs).atZone(java.time.ZoneId.of("Europe/Berlin"))
+                java.time.format.DateTimeFormatter.ofPattern("d.M.yyyy, HH:mm:ss").format(zdt)
+            } else {
+                SubstitutionServerRepository.getLastUpdatedText()
+                    .removePrefix("Letzte Aktualisierung:")
+                    .removePrefix("Stand:")
+                    .trim()
+            }
+
+            if (lastUpdatedText.isNotBlank()) {
+                call.response.headers.append("X-Last-Updated", lastUpdatedText)
+            }
+            if (syncTs > 0) {
+                call.response.headers.append("X-Last-Sync-Timestamp", syncTs.toString())
+            }
             call.respond(HttpStatusCode.OK, entries)
         }
 
