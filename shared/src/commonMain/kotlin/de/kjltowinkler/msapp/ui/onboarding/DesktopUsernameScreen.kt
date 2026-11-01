@@ -49,6 +49,8 @@ import org.jetbrains.compose.resources.painterResource
 fun DesktopUsernameScreen(
     initialUsername: String = "",
     textFieldState: TextFieldState = rememberTextFieldState(initialUsername),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onNextClicked: (String) -> Unit = {},
     onAccountInfoClicked: () -> Unit = {},
     onForgotPasswordClicked: () -> Unit = {}
@@ -63,6 +65,9 @@ fun DesktopUsernameScreen(
             if (isError) isError = false
         }
     }
+
+    val hasError = isError || !errorMessage.isNullOrBlank()
+    val displayErrorText = errorMessage ?: if (isError) "Bitte gib deinen Nutzernamen oder deine Schüler-ID ein" else null
 
     DesktopTheme {
         Box(
@@ -151,11 +156,11 @@ fun DesktopUsernameScreen(
                             state = textFieldState,
                             label = {
                                 Text(
-                                    text = if (isError) "Nutzername oder Schüler-ID*" else "Nutzername oder Schüler-ID"
+                                    text = if (hasError) "Nutzername oder Schüler-ID*" else "Nutzername oder Schüler-ID"
                                 )
                             },
                             lineLimits = TextFieldLineLimits.SingleLine,
-                            isError = isError,
+                            isError = hasError,
                             shape = RoundedCornerShape(4.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = DesktopAccentBlue,
@@ -172,10 +177,11 @@ fun DesktopUsernameScreen(
                                 errorSupportingTextColor = customErrorColor,
                                 errorCursorColor = customErrorColor
                             ),
-                            supportingText = if (isError) {
+                            supportingText = if (displayErrorText != null) {
                                 {
                                     Text(
-                                        text = "Bitte gib deinen Nutzernamen oder deine Schüler-ID ein",
+                                        text = displayErrorText,
+                                        color = customErrorColor,
                                         modifier = Modifier.clearAndSetSemantics {}
                                     )
                                 }
@@ -187,18 +193,20 @@ fun DesktopUsernameScreen(
                                 imeAction = ImeAction.Done
                             ),
                             onKeyboardAction = {
-                                val username = textFieldState.text.toString().trim()
-                                if (username.isNotBlank()) {
-                                    keyboardController?.hide()
-                                    onNextClicked(username)
-                                } else {
-                                    isError = true
+                                if (!isLoading) {
+                                    val username = textFieldState.text.toString().trim()
+                                    if (username.isNotBlank()) {
+                                        keyboardController?.hide()
+                                        onNextClicked(username)
+                                    } else {
+                                        isError = true
+                                    }
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .semantics {
-                                    if (isError) error("Bitte gib deinen Nutzernamen oder deine Schüler-ID ein")
+                                    if (hasError) error(displayErrorText ?: "Bitte gib deinen Nutzernamen oder deine Schüler-ID ein")
                                 }
                         )
 
@@ -235,10 +243,13 @@ fun DesktopUsernameScreen(
                                     isError = true
                                 }
                             },
+                            enabled = !isLoading,
                             shape = CircleShape,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = DesktopAccentBlue, // #A9CAE8
-                                contentColor = DesktopOnAccentBlue // #0B0B0D
+                                contentColor = DesktopOnAccentBlue, // #0B0B0D
+                                disabledContainerColor = DesktopAccentBlue.copy(alpha = 0.6f),
+                                disabledContentColor = DesktopOnAccentBlue.copy(alpha = 0.8f)
                             ),
                             contentPadding = PaddingValues(0.dp),
                             modifier = Modifier
@@ -247,14 +258,22 @@ fun DesktopUsernameScreen(
                                 .handCursor()
                                 .semantics { contentDescription = "Weiter" }
                         ) {
-                            Text(
-                                text = "Weiter",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = DesktopOnAccentBlue
-                            )
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = DesktopOnAccentBlue,
+                                    strokeWidth = 2.5.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Weiter",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = DesktopOnAccentBlue
+                                )
+                            }
                         }
 
                         // Unterer Abstand

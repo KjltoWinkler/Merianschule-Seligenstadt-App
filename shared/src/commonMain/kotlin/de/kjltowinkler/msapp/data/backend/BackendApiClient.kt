@@ -62,6 +62,25 @@ object BackendApiClient {
         }
     }
 
+    suspend fun checkAccount(usernameOrEmail: String): Result<CheckAccountResponse> = runCatching {
+        val response = client.post("$serverUrl/api/auth/check") {
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(CheckAccountRequest(usernameOrEmail.trim())))
+        }
+
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<CheckAccountResponse>(body)
+        } else if (response.status == HttpStatusCode.NotFound) {
+            val res = runCatching { json.decodeFromString<CheckAccountResponse>(body) }
+                .getOrElse { CheckAccountResponse(exists = false, message = "Account nicht gefunden.") }
+            res
+        } else {
+            val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error("Überprüfung fehlgeschlagen ($error)")
+        }
+    }
+
     suspend fun login(request: LoginRequest): Result<AuthResponse> = runCatching {
         val response = client.post("$serverUrl/api/auth/login") {
             contentType(ContentType.Application.Json)

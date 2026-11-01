@@ -18,6 +18,67 @@ import io.ktor.server.routing.route
 
 fun Route.authRoutes() {
     route("/api/auth") {
+        post("/check") {
+            val request = runCatching { call.receive<CheckAccountRequest>() }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Anfrage."))
+                return@post
+            }
+
+            val identifier = request.usernameOrEmail.trim()
+            if (identifier.isBlank()) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Benutzername oder E-Mail ist erforderlich."))
+                return@post
+            }
+
+            val user = UserRepository.findByUsernameOrEmail(identifier)
+            if (user != null) {
+                call.respond(HttpStatusCode.OK, CheckAccountResponse(
+                    exists = true,
+                    username = user.username,
+                    email = user.email,
+                    fullName = user.fullName,
+                    className = user.className,
+                    schoolType = user.schoolType,
+                    classTeacher = user.classTeacher,
+                    avatarType = user.avatarType,
+                    avatarColorHex = user.avatarColorHex
+                ))
+            } else {
+                call.respond(HttpStatusCode.NotFound, CheckAccountResponse(
+                    exists = false,
+                    message = "Dieser Account existiert nicht."
+                ))
+            }
+        }
+
+        get("/check") {
+            val identifier = call.request.queryParameters["usernameOrEmail"]?.trim()
+            if (identifier.isNullOrBlank()) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Benutzername oder E-Mail ist erforderlich."))
+                return@get
+            }
+
+            val user = UserRepository.findByUsernameOrEmail(identifier)
+            if (user != null) {
+                call.respond(HttpStatusCode.OK, CheckAccountResponse(
+                    exists = true,
+                    username = user.username,
+                    email = user.email,
+                    fullName = user.fullName,
+                    className = user.className,
+                    schoolType = user.schoolType,
+                    classTeacher = user.classTeacher,
+                    avatarType = user.avatarType,
+                    avatarColorHex = user.avatarColorHex
+                ))
+            } else {
+                call.respond(HttpStatusCode.NotFound, CheckAccountResponse(
+                    exists = false,
+                    message = "Dieser Account existiert nicht."
+                ))
+            }
+        }
+
         post("/register") {
             val request = runCatching { call.receive<RegisterRequest>() }.getOrElse {
                 call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Registrierungsdaten."))

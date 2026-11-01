@@ -176,6 +176,8 @@ fun App() {
         val coroutineScope = rememberCoroutineScope()
         var loginError by remember { mutableStateOf<String?>(null) }
         var isLoggingIn by remember { mutableStateOf(false) }
+        var usernameError by remember { mutableStateOf<String?>(null) }
+        var isCheckingUsername by remember { mutableStateOf(false) }
 
         // Aktueller Account-Status
         var currentAccount by remember {
@@ -247,28 +249,74 @@ fun App() {
                     } else ExitTransition.None) + fadeOut(animationSpec = tween(durationMillis = 300))
                 }
             ) {
+                val handleUsernameNext: (String) -> Unit = { enteredUsername ->
+                    val clean = enteredUsername.trim()
+                    if (clean.isNotBlank()) {
+                        val hasOtp = clean.contains("otp", ignoreCase = true) ||
+                                    clean.contains("einmal", ignoreCase = true)
+                        val has2Fa = clean.contains("2fa", ignoreCase = true)
+
+                        if (hasOtp) {
+                            currentAccount = createMockAccount(
+                                enteredUsername = clean,
+                                hasCustomPassword = false,
+                                isTwoFactorEnabled = has2Fa
+                            )
+                            usernameError = null
+                            navController.navigate(AppRoutes.ONE_TIME_PASSWORD)
+                        } else {
+                            isCheckingUsername = true
+                            usernameError = null
+
+                            coroutineScope.launch {
+                                BackendApiClient.checkAccount(clean)
+                                    .onSuccess { response ->
+                                        isCheckingUsername = false
+                                        if (response.exists) {
+                                            usernameError = null
+                                            currentAccount = MockAccountState(
+                                                username = response.fullName?.ifBlank { response.username } ?: clean,
+                                                email = response.email ?: clean,
+                                                className = response.className ?: "9aR",
+                                                schoolType = response.schoolType ?: "Realschule",
+                                                classTeacher = response.classTeacher ?: "Hr. Thomas",
+                                                avatarType = response.avatarType ?: "initials",
+                                                avatarColorHex = response.avatarColorHex ?: 0xFF395A3CL,
+                                                hasCustomPassword = true,
+                                                isTwoFactorEnabled = has2Fa
+                                            )
+                                            loginError = null
+                                            navController.navigate(AppRoutes.LOGIN_PASSWORD)
+                                        } else {
+                                            usernameError = "Dieser Account existiert nicht. Bitte überprüfe deine Eingabe."
+                                        }
+                                    }
+                                    .onFailure { err ->
+                                        isCheckingUsername = false
+                                        val msg = err.message ?: ""
+                                        usernameError = when {
+                                            msg.contains("ConnectException") || msg.contains("UnresolvedAddressException") || msg.contains("Failed to connect") -> {
+                                                "Verbindung zum Server fehlgeschlagen. Bitte prüfe deine Internetverbindung."
+                                            }
+                                            else -> {
+                                                "Dieser Account existiert nicht. Bitte überprüfe deine Eingabe."
+                                            }
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
+
                 composable(AppRoutes.WELCOME) {
                     if (isDesktop) {
                         OnboardingUsernameScreen(
-                            onBackClicked = {},
-                            onNextClicked = { enteredUsername ->
-                                val hasOtp = enteredUsername.contains("otp", ignoreCase = true) ||
-                                            enteredUsername.contains("einmal", ignoreCase = true)
-                                val has2Fa = enteredUsername.contains("2fa", ignoreCase = true)
-
-                                currentAccount = createMockAccount(
-                                    enteredUsername = enteredUsername,
-                                    hasCustomPassword = !hasOtp,
-                                    isTwoFactorEnabled = has2Fa
-                                )
-                                loginError = null
-
-                                if (hasOtp) {
-                                    navController.navigate(AppRoutes.ONE_TIME_PASSWORD)
-                                } else {
-                                    navController.navigate(AppRoutes.LOGIN_PASSWORD)
-                                }
-                            }
+                            isLoading = isCheckingUsername,
+                            errorMessage = usernameError,
+                            onBackClicked = {
+                                usernameError = null
+                            },
+                            onNextClicked = handleUsernameNext
                         )
                     } else {
                         OnboardingWelcomeScreen(
@@ -283,29 +331,15 @@ fun App() {
                 }
                 composable(AppRoutes.USERNAME) {
                     OnboardingUsernameScreen(
+                        isLoading = isCheckingUsername,
+                        errorMessage = usernameError,
                         onBackClicked = {
+                            usernameError = null
                             if (!isDesktop) {
                                 navController.popBackStack()
                             }
                         },
-                        onNextClicked = { enteredUsername ->
-                            val hasOtp = enteredUsername.contains("otp", ignoreCase = true) ||
-                                        enteredUsername.contains("einmal", ignoreCase = true)
-                            val has2Fa = enteredUsername.contains("2fa", ignoreCase = true)
-
-                            currentAccount = createMockAccount(
-                                enteredUsername = enteredUsername,
-                                hasCustomPassword = !hasOtp,
-                                isTwoFactorEnabled = has2Fa
-                            )
-                            loginError = null
-
-                            if (hasOtp) {
-                                navController.navigate(AppRoutes.ONE_TIME_PASSWORD)
-                            } else {
-                                navController.navigate(AppRoutes.LOGIN_PASSWORD)
-                            }
-                        }
+                        onNextClicked = handleUsernameNext
                     )
                 }
             

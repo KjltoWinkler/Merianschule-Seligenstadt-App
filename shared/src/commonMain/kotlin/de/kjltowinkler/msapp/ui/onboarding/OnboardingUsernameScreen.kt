@@ -38,6 +38,8 @@ import org.jetbrains.compose.resources.painterResource
 fun OnboardingUsernameScreen(
     initialUsername: String = "",
     textFieldState: TextFieldState = rememberTextFieldState(initialUsername),
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onBackClicked: () -> Unit = {},
     onNextClicked: (String) -> Unit = {},
     onAccountInfoClicked: () -> Unit = {},
@@ -54,6 +56,9 @@ fun OnboardingUsernameScreen(
         }
     }
 
+    val hasError = isError || !errorMessage.isNullOrBlank()
+    val displayErrorText = errorMessage ?: if (isError) "Bitte gib deinen Nutzernamen oder deine Schüler-ID ein" else null
+
     BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -61,6 +66,8 @@ fun OnboardingUsernameScreen(
             DesktopUsernameScreen(
                 initialUsername = initialUsername,
                 textFieldState = textFieldState,
+                isLoading = isLoading,
+                errorMessage = errorMessage,
                 onNextClicked = onNextClicked,
                 onAccountInfoClicked = onAccountInfoClicked,
                 onForgotPasswordClicked = onForgotPasswordClicked
@@ -149,19 +156,20 @@ fun OnboardingUsernameScreen(
             // 5. OutlinedTextField (SimpleOutlinedTextField Variante)
             OutlinedTextField(
                 state = textFieldState,
-                label = { Text(if (isError) "Nutzername oder Schüler-ID*" else "Nutzername oder Schüler-ID") },
+                label = { Text(if (hasError) "Nutzername oder Schüler-ID*" else "Nutzername oder Schüler-ID") },
                 lineLimits = TextFieldLineLimits.SingleLine,
-                isError = isError,
+                isError = hasError,
                 colors = OutlinedTextFieldDefaults.colors(
                     errorBorderColor = customErrorColor,
                     errorLabelColor = customErrorColor,
                     errorSupportingTextColor = customErrorColor,
                     errorCursorColor = customErrorColor
                 ),
-                supportingText = if (isError) {
+                supportingText = if (displayErrorText != null) {
                     {
                         Text(
-                            text = "Bitte gib deinen Nutzernamen oder deine Schüler-ID ein",
+                            text = displayErrorText,
+                            color = customErrorColor,
                             modifier = Modifier.clearAndSetSemantics {}
                         )
                     }
@@ -173,18 +181,20 @@ fun OnboardingUsernameScreen(
                     imeAction = ImeAction.Done
                 ),
                 onKeyboardAction = {
-                    val username = textFieldState.text.toString().trim()
-                    if (username.isNotBlank()) {
-                        keyboardController?.hide()
-                        onNextClicked(username)
-                    } else {
-                        isError = true
+                    if (!isLoading) {
+                        val username = textFieldState.text.toString().trim()
+                        if (username.isNotBlank()) {
+                            keyboardController?.hide()
+                            onNextClicked(username)
+                        } else {
+                            isError = true
+                        }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics {
-                        if (isError) error("Bitte gib deinen Nutzernamen oder deine Schüler-ID ein")
+                        if (hasError) error(displayErrorText ?: "Bitte gib deinen Nutzernamen oder deine Schüler-ID ein")
                     }
             )
 
@@ -220,10 +230,13 @@ fun OnboardingUsernameScreen(
                         isError = true
                     }
                 },
+                enabled = !isLoading,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                 ),
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
@@ -235,24 +248,32 @@ fun OnboardingUsernameScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Weiter",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Weiter",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
 
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_arrow_forward),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 28.dp)
-                            .size(31.dp)
-                    )
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_arrow_forward),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 28.dp)
+                                .size(31.dp)
+                        )
+                    }
                 }
             }
         }

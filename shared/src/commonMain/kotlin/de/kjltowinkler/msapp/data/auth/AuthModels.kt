@@ -22,6 +22,25 @@ data class LoginRequest(
 )
 
 @Serializable
+data class CheckAccountRequest(
+    val usernameOrEmail: String
+)
+
+@Serializable
+data class CheckAccountResponse(
+    val exists: Boolean,
+    val username: String? = null,
+    val email: String? = null,
+    val fullName: String? = null,
+    val className: String? = null,
+    val schoolType: String? = null,
+    val classTeacher: String? = null,
+    val avatarType: String? = null,
+    val avatarColorHex: Long? = null,
+    val message: String? = null
+)
+
+@Serializable
 data class UserProfileDto(
     val id: String,
     val username: String,
