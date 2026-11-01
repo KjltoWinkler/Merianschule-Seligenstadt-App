@@ -21,6 +21,7 @@ import de.kjltowinkler.msapp.data.timetable.TimetableDay
 import de.kjltowinkler.msapp.data.timetable.TimetableLesson
 import de.kjltowinkler.msapp.data.timetable.TimetableRepository
 import de.kjltowinkler.msapp.theme.FigmaPrimaryDark
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import de.kjltowinkler.msapp.ui.components.handCursor
@@ -150,6 +151,7 @@ fun NewTimetableEntryBottomSheet(
             ) {
                 Text(
                     text = "Stunde hinzufügen",
+                    fontFamily = getQuicksandFontFamily(),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimaryColor

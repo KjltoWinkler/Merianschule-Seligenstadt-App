@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.getTodayDate
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -184,6 +185,7 @@ fun TaskEditBottomSheet(
                         saveChanges(newTitle = it)
                     },
                     textStyle = TextStyle(
+                        fontFamily = getQuicksandFontFamily(),
                         color = colorScheme.onSurface,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold

@@ -27,6 +27,7 @@ import de.kjltowinkler.msapp.theme.FigmaBackgroundDark
 import de.kjltowinkler.msapp.theme.FigmaButtonSecondaryDark
 import de.kjltowinkler.msapp.theme.FigmaLinkGreen
 import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import kotlinx.coroutines.delay
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.DrawableResource
@@ -230,6 +231,7 @@ fun AccountBottomSheet(
                     Text(
                         text = accountName,
                         style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = getQuicksandFontFamily(),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = textPrimaryColor

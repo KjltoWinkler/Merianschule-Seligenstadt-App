@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.timetable.TeacherInfo
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import de.kjltowinkler.msapp.ui.components.handCursor
@@ -160,6 +161,7 @@ fun TeacherDetailBottomSheet(
                     Column {
                         Text(
                             text = teacher.fullName,
+                            fontFamily = getQuicksandFontFamily(),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = textPrimaryColor
