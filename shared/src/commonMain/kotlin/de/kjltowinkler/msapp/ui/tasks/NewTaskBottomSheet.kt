@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.getCurrentEpochMillis
-import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
+import de.kjltowinkler.msapp.theme.getGoogleSansFlexFontFamily
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -146,7 +146,7 @@ fun NewTaskBottomSheet(
                         .focusRequester(titleFocusRequester)
                         .textCursor(),
                     textStyle = TextStyle(
-                        fontFamily = getQuicksandFontFamily(),
+                        fontFamily = getGoogleSansFlexFontFamily(),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
@@ -156,7 +156,7 @@ fun NewTaskBottomSheet(
                         if (taskTitle.isEmpty()) {
                             Text(
                                 text = "Neue Aufgaben",
-                                fontFamily = getQuicksandFontFamily(),
+                                fontFamily = getGoogleSansFlexFontFamily(),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = colorScheme.onSurface.copy(alpha = 0.6f)
