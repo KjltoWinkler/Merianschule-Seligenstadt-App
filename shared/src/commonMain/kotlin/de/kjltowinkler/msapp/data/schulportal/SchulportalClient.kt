@@ -20,6 +20,10 @@ object SchulportalClient {
     private const val DEFAULT_SCHOOL_ID = "4322"
     private const val USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
+    private const val KEY_SP_USERNAME = "schulportal_username"
+    private const val KEY_SP_PASSWORD = "schulportal_password"
+    private const val KEY_SP_SCHOOL_ID = "schulportal_school_id"
+
     // Speichert Cookies sitzungsübergreifend
     private val cookieJar = mutableMapOf<String, String>()
 
@@ -27,6 +31,39 @@ object SchulportalClient {
     var savedUsername: String = ""
     var savedPassword: String = ""
     var savedSchoolId: String = DEFAULT_SCHOOL_ID
+
+    init {
+        loadSavedCredentials()
+    }
+
+    fun loadSavedCredentials() {
+        runCatching {
+            val u = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString(KEY_SP_USERNAME)
+            val p = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString(KEY_SP_PASSWORD)
+            val s = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString(KEY_SP_SCHOOL_ID)
+            if (!u.isNullOrBlank()) savedUsername = u
+            if (!p.isNullOrBlank()) savedPassword = p
+            if (!s.isNullOrBlank()) savedSchoolId = s
+        }
+    }
+
+    fun saveCredentials(schoolId: String = savedSchoolId, username: String, password: String) {
+        savedSchoolId = schoolId
+        savedUsername = username
+        savedPassword = password
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_SP_SCHOOL_ID, schoolId)
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_SP_USERNAME, username)
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_SP_PASSWORD, password)
+    }
+
+    fun clearCredentials() {
+        savedUsername = ""
+        savedPassword = ""
+        savedSchoolId = DEFAULT_SCHOOL_ID
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.remove(KEY_SP_SCHOOL_ID)
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.remove(KEY_SP_USERNAME)
+        de.kjltowinkler.msapp.data.storage.PlatformStorage.remove(KEY_SP_PASSWORD)
+    }
 
     // Zuletzt vom Schulportal extrahierter Aktualisierungszeitstempel
     var lastUpdated: String? = null

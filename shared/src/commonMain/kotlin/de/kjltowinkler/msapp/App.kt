@@ -186,10 +186,22 @@ fun App() {
         var initialPasswordEntered by remember { mutableStateOf("") }
         var isOnboardingFlow by remember { mutableStateOf(false) }
 
-        // Aktueller Account-Status
+        // Aktueller Account-Status (wird bei bestehender Sitzung aus dem Speicher geladen)
         var currentAccount by remember {
             mutableStateOf(
-                MockAccountState()
+                BackendApiClient.currentUser?.let { user ->
+                    MockAccountState(
+                        username = user.fullName.ifBlank { user.username },
+                        email = user.email,
+                        className = user.className,
+                        schoolType = user.schoolType,
+                        classTeacher = user.classTeacher,
+                        avatarType = user.avatarType,
+                        avatarColorHex = user.avatarColorHex,
+                        hasCustomPassword = user.hasCustomPassword,
+                        isTwoFactorEnabled = user.isTwoFactorEnabled
+                    )
+                } ?: MockAccountState()
             )
         }
 
@@ -200,7 +212,46 @@ fun App() {
         ) {
             val isDesktop = getPlatform().name.startsWith("Desktop") || maxWidth >= 840.dp
             val initialRoute = remember {
-                if (isDesktop) AppRoutes.USERNAME else AppRoutes.WELCOME
+                if (BackendApiClient.isLoggedIn) {
+                    AppRoutes.HOME
+                } else if (isDesktop) {
+                    AppRoutes.USERNAME
+                } else {
+                    AppRoutes.WELCOME
+                }
+            }
+
+            // Automatische Sitzungsüberprüfung beim Start
+            LaunchedEffect(Unit) {
+                if (BackendApiClient.isLoggedIn) {
+                    BackendApiClient.fetchUserCourses().onSuccess { courses ->
+                        de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
+                    }
+                    BackendApiClient.getProfile().onSuccess { user ->
+                        currentAccount = MockAccountState(
+                            username = user.fullName.ifBlank { user.username },
+                            email = user.email,
+                            className = user.className,
+                            schoolType = user.schoolType,
+                            classTeacher = user.classTeacher,
+                            avatarType = user.avatarType,
+                            avatarColorHex = user.avatarColorHex,
+                            hasCustomPassword = user.hasCustomPassword,
+                            isTwoFactorEnabled = user.isTwoFactorEnabled
+                        )
+                    }.onFailure { err ->
+                        val msg = err.message ?: ""
+                        if (msg.contains("401") || msg.contains("Nicht autorisiert", ignoreCase = true)) {
+                            BackendApiClient.logout()
+                            de.kjltowinkler.msapp.data.schulportal.SchulportalClient.clearCredentials()
+                            de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(emptyList())
+                            val defaultRoute = if (isDesktop) AppRoutes.USERNAME else AppRoutes.WELCOME
+                            navController.navigate(defaultRoute) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                }
             }
 
             // NavHost aus Navigation Compose (>= 2.8.0) unterstützt nativ Predictive Back Gesten:
@@ -480,9 +531,7 @@ fun App() {
                                     de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                 }
 
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedSchoolId = "4322"
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedUsername = auth.user.username
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedPassword = newPassword
+                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, newPassword)
 
                                 // Bei 2FA prüfen: Hat der Account es an?
                                 // ja = weiter zum Fertig Screen, nein = weiter zum Fragen ob 2FA aktiviert werden soll
@@ -631,9 +680,7 @@ fun App() {
                                     de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                                 }
 
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedSchoolId = "4322"
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedUsername = auth.user.username
-                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.savedPassword = password
+                                de.kjltowinkler.msapp.data.schulportal.SchulportalClient.saveCredentials("4322", auth.user.username, password)
 
                                 // Bei 2FA prüfen: Hat der Account es an?
                                 // ja = weiter zum Fertig Screen, nein = weiter zum Fragen ob 2FA aktiviert werden soll
@@ -691,14 +738,24 @@ fun App() {
                             avatarType = type,
                             avatarColorHex = colorHex
                         )
+                        coroutineScope.launch {
+                            BackendApiClient.updateProfile(
+                                de.kjltowinkler.msapp.data.auth.UpdateProfileRequest(
+                                    avatarType = type,
+                                    avatarColorHex = colorHex
+                                )
+                            )
+                        }
                     },
                     onSettingsClicked = {
                         navController.navigate(AppRoutes.SETTINGS)
                     },
                     onLogoutClicked = {
                         BackendApiClient.logout()
+                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.clearCredentials()
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(emptyList())
-                        navController.navigate(initialRoute) {
+                        val defaultRoute = if (isDesktop) AppRoutes.USERNAME else AppRoutes.WELCOME
+                        navController.navigate(defaultRoute) {
                             popUpTo(0) { inclusive = true }
                         }
                     },

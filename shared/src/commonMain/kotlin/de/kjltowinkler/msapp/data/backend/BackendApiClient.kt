@@ -12,6 +12,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import de.kjltowinkler.msapp.data.storage.PlatformStorage
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -19,6 +20,9 @@ import kotlinx.serialization.json.Json
  * Multiplatform Backend API Client für die Verbindung mit dem Ktor-Server.
  */
 object BackendApiClient {
+
+    private const val KEY_AUTH_TOKEN = "auth_token"
+    private const val KEY_CURRENT_USER = "current_user"
 
     var serverUrl: String = "https://api.veloschulplaner.de"
         set(value) {
@@ -38,6 +42,37 @@ object BackendApiClient {
         encodeDefaults = true
     }
 
+    init {
+        loadSavedSession()
+    }
+
+    fun loadSavedSession() {
+        runCatching {
+            val token = PlatformStorage.getString(KEY_AUTH_TOKEN)
+            val userJson = PlatformStorage.getString(KEY_CURRENT_USER)
+            if (!token.isNullOrBlank()) {
+                authToken = token
+            }
+            if (!userJson.isNullOrBlank()) {
+                currentUser = json.decodeFromString<UserProfileDto>(userJson)
+            }
+        }
+    }
+
+    fun saveSession(token: String, user: UserProfileDto) {
+        authToken = token
+        currentUser = user
+        PlatformStorage.setString(KEY_AUTH_TOKEN, token)
+        PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(user))
+    }
+
+    fun clearSession() {
+        authToken = null
+        currentUser = null
+        PlatformStorage.remove(KEY_AUTH_TOKEN)
+        PlatformStorage.remove(KEY_CURRENT_USER)
+    }
+
     private val client = HttpClient(CIO)
 
     // ==========================================
@@ -53,8 +88,7 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.Created) {
             val auth = json.decodeFromString<AuthResponse>(body)
-            authToken = auth.token
-            currentUser = auth.user
+            saveSession(auth.token, auth.user)
             auth
         } else {
             val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
@@ -90,8 +124,7 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             val auth = json.decodeFromString<AuthResponse>(body)
-            authToken = auth.token
-            currentUser = auth.user
+            saveSession(auth.token, auth.user)
             auth
         } else {
             val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
@@ -108,8 +141,7 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             val auth = json.decodeFromString<AuthResponse>(body)
-            authToken = auth.token
-            currentUser = auth.user
+            saveSession(auth.token, auth.user)
             auth
         } else {
             val error = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
@@ -124,7 +156,15 @@ object BackendApiClient {
             contentType(ContentType.Application.Json)
             setBody(json.encodeToString(Update2FaRequest(enabled)))
         }
-        response.status == HttpStatusCode.OK
+        val success = response.status == HttpStatusCode.OK
+        if (success) {
+            currentUser?.let { user ->
+                val updated = user.copy(isTwoFactorEnabled = enabled)
+                currentUser = updated
+                PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(updated))
+            }
+        }
+        success
     }
 
     suspend fun getProfile(): Result<UserProfileDto> = runCatching {
@@ -137,6 +177,7 @@ object BackendApiClient {
         if (response.status == HttpStatusCode.OK) {
             val user = json.decodeFromString<UserProfileDto>(body)
             currentUser = user
+            PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(user))
             user
         } else {
             error("Profil konnte nicht geladen werden")
@@ -155,6 +196,7 @@ object BackendApiClient {
         if (response.status == HttpStatusCode.OK) {
             val user = json.decodeFromString<UserProfileDto>(body)
             currentUser = user
+            PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(user))
             user
         } else {
             error("Profil-Update fehlgeschlagen")
@@ -162,8 +204,7 @@ object BackendApiClient {
     }
 
     fun logout() {
-        authToken = null
-        currentUser = null
+        clearSession()
     }
 
     // ==========================================
