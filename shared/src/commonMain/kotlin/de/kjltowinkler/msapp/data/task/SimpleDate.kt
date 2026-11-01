@@ -56,5 +56,11 @@ data class SimpleDate(
     }
 }
 
+data class SimpleTime(
+    val hour: Int,
+    val minute: Int
+)
+
 expect fun getTodayDate(): SimpleDate
+expect fun getCurrentTime(): SimpleTime
 expect fun getCurrentEpochMillis(): Long

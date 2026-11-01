@@ -174,4 +174,168 @@ class SharedCommonTest {
         assertEquals("Biologie", diff.removedEntries[0].subject)
         assertTrue(diff.summary.contains("Biologie findet wieder regulär statt"))
     }
+
+    @Test
+    fun testChangeDetectorPastDateIgnored() {
+        val testToday = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2) // Montag, 02. Nov
+        val testTime = de.kjltowinkler.msapp.data.task.SimpleTime(10, 0) // 10:00 Uhr
+
+        val pastThursdayEntry = de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+            id = "past_entry_1",
+            date = "2026-10-22", // Vergangener Donnerstag
+            dayLabel = "Donnerstag, 22. Oktober",
+            period = "2. Std",
+            subject = "Biologie",
+            className = "09AR",
+            type = "Entfall",
+            details = "Tho entfällt ersatzlos",
+            roomInfo = "Entfall"
+        )
+
+        // Bestehende Basis ohne den Eintrag
+        val base = listOf(
+            de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+                id = "dummy_entry",
+                date = "2026-11-02",
+                dayLabel = "Heute",
+                period = "6. Std",
+                subject = "Mathe",
+                className = "09AR",
+                type = "Entfall"
+            )
+        )
+        // Neuer Plan fügt den vergangenen Eintrag hinzu
+        val updated = base + pastThursdayEntry
+
+        val diff = de.kjltowinkler.msapp.data.substitution.SubstitutionChangeDetector.detectChanges(
+            previousEntries = base,
+            newEntries = updated,
+            userClass = "09AR",
+            filterActiveAndRelevantOnly = true,
+            today = testToday,
+            currentTime = testTime
+        )
+
+        // Der vergangene Tag darf KEINE Benachrichtigung auslösen!
+        assertFalse(diff.hasChanges)
+        assertEquals(0, diff.addedEntries.size)
+    }
+
+    @Test
+    fun testChangeDetectorTodayPastPeriodIgnored() {
+        val testToday = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2) // Montag
+        val testTime = de.kjltowinkler.msapp.data.task.SimpleTime(10, 0) // 10:00 Uhr (3. Stunde)
+
+        // 1. Stunde (07:55 - 08:40) ist um 10:00 Uhr bereits lange vorbei!
+        val pastPeriodEntry = de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+            id = "today_period_1",
+            date = "2026-11-02",
+            dayLabel = "Heute",
+            period = "1. Std",
+            subject = "Deutsch",
+            className = "09AR",
+            type = "Entfall"
+        )
+
+        val base = listOf(
+            de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+                id = "base_today",
+                date = "2026-11-02",
+                dayLabel = "Heute",
+                period = "5. Std",
+                subject = "Physik",
+                className = "09AR",
+                type = "Entfall"
+            )
+        )
+        val updated = base + pastPeriodEntry
+
+        val diff = de.kjltowinkler.msapp.data.substitution.SubstitutionChangeDetector.detectChanges(
+            previousEntries = base,
+            newEntries = updated,
+            userClass = "09AR",
+            filterActiveAndRelevantOnly = true,
+            today = testToday,
+            currentTime = testTime
+        )
+
+        // Die bereits vergangene 1. Stunde darf um 10:00 Uhr nicht benachrichtigt werden!
+        assertFalse(diff.hasChanges)
+    }
+
+    @Test
+    fun testChangeDetectorTodayUpcomingPeriodNotified() {
+        val testToday = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2) // Montag
+        val testTime = de.kjltowinkler.msapp.data.task.SimpleTime(10, 0) // 10:00 Uhr (3. Stunde)
+
+        // 6. Stunde (12:25 - 13:10) fällt aus -> bevorstehend!
+        val upcomingEntry = de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+            id = "today_period_6",
+            date = "2026-11-02",
+            dayLabel = "Heute",
+            period = "6. Std",
+            subject = "Mathe",
+            className = "09AR",
+            type = "Entfall",
+            details = "Kne entfällt ersatzlos"
+        )
+
+        val base = listOf(
+            de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+                id = "base_today",
+                date = "2026-11-02",
+                dayLabel = "Heute",
+                period = "4. Std",
+                subject = "Physik",
+                className = "09AR",
+                type = "Entfall"
+            )
+        )
+        val updated = base + upcomingEntry
+
+        val diff = de.kjltowinkler.msapp.data.substitution.SubstitutionChangeDetector.detectChanges(
+            previousEntries = base,
+            newEntries = updated,
+            userClass = "09AR",
+            filterActiveAndRelevantOnly = true,
+            today = testToday,
+            currentTime = testTime
+        )
+
+        // Bevorstehende 6. Stunde MUSS benachrichtigt werden!
+        assertTrue(diff.hasChanges)
+        assertEquals(1, diff.addedEntries.size)
+        assertEquals("Heute • 6. Std Mathe entfällt (Kne entfällt ersatzlos)", diff.summary)
+    }
+
+    @Test
+    fun testChangeDetectorForeignClassIgnored() {
+        val testToday = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2)
+        val testTime = de.kjltowinkler.msapp.data.task.SimpleTime(10, 0)
+
+        // Entfall für fremde Klasse 05BR
+        val foreignClassEntry = de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
+            id = "foreign_class_entry",
+            date = "2026-11-02",
+            dayLabel = "Heute",
+            period = "6. Std",
+            subject = "Biologie",
+            className = "05BR",
+            type = "Entfall"
+        )
+
+        val base = emptyList<de.kjltowinkler.msapp.data.substitution.SubstitutionEntry>()
+        val updated = listOf(foreignClassEntry)
+
+        val diff = de.kjltowinkler.msapp.data.substitution.SubstitutionChangeDetector.detectChanges(
+            previousEntries = base,
+            newEntries = updated,
+            userClass = "09AR",
+            filterActiveAndRelevantOnly = true,
+            today = testToday,
+            currentTime = testTime
+        )
+
+        assertFalse(diff.hasChanges)
+    }
 }

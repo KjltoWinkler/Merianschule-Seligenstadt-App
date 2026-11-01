@@ -198,6 +198,9 @@ object SubstitutionRepository {
     var lastUpdatedText: String = ""
         private set
 
+    var isLiveDataSource: Boolean = false
+        private set
+
     /**
      * Lädt Vertretungsplan-Einträge:
      * 1. Versucht Live-Abruf über Schulportal Hessen, falls Zugangsdaten vorliegen.
@@ -216,6 +219,7 @@ object SubstitutionRepository {
                 val serverEntries = backendResult.getOrNull()
                 if (!serverEntries.isNullOrEmpty()) {
                     cachedLiveEntries = serverEntries
+                    isLiveDataSource = true
                     de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
                         lastUpdatedText = it
                     }
@@ -236,12 +240,14 @@ object SubstitutionRepository {
                 val liveEntries = liveResult.getOrNull()
                 if (!liveEntries.isNullOrEmpty()) {
                     cachedLiveEntries = liveEntries
+                    isLiveDataSource = true
                     return liveEntries
                 }
             }
         }
 
-        // 3. Fallback auf lokale substitutions.json Assets
+        // 3. Fallback auf lokale substitutions.json Assets (keine Live-Daten)
+        isLiveDataSource = false
         return try {
             val bytes = Res.readBytes("files/substitutions.json")
             val jsonString = bytes.decodeToString()

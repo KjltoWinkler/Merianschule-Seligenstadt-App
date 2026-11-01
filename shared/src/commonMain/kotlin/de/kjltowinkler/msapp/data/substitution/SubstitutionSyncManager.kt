@@ -34,9 +34,12 @@ object SubstitutionSyncManager {
         }
     }
 
+    private const val KEY_LAST_SEEN_IDS = "key_last_seen_live_entry_ids"
+
     /**
      * Prüft auf Änderungen im Vertretungsplan (über Netzwerk / Schulportal).
      * Sendet automatisch eine System-Push-Benachrichtigung, falls eine reale Änderung vorliegt.
+     * Vergangene Tage, bereits beendete Stunden von heute sowie fremde Klassen werden ignoriert.
      */
     suspend fun checkForUpdates(
         forceRefresh: Boolean = true,
@@ -45,19 +48,35 @@ object SubstitutionSyncManager {
         // 1. Hole frische Daten über das Repository
         val newEntries = SubstitutionRepository.loadSubstitutions(forceRefresh = forceRefresh)
 
+        // 2. WICHTIG: Wenn die Daten nur aus dem Offline-Mock-Fallback stammen, NIEMALS benachrichtigen!
+        if (!SubstitutionRepository.isLiveDataSource) {
+            return SubstitutionDiffResult(hasChanges = false)
+        }
+
         val previous = lastKnownSnapshot
         if (previous == null) {
             // Erster Abruf nach App-Start -> als Baseline merken, keine Benachrichtigung
             lastKnownSnapshot = newEntries
+            val currentIds = newEntries.map { it.id }.joinToString(",")
+            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_LAST_SEEN_IDS, currentIds)
             return SubstitutionDiffResult(hasChanges = false)
         }
 
-        // 2. Differenz ermitteln
-        val diff = SubstitutionChangeDetector.detectChanges(previous, newEntries)
+        val userClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.ifBlank { null } ?: "09AR"
+
+        // 3. Differenz ermitteln (nur für diesen Schüler relevante und noch bevorstehende Stunden)
+        val diff = SubstitutionChangeDetector.detectChanges(
+            previousEntries = previous,
+            newEntries = newEntries,
+            userClass = userClass,
+            filterActiveAndRelevantOnly = true
+        )
 
         if (diff.hasChanges) {
             // Snapshot aktualisieren
             lastKnownSnapshot = newEntries
+            val currentIds = newEntries.map { it.id }.joinToString(",")
+            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString(KEY_LAST_SEEN_IDS, currentIds)
 
             // Event für UI (z.B. SnackBar) auslösen
             _changeEvents.tryEmit(diff)

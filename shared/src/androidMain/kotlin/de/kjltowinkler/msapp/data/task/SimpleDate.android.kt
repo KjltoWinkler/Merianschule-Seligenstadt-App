@@ -11,4 +11,12 @@ actual fun getTodayDate(): SimpleDate {
     )
 }
 
+actual fun getCurrentTime(): SimpleTime {
+    val cal = Calendar.getInstance()
+    return SimpleTime(
+        hour = cal.get(Calendar.HOUR_OF_DAY),
+        minute = cal.get(Calendar.MINUTE)
+    )
+}
+
 actual fun getCurrentEpochMillis(): Long = System.currentTimeMillis()

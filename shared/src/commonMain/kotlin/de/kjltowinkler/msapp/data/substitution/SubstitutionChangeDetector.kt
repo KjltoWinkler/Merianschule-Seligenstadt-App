@@ -33,27 +33,87 @@ object SubstitutionChangeDetector {
     }
 
     /**
+     * Prüft, ob ein Vertretungsplan-Eintrag für HEUTE (noch bevorstehende Stunde)
+     * oder für die ZUKUNFT (Morgen, Folgetage) aktiv ist.
+     * Einträge aus der Vergangenheit (z.B. vergangene Tage oder bereits beendete Stunden von heute)
+     * geben false zurück.
+     */
+    fun isEntryActiveOrUpcoming(
+        entry: SubstitutionEntry,
+        today: de.kjltowinkler.msapp.data.task.SimpleDate = de.kjltowinkler.msapp.data.task.getTodayDate(),
+        currentTime: de.kjltowinkler.msapp.data.task.SimpleTime = de.kjltowinkler.msapp.data.task.getCurrentTime()
+    ): Boolean {
+        val entryDate = entry.date.trim()
+        if (entryDate.isBlank()) return false
+        val todayIso = today.toIsoString()
+
+        // 1. Datum liegt vor heute (z.B. gestern oder letzter Donnerstag) -> vergangen!
+        if (entryDate < todayIso) return false
+
+        // 2. Datum liegt in der Zukunft (z.B. morgen oder nächste Woche) -> bevorstehend!
+        if (entryDate > todayIso) return true
+
+        // 3. Datum ist HEUTE: Prüfe, ob die Schulstunde laut Stundenraster bereits beendet ist
+        val numbers = Regex("""\d+""").findAll(entry.period).mapNotNull { it.value.toIntOrNull() }.toList()
+        val latestPeriod = numbers.maxOrNull() ?: 1
+        val (endHour, endMinute) = getPeriodEndTime(latestPeriod)
+
+        val currentMinutes = currentTime.hour * 60 + currentTime.minute
+        val endMinutes = endHour * 60 + endMinute
+
+        // Stunde ist noch nicht vorüber
+        return currentMinutes < endMinutes
+    }
+
+    fun getPeriodEndTime(periodNumber: Int): Pair<Int, Int> = when (periodNumber) {
+        1 -> 8 to 40
+        2 -> 9 to 30
+        3 -> 10 to 30
+        4 -> 11 to 20
+        5 -> 12 to 20
+        6 -> 13 to 10
+        7 -> 14 to 0
+        8 -> 14 to 45
+        9 -> 15 to 35
+        10 -> 16 to 25
+        else -> 17 to 0
+    }
+
+    /**
      * Vergleicht zwei Listen von Einträgen und ermittelt zuverlässig alle Änderungen.
+     * @param filterActiveAndRelevantOnly Wenn true, werden vergangene Tage/Stunden und fremde Klassen ignoriert.
      */
     fun detectChanges(
         previousEntries: List<SubstitutionEntry>,
-        newEntries: List<SubstitutionEntry>
+        newEntries: List<SubstitutionEntry>,
+        userClass: String = "09AR",
+        filterActiveAndRelevantOnly: Boolean = false,
+        today: de.kjltowinkler.msapp.data.task.SimpleDate = de.kjltowinkler.msapp.data.task.getTodayDate(),
+        currentTime: de.kjltowinkler.msapp.data.task.SimpleTime = de.kjltowinkler.msapp.data.task.getCurrentTime()
     ): SubstitutionDiffResult {
         if (previousEntries.isEmpty()) {
             // Wenn keine vorherigen Einträge vorlagen (z.B. erster Start), keine Benachrichtigung auslösen
             return SubstitutionDiffResult(hasChanges = false)
         }
 
+        val effectivePrev = if (filterActiveAndRelevantOnly) {
+            previousEntries.filter {
+                isEntryActiveOrUpcoming(it, today, currentTime) &&
+                de.kjltowinkler.msapp.data.courses.CourseRepository.isEntryRelevant(it, userClass)
+            }
+        } else previousEntries
+
+        val effectiveNew = if (filterActiveAndRelevantOnly) {
+            newEntries.filter {
+                isEntryActiveOrUpcoming(it, today, currentTime) &&
+                de.kjltowinkler.msapp.data.courses.CourseRepository.isEntryRelevant(it, userClass)
+            }
+        } else newEntries
+
         val prevMap = mutableMapOf<String, MutableList<SubstitutionEntry>>()
-        for (entry in previousEntries) {
+        for (entry in effectivePrev) {
             val key = entryKey(entry)
             prevMap.getOrPut(key) { mutableListOf() }.add(entry)
-        }
-
-        val newMap = mutableMapOf<String, MutableList<SubstitutionEntry>>()
-        for (entry in newEntries) {
-            val key = entryKey(entry)
-            newMap.getOrPut(key) { mutableListOf() }.add(entry)
         }
 
         val added = mutableListOf<SubstitutionEntry>()
@@ -61,10 +121,10 @@ object SubstitutionChangeDetector {
         val removed = mutableListOf<SubstitutionEntry>()
 
         // Ermittle alle Tage, die im neuen Plan vorhanden sind
-        val newDates = newEntries.map { it.date }.toSet()
+        val newDates = effectiveNew.map { it.date }.toSet()
 
         // 1. Suche nach neuen oder geänderten Einträgen
-        for (entry in newEntries) {
+        for (entry in effectiveNew) {
             val key = entryKey(entry)
             val matchedList = prevMap[key]
             if (matchedList == null || matchedList.isEmpty()) {
@@ -109,7 +169,7 @@ object SubstitutionChangeDetector {
 
         // Neue Ausfälle und Vertretungen
         for (entry in added) {
-            val dateLabel = formatShortDate(entry.date)
+            val dateLabel = formatShortDate(entry.date, today)
             val isEntfall = entry.type.equals("Entfall", ignoreCase = true)
             val line = if (isEntfall) {
                 "• $dateLabel ${entry.period} ${entry.subject}: Entfall (${entry.details})"
@@ -121,17 +181,17 @@ object SubstitutionChangeDetector {
 
         // Geänderte Vertretungen
         for (mod in modified) {
-            val dateLabel = formatShortDate(mod.updated.date)
+            val dateLabel = formatShortDate(mod.updated.date, today)
             detailLines.add("• $dateLabel ${mod.updated.period} ${mod.updated.subject}: ${mod.description}")
         }
 
         // Aufgehobene Vertretungen (findet wieder regulär statt)
         for (rem in removed) {
-            val dateLabel = formatShortDate(rem.date)
+            val dateLabel = formatShortDate(rem.date, today)
             detailLines.add("• $dateLabel ${rem.period} ${rem.subject}: Findet wieder regulär statt")
         }
 
-        val (title, summary) = buildNotificationSummary(added, modified, removed)
+        val (title, summary) = buildNotificationSummary(added, modified, removed, today)
 
         return SubstitutionDiffResult(
             hasChanges = true,
@@ -161,14 +221,15 @@ object SubstitutionChangeDetector {
     private fun buildNotificationSummary(
         added: List<SubstitutionEntry>,
         modified: List<SubstitutionModification>,
-        removed: List<SubstitutionEntry>
+        removed: List<SubstitutionEntry>,
+        today: de.kjltowinkler.msapp.data.task.SimpleDate = de.kjltowinkler.msapp.data.task.getTodayDate()
     ): Pair<String, String> {
         val totalCount = added.size + modified.size + removed.size
 
         if (totalCount == 1) {
             if (added.isNotEmpty()) {
                 val entry = added.first()
-                val dateLabel = formatShortDate(entry.date)
+                val dateLabel = formatShortDate(entry.date, today)
                 val isEntfall = entry.type.equals("Entfall", ignoreCase = true)
                 val title = if (isEntfall) "Vertretungsplan: Unterrichtsentfall" else "Vertretungsplan: Neue Vertretung"
                 val summary = if (isEntfall) {
@@ -179,13 +240,13 @@ object SubstitutionChangeDetector {
                 return Pair(title, summary)
             } else if (modified.isNotEmpty()) {
                 val mod = modified.first()
-                val dateLabel = formatShortDate(mod.updated.date)
+                val dateLabel = formatShortDate(mod.updated.date, today)
                 val title = "Vertretungsplan: Änderung"
                 val summary = "$dateLabel • ${mod.updated.period} ${mod.updated.subject}: ${mod.description}"
                 return Pair(title, summary)
             } else {
                 val rem = removed.first()
-                val dateLabel = formatShortDate(rem.date)
+                val dateLabel = formatShortDate(rem.date, today)
                 val title = "Vertretungsplan: Änderung"
                 val summary = "$dateLabel • ${rem.period} ${rem.subject} findet wieder regulär statt"
                 return Pair(title, summary)
@@ -213,7 +274,15 @@ object SubstitutionChangeDetector {
         return Pair(title, summary)
     }
 
-    private fun formatShortDate(isoDate: String): String {
+    fun formatShortDate(
+        isoDate: String,
+        today: de.kjltowinkler.msapp.data.task.SimpleDate = de.kjltowinkler.msapp.data.task.getTodayDate()
+    ): String {
+        val todayIso = today.toIsoString()
+        val tomorrowIso = today.plusDays(1).toIsoString()
+        if (isoDate == todayIso) return "Heute"
+        if (isoDate == tomorrowIso) return "Morgen"
+
         val parts = isoDate.split("-")
         return if (parts.size == 3) {
             "${parts[2]}.${parts[1]}."

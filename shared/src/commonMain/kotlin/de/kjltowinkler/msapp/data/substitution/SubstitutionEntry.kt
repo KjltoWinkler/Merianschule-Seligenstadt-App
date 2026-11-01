@@ -23,14 +23,14 @@ import kotlinx.serialization.Serializable
 data class SubstitutionEntry(
     val id: String,
     val date: String,
-    val dayLabel: String,
+    val dayLabel: String = "",
     val period: String,
     val subject: String,
     val className: String,
     val type: String,
-    val details: String,
-    val roomInfo: String,
-    val time: String,
+    val details: String = "",
+    val roomInfo: String = "",
+    val time: String = "",
     val isNew: Boolean = false,
     val isMarked: Boolean = false
 )
