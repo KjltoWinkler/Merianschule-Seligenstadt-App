@@ -19,11 +19,24 @@ class SubstitutionSyncWorker(
     override suspend fun doWork(): Result {
         return try {
             AppContextProvider.init(applicationContext)
+            val forceNotify = inputData.getBoolean("force_notify", false)
 
             val diff = SubstitutionSyncManager.checkForUpdates(
                 forceRefresh = true,
                 notifyIfChanged = true
             )
+
+            if (forceNotify && !diff.hasChanges) {
+                de.kjltowinkler.msapp.util.PlatformNotifier.sendNotification(
+                    title = "WorkManager Test erfolgreich",
+                    summary = "Hintergrund-Abfrage wurde fehlerfrei ausgeführt!",
+                    details = listOf(
+                        "Status: Hintergrund-Worker ist aktiv",
+                        "Server-Verbindung: Erfolgreich geprüft",
+                        "Hintergrunddienst läuft zuverlässig."
+                    )
+                )
+            }
 
             println("SubstitutionSyncWorker: Background-Check abgeschlossen (hasChanges=${diff.hasChanges}, neu=${diff.addedEntries.size}, geändert=${diff.modifiedEntries.size})")
             Result.success()

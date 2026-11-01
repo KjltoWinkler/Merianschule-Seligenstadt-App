@@ -35,6 +35,14 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <receiver
+            android:name=".worker.TestSyncReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="de.kjltowinkler.msapp.TRIGGER_SYNC" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

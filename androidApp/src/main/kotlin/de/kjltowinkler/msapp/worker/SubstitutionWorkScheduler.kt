@@ -45,13 +45,18 @@ object SubstitutionWorkScheduler {
     /**
      * Löst eine sofortige Hintergrundabfrage aus (z.B. für manuellen Test oder nach Login).
      */
-    fun triggerImmediateCheck(context: Context) {
+    fun triggerImmediateCheck(context: Context, forceTestNotification: Boolean = false) {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
+        val inputData = androidx.work.Data.Builder()
+            .putBoolean("force_notify", forceTestNotification)
+            .build()
+
         val oneTimeRequest = OneTimeWorkRequestBuilder<SubstitutionSyncWorker>()
             .setConstraints(constraints)
+            .setInputData(inputData)
             .addTag("substitution_sync_immediate")
             .build()
 
