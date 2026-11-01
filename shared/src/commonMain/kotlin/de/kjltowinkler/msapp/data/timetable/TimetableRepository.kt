@@ -515,6 +515,92 @@ object TimetableRepository {
         loadFromCache()
     }
 
+    // Zuordnung von Fach-Kürzeln zu den vollständigen Fachbezeichnungen
+    val subjectDictionary: Map<String, String> = mapOf(
+        "D" to "Deutsch",
+        "DEU" to "Deutsch",
+        "DEUTSCH" to "Deutsch",
+        "E" to "Englisch",
+        "ENG" to "Englisch",
+        "ENGLISCH" to "Englisch",
+        "M" to "Mathematik",
+        "MAT" to "Mathematik",
+        "MATHE" to "Mathematik",
+        "MATHEMATIK" to "Mathematik",
+        "B" to "Biologie",
+        "BIO" to "Biologie",
+        "BIOLOGIE" to "Biologie",
+        "CH" to "Chemie",
+        "CHE" to "Chemie",
+        "CHEMIE" to "Chemie",
+        "PH" to "Physik",
+        "PHY" to "Physik",
+        "PHYSIK" to "Physik",
+        "G" to "Geschichte",
+        "GE" to "Geschichte",
+        "GESCH" to "Geschichte",
+        "GESCHICHTE" to "Geschichte",
+        "POWI" to "Politik & Wirtschaft",
+        "PW" to "Politik & Wirtschaft",
+        "POLITIK & WIRTSCHAFT" to "Politik & Wirtschaft",
+        "POLITIK UND WIRTSCHAFT" to "Politik & Wirtschaft",
+        "ETH" to "Ethik",
+        "ETHIK" to "Ethik",
+        "REL" to "Religion",
+        "EV" to "Ev. Religion",
+        "EVR" to "Ev. Religion",
+        "KR" to "Kath. Religion",
+        "KATH" to "Kath. Religion",
+        "RELIGION" to "Religion",
+        "KU" to "Kunst",
+        "KUNST" to "Kunst",
+        "MU" to "Musik",
+        "MUSIK" to "Musik",
+        "SP" to "Sport",
+        "SPO" to "Sport",
+        "SPORT" to "Sport",
+        "F" to "Französisch",
+        "FR" to "Französisch",
+        "FRZ" to "Französisch",
+        "FRANZÖSISCH" to "Französisch",
+        "L" to "Latein",
+        "LAT" to "Latein",
+        "LATEIN" to "Latein",
+        "SPA" to "Spanisch",
+        "SPN" to "Spanisch",
+        "SPANISCH" to "Spanisch",
+        "EK" to "Erdkunde",
+        "GEO" to "Erdkunde",
+        "ERD" to "Erdkunde",
+        "ERDKUNDE" to "Erdkunde",
+        "INF" to "Informatik",
+        "INFORMATIK" to "Informatik",
+        "WPU" to "WPU",
+        "KL" to "Klassenstunde",
+        "AL" to "Arbeitslehre",
+        "ARBEITSLEHRE" to "Arbeitslehre",
+        "DAZ" to "Deutsch als Zweitsprache"
+    )
+
+    /**
+     * Löst Fachkürzel wie "E" oder "D" in vollständige deutsche Wörter auf ("Englisch", "Deutsch").
+     */
+    fun resolveSubjectName(rawSubject: String): String {
+        val trimmed = rawSubject.trim()
+        if (trimmed.isBlank()) return trimmed
+
+        val upper = trimmed.uppercase()
+        val direct = subjectDictionary[upper]
+        if (direct != null) return direct
+
+        val match = subjectDictionary.entries.firstOrNull {
+            it.key.equals(trimmed, ignoreCase = true)
+        }?.value
+        if (match != null) return match
+
+        return trimmed
+    }
+
     /**
      * Wendet ein geladenes Stundenplan-DTO auf den lokalen Speicher an.
      */
@@ -527,7 +613,10 @@ object TimetableRepository {
                 dayEnum.displayName.equals(dayKey, ignoreCase = true) ||
                 dayEnum.shortName.equals(dayKey, ignoreCase = true)
             }?.value ?: emptyList()
-            timetableMap[dayEnum] = dayLessons
+            val normalizedLessons = dayLessons.map { lesson ->
+                lesson.copy(subject = resolveSubjectName(lesson.subject))
+            }
+            timetableMap[dayEnum] = normalizedLessons
         }
     }
 
@@ -556,7 +645,7 @@ object TimetableRepository {
      */
     fun addLesson(day: TimetableDay, lesson: TimetableLesson) {
         val current = timetableMap[day]?.toMutableList() ?: mutableListOf()
-        current.add(lesson)
+        current.add(lesson.copy(subject = resolveSubjectName(lesson.subject)))
         current.sortBy { it.periodNumber }
         timetableMap[day] = current
     }

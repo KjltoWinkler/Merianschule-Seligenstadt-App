@@ -224,8 +224,31 @@ Regeln:
    - Lies das Lehrer-Kürzel exakt so ab, wie es im Stundenplan-Bild steht (z. B. "Af", "Reu", "Tho", "Ky", "Kne", "Bü", "Hol", "Car").
    - Trage dieses Kürzel bei "teacherCode" und bei "teacherName" ein.
    - WICHTIG: Erfinde KEINESFALLS vollständige Vor- oder Nachnamen (wie z. B. "Hr. Knecht" oder "Fr. Reuter")! Bleibe bei Lehrkräften ausnahmslos und strikt bei dem reinen Kürzel aus dem Bild.
-5. Achte darauf, dass für jede erkannte Stunde eine eindeutige ID vergeben wird (z. B. "mon_1", "mon_2", "tue_1" usw.).
-6. Gib AUSSCHLIESSLICH das pure JSON-Objekt zurück. Kein Markdown, keine Backticks.
+5. Schulfächer (subject):
+   - Wandle Fachkürzel AUSNAHMSLOS in das vollständige deutsche Wort um! Niemals nur "E" oder "D" eintragen.
+   - Beispiele:
+     - "D" -> "Deutsch"
+     - "E" -> "Englisch"
+     - "M" -> "Mathematik"
+     - "B" -> "Biologie"
+     - "Ch" -> "Chemie"
+     - "Ph" -> "Physik"
+     - "G" -> "Geschichte"
+     - "PoWi" oder "PW" -> "Politik & Wirtschaft"
+     - "Eth" oder "ETH" -> "Ethik"
+     - "Rel" oder "Ev" oder "KR" -> "Religion"
+     - "Ku" oder "KU" -> "Kunst"
+     - "Mu" -> "Musik"
+     - "Sp" oder "SP" -> "Sport"
+     - "F" -> "Französisch"
+     - "L" -> "Latein"
+     - "Ek" oder "EK" -> "Erdkunde"
+     - "Inf" -> "Informatik"
+     - "Kl" -> "Klassenstunde"
+     - "AL" -> "Arbeitslehre"
+     - "WPU" -> "WPU"
+6. Achte darauf, dass für jede erkannte Stunde eine eindeutige ID vergeben wird (z. B. "mon_1", "mon_2", "tue_1" usw.).
+7. Gib AUSSCHLIESSLICH das pure JSON-Objekt zurück. Kein Markdown, keine Backticks.
         """.trimIndent()
 
         val requestPayload = buildJsonObject {
@@ -365,9 +388,13 @@ Regeln:
                 val teacherEmail = teacherInfo.email
                 val teacherOfficeHours = teacherInfo.officeHours
 
+                // Normalize subject to full German name (e.g. "D" -> "Deutsch", "E" -> "Englisch")
+                val fullSubject = TimetableRepository.resolveSubjectName(lesson.subject)
+
                 lesson.copy(
                     id = lessonId,
                     periodNumber = pNum,
+                    subject = fullSubject,
                     teacherCode = cleanCode,
                     teacherName = teacherName,
                     teacherEmail = teacherEmail,

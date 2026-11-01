@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.timetable.TimetableLesson
+import de.kjltowinkler.msapp.data.timetable.TimetableRepository
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -130,7 +131,7 @@ fun TimetableDetailBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = lesson.subject,
+                    text = TimetableRepository.resolveSubjectName(lesson.subject),
                     fontFamily = getQuicksandFontFamily(),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
@@ -297,7 +298,7 @@ fun TimetableDetailBottomSheet(
                     .background(brickBackgroundColor)
                     .clickable {
                         onDismissRequest()
-                        onAddTaskForSubject(lesson.subject)
+                        onAddTaskForSubject(TimetableRepository.resolveSubjectName(lesson.subject))
                     }
                     .handCursor()
                     .defaultMinSize(minHeight = 54.dp)
@@ -312,7 +313,7 @@ fun TimetableDetailBottomSheet(
                     modifier = Modifier.size(22.dp)
                 )
                 Text(
-                    text = "Aufgabe für ${lesson.subject} anlegen",
+                    text = "Aufgabe für ${TimetableRepository.resolveSubjectName(lesson.subject)} anlegen",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = textPrimaryColor

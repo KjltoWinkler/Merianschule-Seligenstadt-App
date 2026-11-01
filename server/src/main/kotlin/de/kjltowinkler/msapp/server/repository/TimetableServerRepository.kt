@@ -66,7 +66,8 @@ object TimetableServerRepository {
                         val updated = rs.getLong("updated_at")
                         if (updated > lastUpdated) lastUpdated = updated
                         try {
-                            days[dayId] = json.decodeFromString<List<TimetableLesson>>(raw)
+                            val parsed = json.decodeFromString<List<TimetableLesson>>(raw)
+                            days[dayId] = parsed.map { it.copy(subject = TimetableRepository.resolveSubjectName(it.subject)) }
                         } catch (e: Exception) {
                             days[dayId] = emptyList()
                         }
@@ -136,13 +137,14 @@ object TimetableServerRepository {
             val sql = "INSERT INTO timetables (class_name, day_id, lessons_json, valid_for, updated_at) VALUES (?, ?, ?, ?, ?);"
             conn.prepareStatement(sql).use { stmt ->
                 for ((dayId, lessons) in days) {
+                    val normalizedLessons = lessons.map { it.copy(subject = TimetableRepository.resolveSubjectName(it.subject)) }
                     stmt.setString(1, normalizedClass)
                     stmt.setString(2, dayId)
-                    stmt.setString(3, json.encodeToString(lessons))
+                    stmt.setString(3, json.encodeToString(normalizedLessons))
                     stmt.setString(4, validFor)
                     stmt.setLong(5, now)
                     stmt.addBatch()
-                    count += lessons.size
+                    count += normalizedLessons.size
                 }
                 stmt.executeBatch()
             }

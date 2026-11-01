@@ -376,7 +376,7 @@ fun TimetableLessonCard(
 
             // Fachname: "Deutsch", "Mathematik", ...
             Text(
-                text = lesson.subject,
+                text = TimetableRepository.resolveSubjectName(lesson.subject),
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
