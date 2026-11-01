@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,6 +100,8 @@ fun DesktopStartseiteDashboard(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color(0xFF192535))
                                 .border(1.dp, DesktopAccentBlue.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .handCursor()
+                                .clickable { onNavigateToTab(2) }
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -124,6 +127,8 @@ fun DesktopStartseiteDashboard(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color(0xFF192535))
                                 .border(1.dp, DesktopAccentBlue.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .handCursor()
+                                .clickable { onNavigateToTab(3) }
                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -213,6 +218,8 @@ fun DesktopStartseiteDashboard(
                                         .padding(vertical = 6.dp)
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(Color(0xFF14161C))
+                                        .handCursor()
+                                        .clickable { onNavigateToTab(2) }
                                         .padding(horizontal = 14.dp, vertical = 10.dp)
                                 ) {
                                     Box(
@@ -317,19 +324,23 @@ fun DesktopStartseiteDashboard(
                                         .padding(vertical = 4.dp)
                                         .clip(RoundedCornerShape(10.dp))
                                         .background(Color(0xFF14161C))
+                                        .handCursor()
+                                        .clickable { onNavigateToTab(3) }
                                         .padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
                                     Checkbox(
                                         checked = task.isCompleted,
                                         onCheckedChange = { checked ->
-                                            TasksRepository.toggleCompleted(task.id)
+                                             TasksRepository.toggleCompleted(task.id)
                                         },
                                         colors = CheckboxDefaults.colors(
                                             checkedColor = DesktopAccentBlue,
                                             checkmarkColor = DesktopOnAccentBlue,
                                             uncheckedColor = DesktopInputBorder
                                         ),
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .handCursor()
                                     )
 
                                     Spacer(modifier = Modifier.width(10.dp))

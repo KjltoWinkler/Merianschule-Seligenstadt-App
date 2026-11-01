@@ -23,6 +23,7 @@ import de.kjltowinkler.msapp.data.timetable.TimetableRepository
 import de.kjltowinkler.msapp.theme.FigmaPrimaryDark
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Bottom Sheet zum Hinzufügen einer neuen Unterrichtsstunde oder eines Termins.
@@ -160,6 +161,7 @@ fun NewTimetableEntryBottomSheet(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(closeButtonBg)
+                        .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_close),
@@ -199,6 +201,7 @@ fun NewTimetableEntryBottomSheet(
                                 shape = RoundedCornerShape(10.dp)
                             )
                             .clickable { selectedDay = day }
+                            .handCursor()
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -395,7 +398,8 @@ fun NewTimetableEntryBottomSheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(48.dp)
+                    .handCursor(subject.isNotBlank()),
                 enabled = subject.isNotBlank(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(

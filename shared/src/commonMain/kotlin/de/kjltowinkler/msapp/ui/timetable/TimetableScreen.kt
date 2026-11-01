@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -129,7 +130,9 @@ fun TimetableScreen(
                             days.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                             else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                         },
-                        modifier = Modifier.semantics { role = Role.RadioButton },
+                        modifier = Modifier
+                            .handCursor()
+                            .semantics { role = Role.RadioButton },
                     ) {
                         Text(
                             text = day.displayName,
@@ -247,7 +250,8 @@ fun TimetableScreen(
             expanded = isFabExpanded,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 18.dp, bottom = 18.dp),
+                .padding(end = 18.dp, bottom = 18.dp)
+                .handCursor(),
             shape = RoundedCornerShape(16.dp),
             containerColor = fabContainerColor,
             contentColor = fabContentColor,
@@ -314,6 +318,7 @@ fun TimetableLessonCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
+            .handCursor()
             .clickable(onClick = onCardClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
@@ -411,9 +416,11 @@ fun TimetableLessonCard(
                         fontWeight = FontWeight.Normal,
                         fontSize = 14.sp
                     ),
-                    modifier = Modifier.clickable {
-                        onTeacherClick(lesson.teacherCode)
-                    }
+                    modifier = Modifier
+                        .handCursor()
+                        .clickable {
+                            onTeacherClick(lesson.teacherCode)
+                        }
                 )
             }
         }

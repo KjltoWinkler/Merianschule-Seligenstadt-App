@@ -18,9 +18,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.graphicsLayer
-import de.kjltowinkler.msapp.PlatformPredictiveBackHandler
-import kotlinx.coroutines.CancellationException
+import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import kotlinx.coroutines.delay
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -61,33 +59,11 @@ fun NewListScreen(
         keyboardController?.show()
     }
 
-    var backProgress by remember { mutableFloatStateOf(0f) }
-
-    PlatformPredictiveBackHandler(enabled = true) { progressFlow ->
-        try {
-            progressFlow.collect { event ->
-                backProgress = event.progress
-            }
-            onDismissRequest()
-        } catch (_: CancellationException) {
-            backProgress = 0f
-        }
-    }
-
-    val scale = 1f - (backProgress * 0.1f)
-    val cornerRadius = (backProgress * 28f).dp
-    val offsetX = (backProgress * 48f).dp
-
-    Box(
+    PredictiveBackContainer(
+        enabled = true,
+        onBack = onDismissRequest,
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                translationX = offsetX.toPx()
-                clip = backProgress > 0f
-                shape = RoundedCornerShape(cornerRadius)
-            }
             .background(screenBg)
     ) {
         Column(

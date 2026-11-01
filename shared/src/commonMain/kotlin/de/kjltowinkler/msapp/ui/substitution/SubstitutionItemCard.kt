@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.Res
 import merianschuleseligenstadtapp.shared.generated.resources.ic_star_filled
 import merianschuleseligenstadtapp.shared.generated.resources.ic_star_outline
@@ -36,6 +39,7 @@ fun SubstitutionItemCard(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight()
+            .handCursor()
             .clickable { onClick() },
         shape = shape,
         colors = CardDefaults.cardColors(
@@ -62,9 +66,10 @@ fun SubstitutionItemCard(
                 }
                 Text(
                     text = headerTitle,
+                    fontFamily = getQuicksandFontFamily(),
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFE0E8DC),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -81,7 +86,7 @@ fun SubstitutionItemCard(
                         text = entry.time,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (entry.isNew) Color(0xFFE1E9DD) else Color(0xFFA5ADA2)
+                        color = if (entry.isNew) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     if (entry.isNew) {
@@ -89,7 +94,7 @@ fun SubstitutionItemCard(
                             modifier = Modifier
                                 .size(7.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFB8CCB5))
+                                .background(MaterialTheme.colorScheme.primary)
                         )
                     }
                 }
@@ -102,7 +107,7 @@ fun SubstitutionItemCard(
                 text = entry.details,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color(0xFFEBE8DC),
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -119,7 +124,7 @@ fun SubstitutionItemCard(
                     text = entry.roomInfo,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
-                    color = Color(0xFFA6AEA3),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -131,6 +136,7 @@ fun SubstitutionItemCard(
                 Box(
                     modifier = Modifier
                         .size(24.dp)
+                        .handCursor()
                         .clickable { onToggleMark(entry) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -139,7 +145,7 @@ fun SubstitutionItemCard(
                             if (entry.isMarked) Res.drawable.ic_star_filled else Res.drawable.ic_star_outline
                         ),
                         contentDescription = if (entry.isMarked) "Eintrag entmarkieren" else "Eintrag markieren",
-                        tint = if (entry.isMarked) Color(0xFF92998F) else Color(0xFFA5ADA2),
+                        tint = if (entry.isMarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 }

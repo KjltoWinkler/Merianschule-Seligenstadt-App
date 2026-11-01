@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -201,6 +202,7 @@ fun SubstitutionShareCard(
                     ) {
                         Text(
                             text = entry.subject.ifBlank { "Vertretung" },
+                            fontFamily = getQuicksandFontFamily(),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFF0F7EE),

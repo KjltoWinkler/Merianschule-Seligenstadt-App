@@ -89,22 +89,40 @@ object SubstitutionServerRepository {
         }
     }
 
-    suspend fun replaceEntries(entries: List<SubstitutionEntry>, rawJsonContent: String? = null): Int {
+    suspend fun deleteOlderThan(cutoffDate: String): Int = DatabaseFactory.query { conn ->
+        conn.prepareStatement("DELETE FROM substitutions WHERE date < ?;").use { stmt ->
+            stmt.setString(1, cutoffDate)
+            stmt.executeUpdate()
+        }
+    }
+
+    suspend fun clearAll(): Int = DatabaseFactory.query { conn ->
+        conn.createStatement().use { stmt ->
+            stmt.executeUpdate("DELETE FROM substitutions;")
+        }
+    }
+
+    suspend fun replaceEntries(entries: List<SubstitutionEntry>, rawJsonContent: String? = null, replaceAll: Boolean = false): Int {
         val now = System.currentTimeMillis()
 
         DatabaseFactory.query { conn ->
             conn.autoCommit = false
             try {
-                val incomingDates = entries.map { it.date }.filter { it.isNotBlank() }.toSet()
-                if (incomingDates.isNotEmpty()) {
-                    val placeholders = incomingDates.joinToString(",") { "?" }
-                    conn.prepareStatement("DELETE FROM substitutions WHERE date IN ($placeholders);").use { stmt ->
-                        incomingDates.forEachIndexed { idx, d -> stmt.setString(idx + 1, d) }
-                        stmt.executeUpdate()
-                    }
-                } else {
+                if (replaceAll) {
                     conn.createStatement().use { it.execute("DELETE FROM substitutions;") }
+                } else {
+                    val incomingDates = entries.map { it.date }.filter { it.isNotBlank() }.toSet()
+                    if (incomingDates.isNotEmpty()) {
+                        val placeholders = incomingDates.joinToString(",") { "?" }
+                        conn.prepareStatement("DELETE FROM substitutions WHERE date IN ($placeholders);").use { stmt ->
+                            incomingDates.forEachIndexed { idx, d -> stmt.setString(idx + 1, d) }
+                            stmt.executeUpdate()
+                        }
+                    } else {
+                        conn.createStatement().use { it.execute("DELETE FROM substitutions;") }
+                    }
                 }
+
 
                 val sql = """
                     INSERT INTO substitutions (

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.timetable.TeacherInfo
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Bottom Sheet mit Details zur ausgewählten Lehrkraft.
@@ -181,6 +182,7 @@ fun TeacherDetailBottomSheet(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(closeButtonBg)
+                        .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_close),
@@ -231,6 +233,7 @@ fun TeacherDetailBottomSheet(
                             clipboardManager.setText(AnnotatedString(teacher.email))
                             emailCopied = true
                         }
+                        .handCursor()
                         .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -260,7 +263,9 @@ fun TeacherDetailBottomSheet(
                             clipboardManager.setText(AnnotatedString(teacher.email))
                             emailCopied = true
                         },
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier
+                            .size(28.dp)
+                            .handCursor()
                     ) {
                         Icon(
                             painter = painterResource(

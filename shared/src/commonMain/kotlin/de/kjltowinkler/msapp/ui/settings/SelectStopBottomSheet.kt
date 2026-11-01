@@ -30,9 +30,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.schoolway.SchoolWayRepository
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import kotlinx.coroutines.delay
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.textCursor
 
 enum class StopSelectionTarget {
     START,
@@ -195,6 +198,7 @@ fun SelectStopBottomSheet(
                 Text(
                     text = "Haltestelle wählen",
                     style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = getQuicksandFontFamily(),
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
@@ -210,6 +214,7 @@ fun SelectStopBottomSheet(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(closeButtonBg)
+                        .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_close),
@@ -233,10 +238,12 @@ fun SelectStopBottomSheet(
                         .background(pillBackground)
                         .then(
                             if (isStart) {
-                                Modifier.clickable {
-                                    startFocusRequester.requestFocus()
-                                    keyboardController?.show()
-                                }
+                                Modifier
+                                    .clickable {
+                                        startFocusRequester.requestFocus()
+                                        keyboardController?.show()
+                                    }
+                                    .handCursor()
                             } else {
                                 Modifier
                             }
@@ -268,10 +275,11 @@ fun SelectStopBottomSheet(
                         enabled = isStart,
                         modifier = Modifier
                             .weight(1f)
-                            .then(if (isStart) Modifier.focusRequester(startFocusRequester) else Modifier),
+                            .then(if (isStart) Modifier.focusRequester(startFocusRequester) else Modifier)
+                            .textCursor(isStart),
                         textStyle = TextStyle(
                             fontSize = 16.sp,
-                            fontWeight = if (isStart) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = FontWeight.Normal,
                             color = if (isStart) textPrimary else textSecondary
                         ),
                         cursorBrush = SolidColor(textPrimary),
@@ -282,7 +290,7 @@ fun SelectStopBottomSheet(
                                     text = "Einstiegshaltestelle wählen",
                                     style = TextStyle(
                                         fontSize = 16.sp,
-                                        fontWeight = if (isStart) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = FontWeight.Normal,
                                         color = if (isStart) textPrimary else textSecondary
                                     )
                                 )
@@ -323,10 +331,12 @@ fun SelectStopBottomSheet(
                         .background(pillBackground)
                         .then(
                             if (isEnd) {
-                                Modifier.clickable {
-                                    endFocusRequester.requestFocus()
-                                    keyboardController?.show()
-                                }
+                                Modifier
+                                    .clickable {
+                                        endFocusRequester.requestFocus()
+                                        keyboardController?.show()
+                                    }
+                                    .handCursor()
                             } else {
                                 Modifier
                             }
@@ -355,10 +365,11 @@ fun SelectStopBottomSheet(
                         enabled = isEnd,
                         modifier = Modifier
                             .weight(1f)
-                            .then(if (isEnd) Modifier.focusRequester(endFocusRequester) else Modifier),
+                            .then(if (isEnd) Modifier.focusRequester(endFocusRequester) else Modifier)
+                            .textCursor(isEnd),
                         textStyle = TextStyle(
                             fontSize = 16.sp,
-                            fontWeight = if (isEnd) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = FontWeight.Normal,
                             color = if (isEnd) textPrimary else textSecondary
                         ),
                         cursorBrush = SolidColor(textPrimary),
@@ -369,7 +380,7 @@ fun SelectStopBottomSheet(
                                     text = "Deine Zielhaltestelle",
                                     style = TextStyle(
                                         fontSize = 16.sp,
-                                        fontWeight = if (isEnd) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = FontWeight.Normal,
                                         color = if (isEnd) textPrimary else textSecondary
                                     )
                                 )
@@ -387,7 +398,7 @@ fun SelectStopBottomSheet(
                 text = "Empfehlungen",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 16.5.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = textPrimary
                 ),
                 modifier = Modifier.padding(bottom = 6.dp)
@@ -417,6 +428,7 @@ fun SelectStopBottomSheet(
                                 }
                                 onDismissRequest()
                             }
+                            .handCursor()
                             .padding(vertical = 13.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -437,7 +449,7 @@ fun SelectStopBottomSheet(
                             text = stopName,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Normal,
                                 color = activeAccent
                             )
                         )

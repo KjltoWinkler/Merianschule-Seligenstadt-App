@@ -117,7 +117,25 @@ fun Route.adminRoutes() {
             }
         }
 
+        // Clear / Delete old Substitutions
+        delete("/substitutions") {
+            if (!verifyAdminAccess(call)) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                return@delete
+            }
+
+            val olderThan = call.request.queryParameters["olderThan"]
+            val deleted = if (!olderThan.isNullOrBlank()) {
+                SubstitutionServerRepository.deleteOlderThan(olderThan)
+            } else {
+                SubstitutionServerRepository.clearAll()
+            }
+
+            call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "$deleted Einträge gelöscht."))
+        }
+
         // Upload / Update Timetable (Stundenplan)
+
         post("/timetable") {
             if (!verifyAdminAccess(call)) {
                 call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich (X-Admin-Key Header oder Admin-JWT)."))

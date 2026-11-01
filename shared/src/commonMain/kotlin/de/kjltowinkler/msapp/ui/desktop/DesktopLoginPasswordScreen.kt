@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.*
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -102,7 +103,10 @@ fun DesktopLoginPasswordScreen(
             textObfuscationMode = if (passwordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
             label = { Text(if (isError) "Passwort*" else "Passwort") },
             trailingIcon = {
-                IconButton(onClick = { passwordHidden = !passwordHidden }) {
+                IconButton(
+                    onClick = { passwordHidden = !passwordHidden },
+                    modifier = Modifier.handCursor()
+                ) {
                     Icon(
                         painter = painterResource(
                             if (passwordHidden) Res.drawable.ic_visibility else Res.drawable.ic_visibility_off
@@ -172,6 +176,7 @@ fun DesktopLoginPasswordScreen(
             color = DesktopLink,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
+                .handCursor()
                 .clickable {
                     showForgotInfoDialog = true
                     onForgotPasswordClicked()
@@ -199,6 +204,7 @@ fun DesktopLoginPasswordScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
+                .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
             Text(
@@ -229,7 +235,10 @@ fun DesktopLoginPasswordScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showForgotInfoDialog = false }) {
+                TextButton(
+                    onClick = { showForgotInfoDialog = false },
+                    modifier = Modifier.handCursor()
+                ) {
                     Text("Verstanden", color = DesktopAccentBlue, fontWeight = FontWeight.SemiBold)
                 }
             }

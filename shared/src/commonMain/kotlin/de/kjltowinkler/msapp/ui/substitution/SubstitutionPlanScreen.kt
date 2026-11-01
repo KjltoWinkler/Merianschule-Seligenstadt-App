@@ -16,6 +16,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,6 +96,7 @@ fun SwipeableSubstitutionItem(
             // Wird aufgerufen, wenn der Nutzer den Finger hebt (Loslassen):
             if ((dismissValue == SwipeToDismissBoxValue.StartToEnd || dismissValue == SwipeToDismissBoxValue.EndToStart) && !actionTriggered) {
                 actionTriggered = true
+                currentOnDragActiveChange?.invoke(false)
                 if (currentAnimateOnDismiss) {
                     // Im "Markiert"-Tab: Die Karte gleitet vollständig bis an den Rand hinaus und der Platz schrumpft zusammen
                     coroutineScope.launch {
@@ -114,22 +116,33 @@ fun SwipeableSubstitutionItem(
                     false
                 }
             } else {
+                currentOnDragActiveChange?.invoke(false)
                 false
             }
         }
     )
 
-    LaunchedEffect(dismissState) {
+    DisposableEffect(entry.id) {
+        onDispose {
+            currentOnDragActiveChange?.invoke(false)
+        }
+    }
+
+    LaunchedEffect(dismissState, actionTriggered) {
         snapshotFlow {
-            try {
-                dismissState.requireOffset()
-            } catch (_: Exception) {
+            if (actionTriggered) {
                 0f
+            } else {
+                try {
+                    dismissState.requireOffset()
+                } catch (_: Exception) {
+                    0f
+                }
             }
         }.collect { offset ->
             val wasDragging = latestOffset != 0f
-            val isDragging = offset != 0f
-            latestOffset = offset
+            val isDragging = !actionTriggered && kotlin.math.abs(offset) > 0.5f
+            latestOffset = if (isDragging) offset else 0f
             // Parent über Drag-Status informieren, damit der Pager gesperrt werden kann
             if (wasDragging != isDragging) {
                 currentOnDragActiveChange?.invoke(isDragging)
@@ -261,7 +274,8 @@ private fun formatDayHeader(dateIso: String, fallbackLabel: String, todayIso: St
 @Composable
 fun SubstitutionPlanScreen(
     modifier: Modifier = Modifier,
-    dateText: String = remember { de.kjltowinkler.msapp.getCurrentFormattedDate() }
+    dateText: String = remember { de.kjltowinkler.msapp.getCurrentFormattedDate() },
+    useMaterialYou: Boolean = true
 ) {
     val options = remember { SubstitutionFilter.entries }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { options.size })
@@ -270,8 +284,21 @@ fun SubstitutionPlanScreen(
     // State für den Umschalter (z.B. Kommende Tage / Heute)
     var isUpcoming by rememberSaveable { mutableStateOf(false) }
 
-    // Wird true, wenn der Nutzer gerade einen Eintrag wischt → Pager-Scrolling sperren
-    var isAnyItemDragging by remember { mutableStateOf(false) }
+    // IDs von Einträgen, die aktuell gewischt werden → Pager-Scrolling sperren
+    val draggingItemIds = remember { mutableStateListOf<String>() }
+    val isAnyItemDragging = draggingItemIds.isNotEmpty()
+
+    val onItemDragActiveChange: (String, Boolean) -> Unit = remember {
+        { id, dragging ->
+            if (dragging) {
+                if (!draggingItemIds.contains(id)) {
+                    draggingItemIds.add(id)
+                }
+            } else {
+                draggingItemIds.remove(id)
+            }
+        }
+    }
 
     val initialEntries = remember { SubstitutionRepository.getInitialOrCachedEntries() }
     var allEntries by remember {
@@ -291,6 +318,7 @@ fun SubstitutionPlanScreen(
     // Scrollt die Tab-Leiste nur dann nach, wenn die Tabs nicht alle gleichzeitig sichtbar sind.
     // Nutzt den tatsächlichen ScrollState.maxValue, damit Tab-Breitenunterschiede kein Problem sind.
     LaunchedEffect(pagerState.currentPage) {
+        draggingItemIds.clear()
         if (tabScrollState.maxValue > 0) {
             val fraction = pagerState.currentPage.toFloat() / (options.size - 1).coerceAtLeast(1)
             val targetScroll = (fraction * tabScrollState.maxValue).toInt()
@@ -487,7 +515,9 @@ fun SubstitutionPlanScreen(
                             options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                             else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                         },
-                        modifier = Modifier.semantics { role = Role.RadioButton },
+                        modifier = Modifier
+                            .handCursor()
+                            .semantics { role = Role.RadioButton },
                     ) {
                         if (filter.hasStar) {
                             Icon(
@@ -554,6 +584,9 @@ fun SubstitutionPlanScreen(
                             }
 
                             if (entriesForTab.isEmpty()) {
+                                LaunchedEffect(Unit) {
+                                    draggingItemIds.clear()
+                                }
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -577,7 +610,7 @@ fun SubstitutionPlanScreen(
                                                 text = "Markierte Einträge",
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFAEB6AB),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 textAlign = TextAlign.Start
                                             )
                                         }
@@ -594,7 +627,7 @@ fun SubstitutionPlanScreen(
                                             text = "Noch keine Markierungen",
                                             fontSize = 22.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFFE4EDE0),
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             textAlign = TextAlign.Center
                                         )
                                         Spacer(modifier = Modifier.height(14.dp))
@@ -603,7 +636,7 @@ fun SubstitutionPlanScreen(
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Normal,
                                             lineHeight = 22.sp,
-                                            color = Color(0xFFA8B0A5),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
                                         )
                                         Spacer(modifier = Modifier.height(34.dp))
@@ -619,7 +652,7 @@ fun SubstitutionPlanScreen(
                                             text = "Markierte Einträge",
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFAEB6AB),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(start = 14.dp, top = 6.dp, bottom = 10.dp),
@@ -639,7 +672,7 @@ fun SubstitutionPlanScreen(
                                                     entry = entry,
                                                     cardShape = cardShape,
                                                     animateOnDismiss = true,
-                                                    onDragActiveChange = { dragging -> isAnyItemDragging = dragging },
+                                                    onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                     onDismissed = onItemDismissed,
                                                     onItemClick = { onItemClicked(entry) }
                                                 )
@@ -691,7 +724,7 @@ fun SubstitutionPlanScreen(
                                                 text = focusDayTitle,
                                                 fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFAEB6AB),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 textAlign = TextAlign.Start
                                             )
 
@@ -740,7 +773,7 @@ fun SubstitutionPlanScreen(
                                             text = emptyTitle,
                                             fontSize = 22.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFFE4EDE0),
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             textAlign = TextAlign.Center
                                         )
 
@@ -751,7 +784,7 @@ fun SubstitutionPlanScreen(
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Normal,
                                             lineHeight = 22.sp,
-                                            color = Color(0xFFA8B0A5),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
                                         )
 
@@ -761,7 +794,7 @@ fun SubstitutionPlanScreen(
                                                 text = lastUpdated,
                                                 fontSize = 12.sp,
                                                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                                color = Color(0xFFA8B0A5),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 textAlign = TextAlign.Center,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -789,7 +822,7 @@ fun SubstitutionPlanScreen(
                                             text = focusDayTitle,
                                             fontSize = 16.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFAEB6AB),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Start
                                         )
 
@@ -842,7 +875,7 @@ fun SubstitutionPlanScreen(
                                                     entry = entry,
                                                     cardShape = cardShape,
                                                     animateOnDismiss = false,
-                                                    onDragActiveChange = { dragging -> isAnyItemDragging = dragging },
+                                                    onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                     onDismissed = onItemDismissed,
                                                     onItemClick = { onItemClicked(entry) }
                                                 )
@@ -864,7 +897,7 @@ fun SubstitutionPlanScreen(
                                                 text = "Vergangene Einträge",
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFFAEB6AB)
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Spacer(modifier = Modifier.width(10.dp))
                                             HorizontalDivider(
@@ -879,7 +912,7 @@ fun SubstitutionPlanScreen(
                                                 text = dayHeader,
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFFAEB6AB),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 8.dp),
@@ -899,7 +932,7 @@ fun SubstitutionPlanScreen(
                                                         entry = entry,
                                                         cardShape = cardShape,
                                                         animateOnDismiss = false,
-                                                        onDragActiveChange = { dragging -> isAnyItemDragging = dragging },
+                                                        onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                         onDismissed = onItemDismissed,
                                                         onItemClick = { onItemClicked(entry) }
                                                     )
@@ -917,11 +950,12 @@ fun SubstitutionPlanScreen(
                                             text = lastUpdated,
                                             fontSize = 12.sp,
                                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                            color = Color(0xFFA8B0A5),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(top = 10.dp, bottom = 12.dp)
+                                                .handCursor()
                                                 .clickable {
                                                     de.kjltowinkler.msapp.util.PlatformNotifier.sendNotification(
                                                         title = "Vertretungsplan: Unterrichtsentfall",
@@ -994,7 +1028,8 @@ fun SubstitutionPlanScreen(
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Als Aufgabe gespeichert", duration = SnackbarDuration.Short)
                 }
-            }
+            },
+            useMaterialYou = useMaterialYou
         )
     }
     }

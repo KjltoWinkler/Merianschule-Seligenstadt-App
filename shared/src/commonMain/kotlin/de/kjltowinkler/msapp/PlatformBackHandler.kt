@@ -16,8 +16,13 @@ data class PredictiveBackProgress(
     val progress: Float = 0f,
     val touchX: Float = 0f,
     val touchY: Float = 0f,
-    val swipeEdge: Int = 0
-)
+    val swipeEdge: Int = EDGE_LEFT
+) {
+    companion object {
+        const val EDGE_LEFT = 0
+        const val EDGE_RIGHT = 1
+    }
+}
 
 /**
  * Erlaubt das Abfangen von Zurück-Gesten auf Plattformen mit System-Zurück-Unterstützung (Android/Web).

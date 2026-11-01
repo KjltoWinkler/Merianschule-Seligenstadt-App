@@ -30,8 +30,11 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.getCurrentEpochMillis
+import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.textCursor
 
 /**
  * Bottom-Sheet / Bottom-Bar "Neue Aufgaben" exakt nach Figma: tasks#neu+detail.png
@@ -77,31 +80,40 @@ fun NewTaskBottomSheet(
 
     val colorScheme = MaterialTheme.colorScheme
 
-    // Abdunkelungs-Hintergrund (Scrim)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) {
-                keyboardController?.hide()
-                onDismissRequest()
-            }
-    )
+    PredictiveBackContainer(
+        enabled = !showDatePicker && !showTimePicker,
+        onBack = {
+            keyboardController?.hide()
+            onDismissRequest()
+        },
+        maxScaleReduction = 0.05f,
+        modifier = Modifier.fillMaxSize()
+    ) { backProgress ->
+        // Abdunkelungs-Hintergrund (Scrim)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = ((1f - backProgress) * 0.5f).coerceAtLeast(0f)))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    keyboardController?.hide()
+                    onDismissRequest()
+                }
+        )
 
-    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
-    val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val bottomInset = maxOf(imeBottom, navBottom)
+        val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+        val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        val bottomInset = maxOf(imeBottom, navBottom)
 
-    // Das Menu selbst dockt unten an und reagiert simultan auf die Tastatur
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = bottomInset),
-        contentAlignment = Alignment.BottomCenter
-    ) {
+        // Das Menu selbst dockt unten an und reagiert simultan auf die Tastatur
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = bottomInset),
+            contentAlignment = Alignment.BottomCenter
+        ) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -126,7 +138,8 @@ fun NewTaskBottomSheet(
                     onValueChange = { taskTitle = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(titleFocusRequester),
+                        .focusRequester(titleFocusRequester)
+                        .textCursor(),
                     textStyle = TextStyle(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
@@ -163,7 +176,8 @@ fun NewTaskBottomSheet(
                             onValueChange = { taskDescription = it },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusRequester(detailsFocusRequester),
+                                .focusRequester(detailsFocusRequester)
+                                .textCursor(),
                             textStyle = TextStyle(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Normal,
@@ -197,6 +211,7 @@ fun NewTaskBottomSheet(
                             InputChip(
                                 selected = true,
                                 onClick = { showDatePicker = true },
+                                modifier = Modifier.handCursor(),
                                 label = { Text("${date.dayOfMonth}.${date.monthNumber}.${date.year}") },
                                 trailingIcon = {
                                     Icon(
@@ -210,6 +225,7 @@ fun NewTaskBottomSheet(
                                             ) {
                                                 selectedDate = null
                                             }
+                                            .handCursor()
                                     )
                                 },
                                 colors = InputChipDefaults.inputChipColors(
@@ -227,6 +243,7 @@ fun NewTaskBottomSheet(
                             InputChip(
                                 selected = true,
                                 onClick = { showTimePicker = true },
+                                modifier = Modifier.handCursor(),
                                 label = {
                                     Text(
                                         "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} Uhr"
@@ -245,6 +262,7 @@ fun NewTaskBottomSheet(
                                                 selectedHour = null
                                                 selectedMinute = null
                                             }
+                                            .handCursor()
                                     )
                                 },
                                 colors = InputChipDefaults.inputChipColors(
@@ -279,7 +297,9 @@ fun NewTaskBottomSheet(
                             onClick = {
                                 showDescription = !showDescription
                             },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .handCursor()
                         ) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_subject),
@@ -292,7 +312,9 @@ fun NewTaskBottomSheet(
                         // Icon 2: Datum auswählen (Kalender)
                         IconButton(
                             onClick = { showDatePicker = true },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .handCursor()
                         ) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_calendar_event),
@@ -305,7 +327,9 @@ fun NewTaskBottomSheet(
                         // Icon 3: Uhrzeit auswählen (Uhr / History)
                         IconButton(
                             onClick = { showTimePicker = true },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .handCursor()
                         ) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_access_time),
@@ -318,7 +342,9 @@ fun NewTaskBottomSheet(
                         // Icon 4: Stern / Markieren
                         IconButton(
                             onClick = { isStarred = !isStarred },
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier
+                                .size(36.dp)
+                                .handCursor()
                         ) {
                             Icon(
                                 painter = painterResource(
@@ -358,7 +384,8 @@ fun NewTaskBottomSheet(
                                 onDismissRequest()
                             }
                         },
-                        enabled = taskTitle.isNotBlank()
+                        enabled = taskTitle.isNotBlank(),
+                        modifier = Modifier.handCursor(taskTitle.isNotBlank())
                     ) {
                         Text(
                             text = "Speichern",
@@ -370,6 +397,7 @@ fun NewTaskBottomSheet(
                 }
             }
         }
+    }
     }
 
     // --- DATE PICKER DIALOG ---

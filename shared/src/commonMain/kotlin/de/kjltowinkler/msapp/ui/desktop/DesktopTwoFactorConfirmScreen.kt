@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.*
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.Res
 import org.jetbrains.compose.resources.painterResource
 
@@ -159,6 +160,7 @@ fun DesktopTwoFactorConfirmScreen(
             color = DesktopLink,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
+                .handCursor()
                 .clickable {
                     showHelpDialog = true
                     onHelpClicked()
@@ -186,6 +188,7 @@ fun DesktopTwoFactorConfirmScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
+                .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
             Text(
@@ -216,7 +219,10 @@ fun DesktopTwoFactorConfirmScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showHelpDialog = false }) {
+                TextButton(
+                    onClick = { showHelpDialog = false },
+                    modifier = Modifier.handCursor()
+                ) {
                     Text("Verstanden", color = DesktopAccentBlue, fontWeight = FontWeight.SemiBold)
                 }
             }

@@ -39,7 +39,7 @@ fun ButtonWithAnimatedShape(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.handCursor(enabled),
         enabled = enabled,
         shapes = shapes,
         colors = colors,

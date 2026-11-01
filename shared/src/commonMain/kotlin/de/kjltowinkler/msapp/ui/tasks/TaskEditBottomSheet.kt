@@ -31,6 +31,8 @@ import de.kjltowinkler.msapp.data.task.getTodayDate
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.textCursor
 
 /**
  * Edit BottomSheet zum Bearbeiten und Einsehen von Aufgabeninformationen
@@ -189,7 +191,9 @@ fun TaskEditBottomSheet(
                     cursorBrush = SolidColor(colorScheme.primary),
                     singleLine = false,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .textCursor()
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -281,6 +285,7 @@ fun TaskEditBottomSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { isDetailsExpanded = !isDetailsExpanded }
+                                .handCursor()
                                 .defaultMinSize(minHeight = 54.dp)
                                 .padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -319,6 +324,7 @@ fun TaskEditBottomSheet(
                                 cursorBrush = SolidColor(colorScheme.primary),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .textCursor()
                                     .padding(horizontal = 16.dp)
                                     .padding(bottom = 16.dp),
                                 decorationBox = { innerTextField ->
@@ -342,6 +348,7 @@ fun TaskEditBottomSheet(
                             .clip(middleBrickShape)
                             .background(brickBackgroundColor)
                             .clickable { showDatePicker = true }
+                            .handCursor()
                             .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -374,7 +381,9 @@ fun TaskEditBottomSheet(
                                     deadlineDate = newDeadline
                                     saveChanges(newDueDate = "", newDeadline = newDeadline)
                                 },
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .handCursor()
                             ) {
                                 Icon(
                                     painter = painterResource(Res.drawable.ic_close),
@@ -393,6 +402,7 @@ fun TaskEditBottomSheet(
                             .clip(bottomBrickShape)
                             .background(brickBackgroundColor)
                             .clickable { showTimePicker = true }
+                            .handCursor()
                             .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -425,7 +435,9 @@ fun TaskEditBottomSheet(
                                     deadlineDate = newDeadline
                                     saveChanges(newDueTime = "", newDeadline = newDeadline)
                                 },
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .handCursor()
                             ) {
                                 Icon(
                                     painter = painterResource(Res.drawable.ic_close),
@@ -456,6 +468,7 @@ fun TaskEditBottomSheet(
                                 isStarred = newStarred
                                 saveChanges(newIsStarred = newStarred)
                             }
+                            .handCursor()
                             .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -486,6 +499,7 @@ fun TaskEditBottomSheet(
                             .clickable {
                                 // Teilen - Backend-Integration folgt
                             }
+                            .handCursor()
                             .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -525,6 +539,7 @@ fun TaskEditBottomSheet(
                                 completedDate = newCompletedDate
                                 saveChanges(newIsCompleted = newCompleted, newCompletedDate = newCompletedDate)
                             }
+                            .handCursor()
                             .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -559,6 +574,7 @@ fun TaskEditBottomSheet(
                             .clickable {
                                 showDeleteConfirmDialog = true
                             }
+                            .handCursor()
                             .defaultMinSize(minHeight = 54.dp)
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -621,7 +637,8 @@ fun TaskEditBottomSheet(
                             }
                             onDismissRequest()
                         }
-                    }
+                    },
+                    modifier = Modifier.handCursor()
                 ) {
                     Text(
                         text = "Löschen",
@@ -632,7 +649,8 @@ fun TaskEditBottomSheet(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteConfirmDialog = false }
+                    onClick = { showDeleteConfirmDialog = false },
+                    modifier = Modifier.handCursor()
                 ) {
                     Text(
                         text = "Abbrechen",

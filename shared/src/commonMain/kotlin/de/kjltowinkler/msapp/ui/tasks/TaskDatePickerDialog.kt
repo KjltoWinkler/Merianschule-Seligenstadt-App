@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import de.kjltowinkler.msapp.data.task.SimpleDate
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Offizieller Material 3 DatePickerDialog gemäß AOSP DatePickerSamples:
@@ -56,7 +57,8 @@ fun TaskDatePickerDialog(
                         onDateSelected(null)
                     }
                     onDismissRequest()
-                }
+                },
+                modifier = Modifier.handCursor()
             ) {
                 Text(
                     text = "OK",
@@ -69,7 +71,8 @@ fun TaskDatePickerDialog(
                 onClick = {
                     onDateSelected(null)
                     onDismissRequest()
-                }
+                },
+                modifier = Modifier.handCursor()
             ) {
                 Text(
                     text = "Löschen",

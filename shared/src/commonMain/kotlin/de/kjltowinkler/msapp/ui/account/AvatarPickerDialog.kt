@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Dialog zur Auswahl und Anpassung des Profilbilds.
@@ -148,7 +149,8 @@ fun AvatarPickerDialog(
                                     if (isSelected) Modifier.border(2.5.dp, primaryColor, CircleShape)
                                     else Modifier
                                 )
-                                .clickable { selectedType = type },
+                                .clickable { selectedType = type }
+                                .handCursor(),
                             contentAlignment = Alignment.Center
                         ) {
                             AccountAvatar(
@@ -207,6 +209,7 @@ fun AvatarPickerDialog(
                                     selectedType = "initials"
                                     selectedColorHex = colorHex
                                 }
+                                .handCursor()
                                 .then(
                                     if (isInitialsSelected) Modifier.border(2.5.dp, Color.White, CircleShape)
                                     else Modifier
@@ -233,7 +236,10 @@ fun AvatarPickerDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismissRequest) {
+                    TextButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier.handCursor()
+                    ) {
                         Text(
                             text = "Abbrechen",
                             color = onSurfaceVariantColor,
@@ -246,6 +252,7 @@ fun AvatarPickerDialog(
                             onAvatarSelected(selectedType, selectedColorHex)
                             onDismissRequest()
                         },
+                        modifier = Modifier.handCursor(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryColor
                         ),

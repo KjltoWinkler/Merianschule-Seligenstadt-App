@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -17,15 +18,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.data.schoolway.SchoolWayRepository
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
+import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
+import kotlin.math.max
+import kotlin.math.min
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -49,6 +58,12 @@ fun SchoolWayScreen(
     val config = SchoolWayRepository.currentConfig
     var activeStopSheet by remember { mutableStateOf<StopSelectionTarget?>(null) }
     var showOverflowMenu by remember { mutableStateOf(false) }
+
+    // Bei geöffnetem Dropdown-Menü schließt die Zurück-Geste dieses Menü
+    PredictiveBackContainer(
+        enabled = showOverflowMenu,
+        onBack = { showOverflowMenu = false }
+    ) {}
 
     // Farbwerte: Exakte Figma-Werte mit Material You Fallback
     val screenBackground = if (useMaterialYou) {
@@ -115,7 +130,9 @@ fun SchoolWayScreen(
             ) {
                 IconButton(
                     onClick = onBackClicked,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier
+                        .size(44.dp)
+                        .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_arrow_back),
@@ -130,6 +147,7 @@ fun SchoolWayScreen(
                 Text(
                     text = "Mein Schulweg",
                     style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = getQuicksandFontFamily(),
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
@@ -172,7 +190,7 @@ fun SchoolWayScreen(
                 text = "Hinfahrt (Morgens)",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = categoryHeaderColor
                 ),
                 modifier = Modifier.padding(start = 8.dp, bottom = 10.dp, top = 4.dp)
@@ -213,7 +231,7 @@ fun SchoolWayScreen(
                 text = "Rückfahrt (Nachmittags)",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = categoryHeaderColor
                 ),
                 modifier = Modifier.padding(start = 8.dp, bottom = 10.dp, top = 4.dp)
@@ -246,7 +264,7 @@ fun SchoolWayScreen(
                             text = "Gehzeit zum Bussteig",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = 18.5.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Normal,
                                 color = textPrimary
                             )
                         )
@@ -265,59 +283,62 @@ fun SchoolWayScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // Custom Stepper / Slider Row (Minus, Slider, Plus)
+                        // Custom Stepper / Slider Row im Google Apps / Material 3 Expressive Design
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                                .padding(horizontal = 2.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Minus Button
+                            // Minus Button (schlichtes Icon ohne Hintergrund wie in Android Einstellungen)
                             IconButton(
                                 onClick = {
                                     if (config.walkingMinutes > 1) {
                                         SchoolWayRepository.updateWalkingMinutes(config.walkingMinutes - 1)
                                     }
                                 },
+                                enabled = config.walkingMinutes > 1,
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(Res.drawable.ic_remove),
                                     contentDescription = "Gehzeit verringern",
-                                    tint = accentColor,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = if (config.walkingMinutes > 1) accentColor else accentColor.copy(alpha = 0.38f),
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(14.dp))
 
-                            // Steps-Slider basierend auf StepsSliderSample
+                            // Steps-Slider im Google Apps / Material 3 Expressive Design
                             StepsSlider(
                                 value = config.walkingMinutes,
                                 onValueChange = { SchoolWayRepository.updateWalkingMinutes(it) },
                                 activeColor = accentColor,
                                 inactiveColor = sliderTrackInactive,
+                                cardBackground = cardBackground,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(32.dp)
+                                    .height(48.dp)
                             )
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(14.dp))
 
-                            // Plus Button
+                            // Plus Button (schlichtes Icon ohne Hintergrund wie in Android Einstellungen)
                             IconButton(
                                 onClick = {
                                     if (config.walkingMinutes < 10) {
                                         SchoolWayRepository.updateWalkingMinutes(config.walkingMinutes + 1)
                                     }
                                 },
+                                enabled = config.walkingMinutes < 10,
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(Res.drawable.ic_add),
                                     contentDescription = "Gehzeit erhöhen",
-                                    tint = accentColor,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = if (config.walkingMinutes < 10) accentColor else accentColor.copy(alpha = 0.38f),
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }
@@ -356,7 +377,7 @@ private fun SchoolWayItemRow(
             .fillMaxWidth()
             .defaultMinSize(minHeight = 78.dp)
             .then(
-                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+                if (onClick != null) Modifier.handCursor().clickable(onClick = onClick) else Modifier
             )
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.Center
@@ -365,7 +386,7 @@ private fun SchoolWayItemRow(
             text = title,
             style = MaterialTheme.typography.titleMedium.copy(
                 fontSize = 18.5.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Normal,
                 color = titleColor
             )
         )
@@ -383,10 +404,11 @@ private fun SchoolWayItemRow(
 }
 
 /**
- * Gehzeit-Slider implementiert nach dem offiziellen Material 3 StepsSliderSample:
- * - Nutzt rememberSliderState mit steps = 8 (Werte 1 bis 10) und valueRange = 1f..10f
- * - onValueChangeFinished für das Aktualisieren der gespeicherten Gehzeit
- * - Offizieller Material 3 Slider mit diskreten Schritten (Step-Ticks)
+ * Gehzeit-Slider im modernen Google Apps / Material 3 Expressive Design (Android Einstellungen):
+ * - Schlanker pill-förmiger Track (Höhe 18.dp) mit abgerundeten Endkappen (Radius 9.dp)
+ * - Schlanker vertikaler Pill-Thumb (Höhe 44.dp, Breite 4.dp) mit 6.dp Abstand (Gap)
+ * - 10 diskrete Gehzeit-Stufen (1 bis 10 Minuten) mit sauber platzierten Tick-Punkten
+ * - Sanfte Snapping- & Drag-Gesten über rememberSliderState
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -395,6 +417,7 @@ private fun StepsSlider(
     onValueChange: (Int) -> Unit,
     activeColor: Color,
     inactiveColor: Color,
+    cardBackground: Color,
     modifier: Modifier = Modifier
 ) {
     val sliderState = rememberSliderState(
@@ -430,7 +453,106 @@ private fun StepsSlider(
 
     Slider(
         state = sliderState,
-        modifier = modifier,
-        colors = colors
+        modifier = modifier.handCursor(),
+        colors = colors,
+        thumb = {
+            Box(
+                modifier = Modifier
+                    .size(width = 4.dp, height = 44.dp)
+                    .background(color = activeColor, shape = RoundedCornerShape(2.dp))
+            )
+        },
+        track = { state ->
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(18.dp)
+            ) {
+                val totalWidth = size.width
+                val totalHeight = size.height
+                val outerRadius = totalHeight / 2f
+                val insideRadius = 2.5.dp.toPx()
+                val fraction = state.coercedValueAsFraction // 0f .. 1f
+
+                val thumbHalfWidth = 2.dp.toPx()
+                val gap = 6.dp.toPx()
+                val totalGap = thumbHalfWidth + gap
+
+                val trackLeft = -outerRadius
+                val trackRight = totalWidth + outerRadius
+
+                val thumbX = totalWidth * fraction
+                val activeEnd = thumbX - totalGap
+                val inactiveStart = thumbX + totalGap
+
+                // 1. Aktiver Track (links vom Thumb)
+                if (activeEnd > trackLeft) {
+                    val clampedActiveEnd = min(activeEnd, trackRight)
+                    val isFullActive = clampedActiveEnd >= trackRight
+                    val rightRadius = if (isFullActive) outerRadius else insideRadius
+                    val activeWidth = clampedActiveEnd - trackLeft
+                    val effLeftR = min(outerRadius, activeWidth / 2f)
+                    val effRightR = min(rightRadius, activeWidth / 2f)
+
+                    val activePath = Path().apply {
+                        addRoundRect(
+                            RoundRect(
+                                left = trackLeft,
+                                top = 0f,
+                                right = clampedActiveEnd,
+                                bottom = totalHeight,
+                                topLeftCornerRadius = CornerRadius(effLeftR),
+                                bottomLeftCornerRadius = CornerRadius(effLeftR),
+                                topRightCornerRadius = CornerRadius(effRightR),
+                                bottomRightCornerRadius = CornerRadius(effRightR)
+                            )
+                        )
+                    }
+                    drawPath(activePath, color = activeColor)
+                }
+
+                // 2. Inaktiver Track (rechts vom Thumb)
+                if (inactiveStart < trackRight) {
+                    val clampedInactiveStart = max(trackLeft, inactiveStart)
+                    val isFullInactive = clampedInactiveStart <= trackLeft
+                    val leftRadius = if (isFullInactive) outerRadius else insideRadius
+                    val inactiveWidth = trackRight - clampedInactiveStart
+                    val effLeftR = min(leftRadius, inactiveWidth / 2f)
+                    val effRightR = min(outerRadius, inactiveWidth / 2f)
+
+                    val inactivePath = Path().apply {
+                        addRoundRect(
+                            RoundRect(
+                                left = clampedInactiveStart,
+                                top = 0f,
+                                right = trackRight,
+                                bottom = totalHeight,
+                                topLeftCornerRadius = CornerRadius(effLeftR),
+                                bottomLeftCornerRadius = CornerRadius(effLeftR),
+                                topRightCornerRadius = CornerRadius(effRightR),
+                                bottomRightCornerRadius = CornerRadius(effRightR)
+                            )
+                        )
+                    }
+                    drawPath(inactivePath, color = inactiveColor)
+                }
+
+                // 3. Diskrete Stop-Ticks für Gehzeit-Stufen (nur auf der rechten/inaktiven Seite)
+                val tickRadius = 2.dp.toPx()
+                for (step in 0..9) {
+                    val stepFraction = step / 9f
+                    val tickX = totalWidth * stepFraction
+
+                    // Punkte links vom Regler/Thumb sowie im Thumb-Gap nicht zeichnen
+                    if (tickX <= inactiveStart + tickRadius) continue
+
+                    drawCircle(
+                        color = activeColor.copy(alpha = 0.75f),
+                        radius = tickRadius,
+                        center = Offset(tickX, totalHeight / 2f)
+                    )
+                }
+            }
+        }
     )
 }

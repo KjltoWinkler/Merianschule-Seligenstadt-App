@@ -27,6 +27,7 @@ import de.kjltowinkler.msapp.theme.*
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
 import de.kjltowinkler.msapp.ui.components.MerianQrCode
 import de.kjltowinkler.msapp.ui.components.MerianQrCodeStyle
+import de.kjltowinkler.msapp.ui.components.handCursor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -101,6 +102,7 @@ fun DesktopTwoFactorConnectScreen(
             color = DesktopLink,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
+                .handCursor()
                 .clickable {
                     showHelpDialog = true
                     onHelpClicked()
@@ -136,6 +138,7 @@ fun DesktopTwoFactorConnectScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
+                .handCursor()
                 .clickable {
                     clipboardManager.setText(AnnotatedString(backupCode))
                     codeCopied = true
@@ -178,6 +181,7 @@ fun DesktopTwoFactorConnectScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
+                .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
             Text(
@@ -208,7 +212,10 @@ fun DesktopTwoFactorConnectScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showHelpDialog = false }) {
+                TextButton(
+                    onClick = { showHelpDialog = false },
+                    modifier = Modifier.handCursor()
+                ) {
                     Text("Verstanden", color = DesktopAccentBlue, fontWeight = FontWeight.SemiBold)
                 }
             }

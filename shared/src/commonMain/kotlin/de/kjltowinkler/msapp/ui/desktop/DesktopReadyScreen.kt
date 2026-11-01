@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.*
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -150,6 +151,7 @@ fun DesktopReadyScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
+                .handCursor()
                 .semantics { contentDescription = "Los geht's!" }
         ) {
             Text(

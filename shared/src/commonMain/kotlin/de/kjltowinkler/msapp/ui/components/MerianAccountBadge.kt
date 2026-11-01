@@ -44,7 +44,7 @@ fun MerianAccountBadge(
         color = MaterialTheme.colorScheme.secondaryContainer,
         modifier = modifier
             .clip(RoundedCornerShape(50))
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .then(if (onClick != null) Modifier.handCursor().clickable { onClick() } else Modifier)
     ) {
         Row(
             modifier = Modifier.padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),

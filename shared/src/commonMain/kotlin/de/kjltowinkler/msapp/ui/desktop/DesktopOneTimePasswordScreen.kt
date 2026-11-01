@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.*
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -107,6 +108,7 @@ fun DesktopOneTimePasswordScreen(
             color = DesktopLink,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
+                .handCursor()
                 .clickable {
                     showPasswordInfoDialog = true
                     onPasswordInfoClicked()
@@ -127,7 +129,10 @@ fun DesktopOneTimePasswordScreen(
                 )
             },
             trailingIcon = {
-                IconButton(onClick = { passwordHidden = !passwordHidden }) {
+                IconButton(
+                    onClick = { passwordHidden = !passwordHidden },
+                    modifier = Modifier.handCursor()
+                ) {
                     Icon(
                         painter = painterResource(
                             if (passwordHidden) Res.drawable.ic_visibility else Res.drawable.ic_visibility_off
@@ -197,6 +202,7 @@ fun DesktopOneTimePasswordScreen(
             color = DesktopLink,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
+                .handCursor()
                 .clickable {
                     showForgotInfoDialog = true
                     onForgotPasswordClicked()
@@ -224,6 +230,7 @@ fun DesktopOneTimePasswordScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
+                .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
             Text(
@@ -254,7 +261,10 @@ fun DesktopOneTimePasswordScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showPasswordInfoDialog = false }) {
+                TextButton(
+                    onClick = { showPasswordInfoDialog = false },
+                    modifier = Modifier.handCursor()
+                ) {
                     Text("Verstanden", color = DesktopAccentBlue, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -278,7 +288,10 @@ fun DesktopOneTimePasswordScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showForgotInfoDialog = false }) {
+                TextButton(
+                    onClick = { showForgotInfoDialog = false },
+                    modifier = Modifier.handCursor()
+                ) {
                     Text("Verstanden", color = DesktopAccentBlue, fontWeight = FontWeight.SemiBold)
                 }
             }

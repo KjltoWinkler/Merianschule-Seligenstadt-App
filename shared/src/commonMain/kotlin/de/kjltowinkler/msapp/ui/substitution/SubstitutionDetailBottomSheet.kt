@@ -15,8 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -159,6 +161,7 @@ fun SubstitutionDetailBottomSheet(
                 ) {
                     Text(
                         text = headerTitle,
+                        fontFamily = getQuicksandFontFamily(),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimaryColor
@@ -170,6 +173,7 @@ fun SubstitutionDetailBottomSheet(
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(closeButtonBg)
+                            .handCursor()
                     ) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_close),

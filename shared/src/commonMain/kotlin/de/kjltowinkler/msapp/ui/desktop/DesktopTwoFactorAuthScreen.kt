@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.*
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.Res
 import merianschuleseligenstadtapp.shared.generated.resources.two_factor_auth
 import org.jetbrains.compose.resources.painterResource
@@ -104,6 +105,7 @@ fun DesktopTwoFactorAuthScreen(
                 modifier = Modifier
                     .weight(1f)
                     .height(58.dp)
+                    .handCursor()
                     .semantics { contentDescription = "Nein danke" }
             ) {
                 Text(
@@ -127,6 +129,7 @@ fun DesktopTwoFactorAuthScreen(
                 modifier = Modifier
                     .weight(1f)
                     .height(58.dp)
+                    .handCursor()
                     .semantics { contentDescription = "Weiter" }
             ) {
                 Text(

@@ -17,8 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.timetable.TimetableLesson
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Informations-BottomSheet für Details zu einer ausgewählten Unterrichtsstunde.
@@ -129,6 +131,7 @@ fun TimetableDetailBottomSheet(
             ) {
                 Text(
                     text = lesson.subject,
+                    fontFamily = getQuicksandFontFamily(),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = textPrimaryColor
@@ -140,6 +143,7 @@ fun TimetableDetailBottomSheet(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(closeButtonBg)
+                        .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_close),
@@ -217,6 +221,7 @@ fun TimetableDetailBottomSheet(
                             onDismissRequest()
                             onTeacherClick(lesson.teacherCode)
                         }
+                        .handCursor()
                         .defaultMinSize(minHeight = 54.dp)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -294,6 +299,7 @@ fun TimetableDetailBottomSheet(
                         onDismissRequest()
                         onAddTaskForSubject(lesson.subject)
                     }
+                    .handCursor()
                     .defaultMinSize(minHeight = 54.dp)
                     .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,

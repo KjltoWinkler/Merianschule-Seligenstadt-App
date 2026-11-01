@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import de.kjltowinkler.msapp.PlatformBackHandler
+import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
 import kotlinx.coroutines.delay
@@ -200,22 +200,8 @@ fun MobileHomeScreen(
     var isNewTaskStarred by remember { mutableStateOf(false) }
     var showNewListScreen by remember { mutableStateOf(false) }
 
-    // Bei ausgeklappter Suche schließt die Zurück-Geste die Suche
-    PlatformBackHandler(
-        enabled = searchBarState.currentValue == SearchBarValue.Expanded
-    ) {
-        scope.launch { searchBarState.animateToCollapsed() }
-    }
-
-    // Wenn ein Unter-Tab (1, 2 oder 3) aktiv ist, führt die Zurück-Geste zurück zur Startseite (Tab 0)
-    PlatformBackHandler(
-        enabled = selectedTab != 0 &&
-            searchBarState.currentValue != SearchBarValue.Expanded &&
-            !showNewTaskBottomSheet &&
-            !showNewListScreen
-    ) {
-        selectedTab = 0
-    }
+    // Hinweis: Die Zurück-Gesten für Unter-Tabs und Suchleiste werden
+    // über PredictiveBackContainer mit vorausschauender Animation gesteuert.
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -283,8 +269,14 @@ fun MobileHomeScreen(
                     )
                 }
 
-                // Content für den ausgewählten Tab
-                Box(
+                // Content für den ausgewählten Tab mit intelligenter Predictive-Back-Geste zurück zur Startseite (Tab 0)
+                PredictiveBackContainer(
+                    enabled = selectedTab != 0 &&
+                        searchBarState.currentValue != SearchBarValue.Expanded &&
+                        !showNewTaskBottomSheet &&
+                        !showNewListScreen,
+                    onBack = { selectedTab = 0 },
+                    maxScaleReduction = 0.08f,
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f)
@@ -340,12 +332,14 @@ fun MobileHomeScreen(
                         }
                         2 -> {
                             de.kjltowinkler.msapp.ui.substitution.SubstitutionPlanScreen(
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                useMaterialYou = useMaterialYou
                             )
                         }
                         else -> {
                             de.kjltowinkler.msapp.ui.tasks.TasksScreen(
                                 modifier = Modifier.fillMaxSize(),
+                                useMaterialYou = useMaterialYou,
                                 onAddTaskClicked = { isStarred ->
                                     isNewTaskStarred = isStarred
                                     showNewTaskBottomSheet = true
@@ -367,51 +361,57 @@ fun MobileHomeScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                PredictiveBackContainer(
+                    enabled = searchBarState.currentValue == SearchBarValue.Expanded,
+                    onBack = { scope.launch { searchBarState.animateToCollapsed() } },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    val searchSuggestions = listOf(
-                        "Vertretungsplan heute",
-                        "Klausurentermine",
-                        "Hausaufgaben Mathe",
-                        "Lehrerzimmer",
-                        "Schulkalender"
-                    )
-                    Text(
-                        text = "Vorschläge",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                    searchSuggestions.forEach { suggestion ->
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = suggestion,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            leadingContent = {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_search),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            colors = ListItemDefaults.colors(
-                                containerColor = Color.Transparent
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    textFieldState.setTextAndPlaceCursorAtEnd(suggestion)
-                                    scope.launch { searchBarState.animateToCollapsed() }
-                                }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        val searchSuggestions = listOf(
+                            "Vertretungsplan heute",
+                            "Klausurentermine",
+                            "Hausaufgaben Mathe",
+                            "Lehrerzimmer",
+                            "Schulkalender"
                         )
+                        Text(
+                            text = "Vorschläge",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                        searchSuggestions.forEach { suggestion ->
+                            ListItem(
+                                headlineContent = {
+                                    Text(
+                                        text = suggestion,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                leadingContent = {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_search),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                colors = ListItemDefaults.colors(
+                                    containerColor = Color.Transparent
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        textFieldState.setTextAndPlaceCursorAtEnd(suggestion)
+                                        scope.launch { searchBarState.animateToCollapsed() }
+                                    }
+                            )
+                        }
                     }
                 }
             }

@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.textCursor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -114,6 +116,8 @@ fun DesktopTopHeader(
                 .clip(RoundedCornerShape(21.dp))
                 .background(Color(0xFF191A20))
                 .border(1.dp, Color(0xFF2C2F3A), RoundedCornerShape(21.dp))
+                .textCursor()
+                .clickable { searchFocusRequester.requestFocus() }
                 .padding(horizontal = 14.dp)
         ) {
             Icon(
@@ -133,7 +137,7 @@ fun DesktopTopHeader(
                     Text(
                         text = "Suchen in Plänen & Aufgaben...",
                         style = TextStyle(
-                            fontSize = 13.5.sp,
+                             fontSize = 13.5.sp,
                             color = DesktopInputPlaceholder
                         )
                     )
@@ -160,7 +164,7 @@ fun DesktopTopHeader(
                     tint = DesktopTextSecondary,
                     modifier = Modifier
                         .size(16.dp)
-                        .pointerHoverIcon(PointerIcon.Hand)
+                        .handCursor()
                         .clickable { onSearchQueryChange("") }
                 )
             } else {
@@ -170,6 +174,8 @@ fun DesktopTopHeader(
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFF242732))
                         .border(1.dp, Color(0xFF383C4C), RoundedCornerShape(6.dp))
+                        .handCursor()
+                        .clickable { searchFocusRequester.requestFocus() }
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(

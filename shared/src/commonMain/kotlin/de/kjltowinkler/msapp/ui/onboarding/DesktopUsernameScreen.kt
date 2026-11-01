@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
@@ -134,6 +135,7 @@ fun DesktopUsernameScreen(
                             color = DesktopLink, // #A9CAE8
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
+                                .handCursor()
                                 .clickable {
                                     showAccountInfoDialog = true
                                     onAccountInfoClicked()
@@ -213,6 +215,7 @@ fun DesktopUsernameScreen(
                             color = DesktopLink, // #A9CAE8
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
+                                .handCursor()
                                 .clickable {
                                     showForgotInfoDialog = true
                                     onForgotPasswordClicked()
@@ -241,6 +244,7 @@ fun DesktopUsernameScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(58.dp)
+                                .handCursor()
                                 .semantics { contentDescription = "Weiter" }
                         ) {
                             Text(
@@ -285,7 +289,10 @@ fun DesktopUsernameScreen(
                         )
                     },
                     confirmButton = {
-                        TextButton(onClick = { showAccountInfoDialog = false }) {
+                        TextButton(
+                            onClick = { showAccountInfoDialog = false },
+                            modifier = Modifier.handCursor()
+                        ) {
                             Text(
                                 text = "Verstanden",
                                 style = MaterialTheme.typography.labelLarge.copy(
@@ -324,7 +331,10 @@ fun DesktopUsernameScreen(
                         )
                     },
                     confirmButton = {
-                        TextButton(onClick = { showForgotInfoDialog = false }) {
+                        TextButton(
+                            onClick = { showForgotInfoDialog = false },
+                            modifier = Modifier.handCursor()
+                        ) {
                             Text(
                                 text = "Verstanden",
                                 style = MaterialTheme.typography.labelLarge.copy(

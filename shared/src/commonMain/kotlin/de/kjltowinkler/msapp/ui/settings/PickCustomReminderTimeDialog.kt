@@ -18,6 +18,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
+import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.textCursor
 
 /**
  * Dialog für benutzerdefinierte Benachrichtigungszeit gemäß `picktimedefined.png`.
@@ -103,6 +106,7 @@ fun PickCustomReminderTimeDialog(
                 Text(
                     text = "Benutzerdefinierte Benachrichtigung",
                     style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = getQuicksandFontFamily(),
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimaryColor
@@ -139,7 +143,9 @@ fun PickCustomReminderTimeDialog(
                         singleLine = true,
                         cursorBrush = SolidColor(radioSelectedColor),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .textCursor()
                     )
                 }
 
@@ -151,6 +157,7 @@ fun PickCustomReminderTimeDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { selectedUnitIndex = index }
+                            .handCursor()
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -167,7 +174,7 @@ fun PickCustomReminderTimeDialog(
                             text = unitLabel,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Normal,
                                 color = textPrimaryColor
                             )
                         )
@@ -183,13 +190,14 @@ fun PickCustomReminderTimeDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
-                        onClick = onDismissRequest
+                        onClick = onDismissRequest,
+                        modifier = Modifier.handCursor()
                     ) {
                         Text(
                             text = "Abbrechen",
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontSize = 16.5.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Normal,
                                 color = actionButtonColor
                             )
                         )
@@ -207,13 +215,14 @@ fun PickCustomReminderTimeDialog(
                                 else -> if (amount == 1) "1 Woche vorher" else "$amount Wochen vorher"
                             }
                             onConfirm(formatted)
-                        }
+                        },
+                        modifier = Modifier.handCursor()
                     ) {
                         Text(
                             text = "OK",
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontSize = 16.5.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Normal,
                                 color = actionButtonColor
                             )
                         )

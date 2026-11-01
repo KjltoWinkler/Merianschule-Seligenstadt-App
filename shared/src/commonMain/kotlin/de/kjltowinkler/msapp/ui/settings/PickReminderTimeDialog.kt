@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import de.kjltowinkler.msapp.theme.FigmaBackgroundDark
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Dialog zur Auswahl der Erinnerungszeit gemäß `picktime.png`.
@@ -99,6 +100,7 @@ fun PickReminderTimeDialog(
                                     onDismissRequest()
                                 }
                             }
+                            .handCursor()
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -115,7 +117,7 @@ fun PickReminderTimeDialog(
                             text = option,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Normal,
                                 color = textPrimaryColor
                             )
                         )

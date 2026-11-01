@@ -53,57 +53,269 @@
             justify-content: center;
             z-index: 9999;
             transition: opacity 0.4s ease-out;
-            pointer-events: none;
         }
 
         #splash-screen.fade-out {
             opacity: 0;
+            pointer-events: none;
         }
 
-        .splash-logo {
-            width: 88px;
-            height: 88px;
-            border-radius: 24px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            margin-bottom: 24px;
+        .m3-progress-indicator {
+            width: 48px;
+            height: 48px;
+            display: inline-block;
+            position: relative;
         }
 
-        .splash-spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid rgba(255, 255, 255, 0.15);
-            border-top: 3px solid #73DB92;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+        .m3-progress-indicator svg {
+            width: 100%;
+            height: 100%;
+            animation: m3-rotate 2s linear infinite;
         }
 
-        @keyframes spin {
+        .m3-track {
+            fill: none;
+            stroke: rgba(169, 202, 232, 0.15);
+            stroke-width: 4px;
+        }
+
+        .m3-arc {
+            fill: none;
+            stroke: #A9CAE8;
+            stroke-width: 4px;
+            stroke-linecap: round;
+            animation: m3-dash 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes m3-rotate {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes m3-dash {
+            0% {
+                stroke-dasharray: 1px, 200px;
+                stroke-dashoffset: 0;
+            }
+            50% {
+                stroke-dasharray: 89px, 200px;
+                stroke-dashoffset: -25px;
+            }
+            100% {
+                stroke-dasharray: 1px, 200px;
+                stroke-dashoffset: -119.4px;
+            }
+        }
+
+        /* Error Banner Card */
+        #error-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #121316;
+            z-index: 10000;
+            padding: 24px;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .error-card {
+            background-color: #1a1c20;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            max-width: 540px;
+            width: 100%;
+            padding: 32px 28px;
+            color: #DFE9DE;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+            text-align: left;
+        }
+
+        .error-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #FFFFFF;
+            margin-top: 0;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .error-desc {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #A4ACB3;
+            margin-bottom: 20px;
+        }
+
+        .error-instructions {
+            background-color: #121316;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #DFE9DE;
+        }
+
+        .error-instructions ol {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+        }
+
+        .error-instructions li {
+            margin-bottom: 6px;
+        }
+
+        .error-instructions code {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #A9CAE8;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .error-btn {
+            background-color: #A9CAE8;
+            color: #0B0B0D;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+
+        .error-btn:hover {
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
     <div id="splash-screen">
-        <img class="splash-logo" src="icon.png" alt="Merianschule Logo">
-        <div class="splash-spinner"></div>
+        <div class="m3-progress-indicator" role="progressbar" aria-label="Wird geladen...">
+            <svg viewBox="0 0 48 48">
+                <circle class="m3-track" cx="24" cy="24" r="19"></circle>
+                <circle class="m3-arc" cx="24" cy="24" r="19"></circle>
+            </svg>
+        </div>
     </div>
+    
+    <div id="error-screen">
+        <div class="error-card">
+            <h2 class="error-title" id="err-title">Grafikbeschleunigung erforderlich</h2>
+            <p class="error-desc" id="err-desc">
+                Um die Web-App der Merianschule nutzen zu können, muss die <strong>Grafikbeschleunigung (Hardwarebeschleunigung / WebGL 2.0)</strong> in deinem Browser aktiviert sein.
+            </p>
+            <div class="error-instructions" id="err-instructions">
+                <strong>So aktivierst du sie:</strong>
+                <ol>
+                    <li><strong>Google Chrome / Brave / Edge:</strong>
+                        <br>Öffne die Einstellungen (<code>chrome://settings/system</code>) und aktiviere <em>„Grafikbeschleunigung verwenden, falls verfügbar“</em>.
+                        <br><em>Tipp bei Linux / NVIDIA:</em> Falls es weiterhin blockiert wird, öffne <code>chrome://flags/#ignore-gpu-blocklist</code> und setze die Option auf <em>„Enabled“</em>.
+                    </li>
+                    <li style="margin-top: 10px;"><strong>Mozilla Firefox:</strong>
+                        <br>Öffne die Einstellungen (<code>about:preferences</code>), scrolle zu <em>Leistung</em> und aktiviere <em>„Hardwarebeschleunigung verwenden, wenn verfügbar“</em>.
+                    </li>
+                    <li style="margin-top: 10px;">Starte danach deinen Browser neu und lade diese Seite neu.</li>
+                </ol>
+            </div>
+            <button class="error-btn" onclick="location.reload()">Erneut versuchen</button>
+        </div>
+    </div>
+
     <div id="root"></div>
 
     <script type="application/javascript">
-        window.addEventListener('load', function() {
-            // Dismiss splash screen when Compose canvas is ready or shortly after load
-            setTimeout(function() {
+        function showError(title, desc, instructionsHtml) {
+            var splash = document.getElementById('splash-screen');
+            if (splash) splash.style.display = 'none';
+
+            var errScreen = document.getElementById('error-screen');
+            if (errScreen) {
+                if (title) document.getElementById('err-title').innerText = title;
+                if (desc) document.getElementById('err-desc').innerHTML = desc;
+                if (instructionsHtml) document.getElementById('err-instructions').innerHTML = instructionsHtml;
+                errScreen.style.display = 'flex';
+            }
+        }
+
+        function hasWebGL2() {
+            try {
+                var canvas = document.createElement('canvas');
+                return !!(window.WebGL2RenderingContext && canvas.getContext('webgl2'));
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Global uncaught error listener to avoid a silent black screen
+        window.addEventListener('error', function(event) {
+            console.error('Captured window error:', event);
+            if (!hasWebGL2()) {
+                showError();
+            } else {
+                showError(
+                    'Ladefehler',
+                    'Beim Initialisieren der Web-App ist ein unerwarteter Fehler aufgetreten: <code>' + (event.message || 'Unknown error') + '</code>',
+                    'Bitte lade die Seite neu oder versuche es in einem anderen Browser.'
+                );
+            }
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Captured unhandled rejection:', event);
+            if (!hasWebGL2()) {
+                showError();
+            }
+        });
+
+        // Check WebGL 2 before loading WebAssembly
+        if (!hasWebGL2()) {
+            console.warn('WebGL 2 is NOT supported or disabled.');
+            showError();
+        } else {
+            // Dismiss splash screen smoothly when Compose mounts into #root
+            var observer = new MutationObserver(function() {
+                var root = document.getElementById('root');
+                if (root && root.children.length > 0) {
+                    dismissSplash();
+                    observer.disconnect();
+                }
+            });
+            var rootEl = document.getElementById('root');
+            if (rootEl) observer.observe(rootEl, { childList: true, subtree: true });
+
+            // Fallback timeout in case Compose attaches differently
+            window.addEventListener('load', function() {
+                setTimeout(dismissSplash, 1200);
+            });
+
+            function dismissSplash() {
                 var splash = document.getElementById('splash-screen');
-                if (splash) {
+                if (splash && !splash.classList.contains('fade-out')) {
                     splash.classList.add('fade-out');
                     setTimeout(function() {
                         if (splash.parentNode) splash.parentNode.removeChild(splash);
                     }, 400);
                 }
-            }, 500);
-        });
+            }
+
+            // Load webApp.js dynamically only if WebGL 2 is available
+            var script = document.createElement('script');
+            script.type = 'application/javascript';
+            script.src = 'webApp.js';
+            document.body.appendChild(script);
+        }
     </script>
-    <script type="application/javascript" src="webApp.js"></script>
 </body>
 </html>

@@ -14,6 +14,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.handCursor
 
 /**
  * Offizieller Material 3 TimePickerDialog mit Dial- & Input-Umschaltung
@@ -132,7 +133,10 @@ fun TaskTimePickerDialog(
                         .fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { showDial = !showDial }) {
+                    IconButton(
+                        onClick = { showDial = !showDial },
+                        modifier = Modifier.handCursor()
+                    ) {
                         Icon(
                             painter = painterResource(toggleIcon),
                             contentDescription = "Eingabeart wechseln",
@@ -142,7 +146,10 @@ fun TaskTimePickerDialog(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    TextButton(onClick = onDismissRequest) {
+                    TextButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier.handCursor()
+                    ) {
                         Text(
                             text = "Abbrechen",
                             color = colorScheme.primary
@@ -153,7 +160,8 @@ fun TaskTimePickerDialog(
                         onClick = {
                             onTimeSelected(timePickerState.hour, timePickerState.minute)
                             onDismissRequest()
-                        }
+                        },
+                        modifier = Modifier.handCursor()
                     ) {
                         Text(
                             text = "OK",

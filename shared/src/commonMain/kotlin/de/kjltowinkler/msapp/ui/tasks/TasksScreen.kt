@@ -18,21 +18,41 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -41,21 +61,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
+import de.kjltowinkler.msapp.PlatformBackHandler
 import de.kjltowinkler.msapp.data.task.TaskCategory
 import de.kjltowinkler.msapp.data.task.TaskList
+import de.kjltowinkler.msapp.data.task.TasksRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import de.kjltowinkler.msapp.data.task.TasksRepository
-
+import kotlin.math.ceil
+import kotlin.math.floor
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -71,13 +87,21 @@ private enum class TaskListContentState {
     HAS_ACTIVE
 }
 
+private data class TasksFabMenuItem(
+    val text: String,
+    val icon: @Composable () -> Unit,
+    val onClick: () -> Unit
+)
+
 @OptIn(
     ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
     ExperimentalFoundationApi::class
 )
 @Composable
 fun TasksScreen(
     modifier: Modifier = Modifier,
+    useMaterialYou: Boolean = true,
     onAddTaskClicked: ((Boolean) -> Unit)? = null,
     onNewListClicked: (() -> Unit)? = null
 ) {
@@ -100,6 +124,8 @@ fun TasksScreen(
         previousListsSize = privateLists.size
     }
 
+    var showSortBottomSheet by rememberSaveable { mutableStateOf(false) }
+    var currentSortOption by rememberSaveable { mutableStateOf(TaskSortOption.MY_ORDER) }
     var showNewTaskBottomSheet by remember { mutableStateOf(false) }
     var selectedTaskForEdit by remember { mutableStateOf<de.kjltowinkler.msapp.data.task.TaskItem?>(null) }
     var showEditListSheet by remember { mutableStateOf(false) }
@@ -129,6 +155,15 @@ fun TasksScreen(
 
     val colorScheme = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
+    val tabScrollState = rememberScrollState()
+
+    // Automatisch zum ausgewählten Button scrollen, wenn die Seite gewechselt wird
+    LaunchedEffect(pagerState.currentPage) {
+        val buttonWidthEstimate = 100
+        tabScrollState.animateScrollTo(
+            (pagerState.currentPage * buttonWidthEstimate).coerceAtLeast(0)
+        )
+    }
 
     Box(
         modifier = modifier
@@ -140,30 +175,86 @@ fun TasksScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp)
-                .padding(top = 8.dp, bottom = 96.dp)
         ) {
-            // --- TOP TAB ROW mit animiertem Indikator-Strich ---
-            TasksTabRow(
-                currentPage = pagerState.currentPage,
-                onTabSelected = { pageIndex ->
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage(pageIndex)
+            // --- Connected Button Group (wie im Stundenplan- und Vertretungsplanscreen) ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(tabScrollState)
+                    .padding(start = 10.dp, end = 10.dp, top = 12.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                tabs.forEachIndexed { index, tab ->
+                    ToggleButton(
+                        checked = pagerState.currentPage == index,
+                        onCheckedChange = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        shapes = when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                        },
+                        modifier = Modifier
+                            .handCursor()
+                            .semantics { role = Role.RadioButton },
+                    ) {
+                        when (tab) {
+                            TasksTab.Starred -> {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_star_filled),
+                                    contentDescription = "Markiert",
+                                    modifier = Modifier.size(ToggleButtonDefaults.IconSize),
+                                )
+                            }
+                            TasksTab.School -> {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Schul-Aufgaben",
+                                        softWrap = false
+                                    )
+                                    if (schoolTasksCount > 0) {
+                                        TaskCountBadge(
+                                            count = schoolTasksCount,
+                                            backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
+                                            textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                            is TasksTab.Private -> {
+                                val count = allTasks.count {
+                                    !it.isSchoolTask && !it.isCompleted && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = tab.list.title,
+                                        softWrap = false
+                                    )
+                                    if (count > 0) {
+                                        TaskCountBadge(
+                                            count = count,
+                                            backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
+                                            textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
-                },
-                onNewListClicked = {
-                    if (onNewListClicked != null) {
-                        onNewListClicked()
-                    } else {
-                        showNewListSheet = true
-                    }
-                },
-                schoolTasksCount = schoolTasksCount,
-                tabs = tabs,
-                allTasks = allTasks
-            )
+                }
+            }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // --- PULL TO REFRESH & HORIZONTAL PAGER ---
             PullToRefreshBox(
@@ -172,7 +263,8 @@ fun TasksScreen(
                 state = pullToRefreshState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .padding(horizontal = 14.dp),
                 indicator = {
                     PullToRefreshDefaults.Indicator(
                         state = pullToRefreshState,
@@ -193,6 +285,7 @@ fun TasksScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
+                        .padding(bottom = 96.dp)
                         .animateContentSize(
                             animationSpec = spring(
                                 dampingRatio = Spring.DampingRatioNoBouncy,
@@ -207,8 +300,12 @@ fun TasksScreen(
                             !it.isSchoolTask && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
                         }
                     }
-                    val activeTasks = currentTabTasks.filter { !it.isCompleted }
-                    val completedTasks = currentTabTasks.filter { it.isCompleted }
+                    val activeTasks = remember(currentTabTasks, currentSortOption) {
+                        currentTabTasks.filter { !it.isCompleted }.sortedByOption(currentSortOption)
+                    }
+                    val completedTasks = remember(currentTabTasks, currentSortOption) {
+                        currentTabTasks.filter { it.isCompleted }.sortedByOption(currentSortOption)
+                    }
 
                     val contentState = when {
                         tab is TasksTab.Starred -> {
@@ -268,8 +365,10 @@ fun TasksScreen(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     IconButton(
-                                        onClick = { /* Sortier-Aktion */ },
-                                        modifier = Modifier.size(32.dp)
+                                        onClick = { showSortBottomSheet = true },
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .handCursor()
                                     ) {
                                         Icon(
                                             painter = painterResource(Res.drawable.ic_swap_vert),
@@ -290,7 +389,9 @@ fun TasksScreen(
                                                 }
                                             }
                                         },
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .handCursor()
                                     ) {
                                         Icon(
                                             painter = painterResource(Res.drawable.ic_more_vert),
@@ -353,9 +454,9 @@ fun TasksScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Spacer(modifier = Modifier.height(18.dp))
                                             AllTasksCompletedIllustration()
-                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Spacer(modifier = Modifier.height(14.dp))
                                         }
                                     }
                                     TaskListContentState.HAS_ACTIVE -> {
@@ -464,6 +565,7 @@ fun TasksScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(24.dp))
+                                            .handCursor()
                                             .clickable { isErledigtExpanded = !isErledigtExpanded }
                                             .padding(horizontal = 18.dp)
                                             .padding(top = 16.dp, bottom = if (isErledigtExpanded) 10.dp else 16.dp),
@@ -546,28 +648,184 @@ fun TasksScreen(
         val isCurrentTabStarred = currentTab is TasksTab.Starred
         val currentTargetListId = (currentTab as? TasksTab.Private)?.list?.id ?: "my_tasks"
 
-        FloatingActionButton(
-            onClick = {
-                if (onAddTaskClicked != null) {
-                    onAddTaskClicked(isCurrentTabStarred)
-                } else {
-                    showNewTaskBottomSheet = true
+        val fabFocusRequester = remember { FocusRequester() }
+        var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
+
+        PlatformBackHandler(fabMenuExpanded) { fabMenuExpanded = false }
+
+        if (fabMenuExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        fabMenuExpanded = false
+                    }
+            )
+        }
+
+        val fabMenuItems = listOf(
+            TasksFabMenuItem(
+                text = "Neue Aufgabe",
+                icon = {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_add_task),
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    fabMenuExpanded = false
+                    if (onAddTaskClicked != null) {
+                        onAddTaskClicked(isCurrentTabStarred)
+                    } else {
+                        showNewTaskBottomSheet = true
+                    }
+                }
+            ),
+            TasksFabMenuItem(
+                text = "Neue Liste",
+                icon = {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_nav_checklist),
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    fabMenuExpanded = false
+                    if (onNewListClicked != null) {
+                        onNewListClicked()
+                    } else {
+                        showNewListSheet = true
+                    }
+                }
+            )
+        )
+
+        FloatingActionButtonMenu(
+            modifier = Modifier.align(Alignment.BottomEnd),
+            expanded = fabMenuExpanded,
+            button = {
+                // A FAB should have a tooltip associated with it.
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                        if (fabMenuExpanded) {
+                            TooltipAnchorPosition.Start
+                        } else {
+                            TooltipAnchorPosition.Above
+                        }
+                    ),
+                    tooltip = {
+                        PlainTooltip(
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Assertive
+                                paneTitle = "Toggle menu"
+                            }
+                        ) {
+                            Text("Toggle menu")
+                        }
+                    },
+                    state = rememberTooltipState(),
+                ) {
+                    ToggleFloatingActionButton(
+                        modifier = Modifier
+                            .handCursor()
+                            .semantics {
+                                traversalIndex = -1f
+                                stateDescription =
+                                    if (fabMenuExpanded) "Expanded" else "Collapsed"
+                                contentDescription = "Toggle menu"
+                            }
+                            .animateFloatingActionButton(
+                                visible = true,
+                                alignment = Alignment.BottomEnd,
+                            )
+                            .focusRequester(fabFocusRequester),
+                        checked = fabMenuExpanded,
+                        onCheckedChange = { fabMenuExpanded = !fabMenuExpanded },
+                    ) {
+                        val imageVector by remember {
+                            derivedStateOf {
+                                if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add
+                            }
+                        }
+                        Icon(
+                            painter = rememberVectorPainter(imageVector),
+                            contentDescription = null,
+                            modifier = Modifier.animateIcon({ checkedProgress }),
+                        )
+                    }
                 }
             },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 18.dp, bottom = 18.dp)
-                .size(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            containerColor = colorScheme.primaryContainer,
-            contentColor = colorScheme.onPrimaryContainer,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp)
         ) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_add),
-                contentDescription = "Aufgabe hinzufügen",
-                modifier = Modifier.size(26.dp)
-            )
+            fabMenuItems.forEachIndexed { i, item ->
+                FloatingActionButtonMenuItem(
+                    modifier = Modifier
+                        .handCursor()
+                        .semantics {
+                            isTraversalGroup = true
+                            // Add a custom a11y action to allow closing the menu when focusing
+                            // the last menu item, since the close button comes before the first
+                            // menu item in the traversal order.
+                            if (i == fabMenuItems.size - 1) {
+                                customActions = listOf(
+                                    CustomAccessibilityAction(
+                                        label = "Close menu",
+                                        action = {
+                                            fabMenuExpanded = false
+                                            true
+                                        },
+                                    )
+                                )
+                            }
+                        }
+                        .then(
+                            if (i == 0) {
+                                Modifier.onKeyEvent {
+                                    // Navigating back from the first item should go back to the
+                                    // FAB menu button.
+                                    if (
+                                        it.type == KeyEventType.KeyDown &&
+                                        (it.key == Key.DirectionUp ||
+                                            it.key == Key.NumPadDirectionUp ||
+                                            (it.isShiftPressed && it.key == Key.Tab))
+                                    ) {
+                                        fabFocusRequester.requestFocus()
+                                        return@onKeyEvent true
+                                    }
+                                    return@onKeyEvent false
+                                }
+                            } else {
+                                Modifier
+                            }
+                        ),
+                    onClick = item.onClick,
+                    icon = item.icon,
+                    text = {
+                        // Adjust Text width to match longest line if multiline, since Text doesn't
+                        // do that automatically (https://issuetracker.google.com/issues/206039942).
+                        var textLayoutResult: TextLayoutResult? by remember { mutableStateOf(null) }
+                        Text(
+                            modifier = Modifier.layout { measurable, constraints ->
+                                val placeable = measurable.measure(constraints)
+                                val newTextLayoutResult = textLayoutResult!!
+                                val minX = (0 until newTextLayoutResult.lineCount).minOf(
+                                    newTextLayoutResult::getLineLeft
+                                )
+                                val maxX = (0 until newTextLayoutResult.lineCount).maxOf(
+                                    newTextLayoutResult::getLineRight
+                                )
+                                layout((ceil(maxX - minX)).toInt(), placeable.height) {
+                                    placeable.place(-floor(minX).toInt(), 0)
+                                }
+                            },
+                            text = item.text,
+                            onTextLayout = { textLayoutResult = it },
+                        )
+                    },
+                )
+            }
         }
 
         // --- BOTTOM SHEET FÜR NEUE AUFGABEN (tasks#neu+detail.png) ---
@@ -717,6 +975,18 @@ fun TasksScreen(
             )
         }
 
+        // --- BOTTOM SHEET FÜR SORTIERUNG (tasks#sort.png) ---
+        if (showSortBottomSheet) {
+            TaskSortBottomSheet(
+                selectedOption = currentSortOption,
+                onOptionSelected = { option ->
+                    currentSortOption = option
+                },
+                onDismissRequest = { showSortBottomSheet = false },
+                useMaterialYou = useMaterialYou
+            )
+        }
+
         // --- KONFETTI-EFFEKTE (beim Abhaken von Aufgaben) ---
         activeBursts.forEach { burst ->
             key(burst.id) {
@@ -731,269 +1001,6 @@ fun TasksScreen(
     }
 }
 
-@Composable
-private fun TasksTabRow(
-    currentPage: Int,
-    onTabSelected: (Int) -> Unit,
-    onNewListClicked: () -> Unit,
-    schoolTasksCount: Int,
-    tabs: List<TasksTab>,
-    allTasks: List<de.kjltowinkler.msapp.data.task.TaskItem>
-) {
-    val colorScheme = MaterialTheme.colorScheme
-    val activeColor = colorScheme.primary
-    val inactiveColor = colorScheme.onSurfaceVariant
-    val indicatorColor = colorScheme.primary
-
-    val density = LocalDensity.current
-    val scrollState = rememberScrollState()
-    var tabRowCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-
-    // Map von Tab-Index zu LayoutCoordinates
-    val tabCoordsMap = remember { mutableStateMapOf<Int, LayoutCoordinates>() }
-
-    // Dynamisch gemessene Positionen und Breiten der Tabs für die sanfte Animation
-    val tabOffsets = remember { mutableStateMapOf<Int, Dp>() }
-    val tabWidths = remember { mutableStateMapOf<Int, Dp>() }
-    var isMeasured by remember { mutableStateOf(false) }
-
-    fun updateMeasurements() {
-        val root = tabRowCoordinates ?: return
-        if (!root.isAttached) return
-        with(density) {
-            tabCoordsMap.forEach { (index, coords) ->
-                if (coords.isAttached) {
-                    val pos = root.localPositionOf(coords, Offset.Zero)
-                    tabOffsets[index] = pos.x.toDp()
-                    tabWidths[index] = coords.size.width.toDp()
-                }
-            }
-            if (tabOffsets.isNotEmpty()) {
-                isMeasured = true
-            }
-        }
-    }
-
-    LaunchedEffect(currentPage, schoolTasksCount, tabs, allTasks.size) {
-        updateMeasurements()
-    }
-
-    // Auto-scroll to keep active tab visible when currentPage changes
-    LaunchedEffect(currentPage, tabOffsets[currentPage]) {
-        val offset = tabOffsets[currentPage]
-        if (offset != null) {
-            with(density) {
-                val px = offset.toPx().toInt()
-                scrollState.animateScrollTo((px - 72).coerceAtLeast(0))
-            }
-        }
-    }
-
-    val targetOffset = when (currentPage) {
-        0 -> ((tabOffsets[0] ?: 0.dp) - 2.dp).coerceAtLeast(0.dp)
-        else -> tabOffsets[currentPage] ?: 0.dp
-    }
-
-    val targetWidth = when (currentPage) {
-        0 -> 24.dp
-        else -> tabWidths[currentPage] ?: 60.dp
-    }
-
-    // Sanfte, flüssige Animation beim Wechseln der Tabs ohne Bouncing
-    val animatedOffset: Dp by animateDpAsState(
-        targetValue = targetOffset,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = 2500f
-        ),
-        label = "indicatorOffset"
-    )
-
-    val animatedWidth: Dp by animateDpAsState(
-        targetValue = targetWidth,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = 2500f
-        ),
-        label = "indicatorWidth"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(scrollState)
-            .onGloballyPositioned { coords ->
-                tabRowCoordinates = coords
-                updateMeasurements()
-            }
-    ) {
-        Row(
-            modifier = Modifier.wrapContentWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(22.dp, Alignment.Start)
-        ) {
-            tabs.forEachIndexed { index, tab ->
-                val isSelected = currentPage == index
-                when (tab) {
-                    TasksTab.Starred -> {
-                        // Tab 0: Stern (Markiert)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { onTabSelected(index) }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_star_filled),
-                                contentDescription = "Markiert",
-                                tint = if (isSelected) activeColor else inactiveColor,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .onGloballyPositioned { coords ->
-                                        tabCoordsMap[index] = coords
-                                        updateMeasurements()
-                                    }
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            // Unsichtbarer Platzhalter für die Indikator-Höhe
-                            Spacer(modifier = Modifier.height(3.dp))
-                        }
-                    }
-                    TasksTab.School -> {
-                        // Tab: Schul-Aufgaben
-                        Column(
-                            horizontalAlignment = Alignment.Start,
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { onTabSelected(index) }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = "Schul-Aufgaben",
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) activeColor else inactiveColor,
-                                    maxLines = 1,
-                                    modifier = Modifier.onGloballyPositioned { coords ->
-                                        tabCoordsMap[index] = coords
-                                        updateMeasurements()
-                                    }
-                                )
-                                if (schoolTasksCount > 0) {
-                                    TaskCountBadge(
-                                        count = schoolTasksCount,
-                                        backgroundColor = colorScheme.surfaceContainerHighest,
-                                        textColor = colorScheme.onSurface
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Spacer(modifier = Modifier.height(3.dp))
-                        }
-                    }
-                    is TasksTab.Private -> {
-                        val count = allTasks.count {
-                            !it.isSchoolTask && !it.isCompleted && (it.listId == tab.list.id || (tab.list.id == "my_tasks" && it.listId.isEmpty()))
-                        }
-                        Column(
-                            horizontalAlignment = Alignment.Start,
-                            modifier = Modifier
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { onTabSelected(index) }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = tab.list.title,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) activeColor else inactiveColor,
-                                    maxLines = 1,
-                                    modifier = Modifier.onGloballyPositioned { coords ->
-                                        tabCoordsMap[index] = coords
-                                        updateMeasurements()
-                                    }
-                                )
-                                if (count > 0) {
-                                    TaskCountBadge(
-                                        count = count,
-                                        backgroundColor = colorScheme.surfaceContainerHighest,
-                                        textColor = colorScheme.onSurface
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Spacer(modifier = Modifier.height(3.dp))
-                        }
-                    }
-                }
-            }
-
-            // Tab: + Neue Liste
-            Column(
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onNewListClicked() }
-                    .padding(vertical = 4.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "+ Neue Liste",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = inactiveColor,
-                        maxLines = 1
-                    )
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Spacer(modifier = Modifier.height(3.dp))
-            }
-
-            // Ausreichend Abstand am Ende, damit "+ Neue Liste" beim Weiterscrollen nicht am Bildschirmrand klebt
-            Spacer(modifier = Modifier.width(44.dp))
-        }
-
-        // Gleitender Indikator-Strich (flüssige Animation, oben abgerundet, unten gerade gemäß Design)
-        if (isMeasured && animatedWidth > 0.dp) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = animatedOffset)
-                    .width(animatedWidth)
-                    .height(3.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 3.dp,
-                            topEnd = 3.dp,
-                            bottomStart = 0.dp,
-                            bottomEnd = 0.dp
-                        )
-                    )
-                    .background(indicatorColor)
-            )
-        }
-    }
-}
 
 @Composable
 private fun TaskCountBadge(
@@ -1085,18 +1092,14 @@ private fun AllTasksCompletedIllustration() {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
             painter = painterResource(illustration),
             contentDescription = "Alle Aufgaben erledigt",
             contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .size(240.dp)
-                .padding(vertical = 10.dp)
+            modifier = Modifier.size(260.dp)
         )
     }
 }
@@ -1128,6 +1131,7 @@ private fun ActiveTaskRowItem(
                     .onGloballyPositioned { coordinates ->
                         circleCoordinates = coordinates
                     }
+                    .handCursor()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = false, radius = 20.dp)
@@ -1153,6 +1157,7 @@ private fun ActiveTaskRowItem(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
                 modifier = Modifier
                     .weight(1f)
+                    .handCursor()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -1195,6 +1200,7 @@ private fun ActiveTaskRowItem(
             modifier = Modifier
                 .padding(top = 0.dp)
                 .size(28.dp)
+                .handCursor()
         ) {
             Icon(
                 painter = painterResource(
@@ -1230,6 +1236,7 @@ private fun CompletedTaskRowItem(
         Box(
             modifier = Modifier
                 .size(32.dp)
+                .handCursor()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = false, radius = 20.dp)
@@ -1248,6 +1255,7 @@ private fun CompletedTaskRowItem(
             verticalArrangement = Arrangement.spacedBy(1.dp),
             modifier = Modifier
                 .weight(1f)
+                .handCursor()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null

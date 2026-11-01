@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.theme.FigmaBackgroundDark
 import de.kjltowinkler.msapp.theme.FigmaButtonSecondaryDark
 import de.kjltowinkler.msapp.theme.FigmaLinkGreen
@@ -175,6 +176,7 @@ fun AccountBottomSheet(
                     modifier = Modifier
                         .size(58.dp)
                         .clip(CircleShape)
+                        .handCursor()
                         .clickable { showAvatarPicker = true }
                 ) {
                     AccountAvatar(
@@ -233,6 +235,7 @@ fun AccountBottomSheet(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
+                            .handCursor()
                             .clickable {
                                 try {
                                     val subject = "Anfrage an $accountName"
@@ -435,6 +438,7 @@ private fun AccountBrickItem(
             .fillMaxWidth()
             .clip(shape)
             .background(backgroundColor)
+            .handCursor()
             .clickable(onClick = onClick)
             .defaultMinSize(minHeight = 54.dp)
             .padding(horizontal = 16.dp, vertical = 16.dp),

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.*
 import de.kjltowinkler.msapp.ui.components.MerianAccountBadge
+import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
@@ -142,6 +143,7 @@ fun DesktopNewPasswordScreen(
             color = DesktopLink,
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
+                .handCursor()
                 .clickable {
                     showPasswordInfoDialog = true
                     onPasswordInfoClicked()
@@ -156,7 +158,10 @@ fun DesktopNewPasswordScreen(
             textObfuscationMode = if (passwordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
             label = { Text("Neues Passwort") },
             trailingIcon = {
-                IconButton(onClick = { passwordHidden = !passwordHidden }) {
+                IconButton(
+                    onClick = { passwordHidden = !passwordHidden },
+                    modifier = Modifier.handCursor()
+                ) {
                     Icon(
                         painter = painterResource(
                             if (passwordHidden) Res.drawable.ic_visibility else Res.drawable.ic_visibility_off
@@ -200,7 +205,10 @@ fun DesktopNewPasswordScreen(
             textObfuscationMode = if (confirmPasswordHidden) TextObfuscationMode.RevealLastTyped else TextObfuscationMode.Visible,
             label = { Text("Passwort bestätigen") },
             trailingIcon = {
-                IconButton(onClick = { confirmPasswordHidden = !confirmPasswordHidden }) {
+                IconButton(
+                    onClick = { confirmPasswordHidden = !confirmPasswordHidden },
+                    modifier = Modifier.handCursor()
+                ) {
                     Icon(
                         painter = painterResource(
                             if (confirmPasswordHidden) Res.drawable.ic_visibility else Res.drawable.ic_visibility_off
@@ -276,6 +284,7 @@ fun DesktopNewPasswordScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(58.dp)
+                .handCursor()
                 .semantics { contentDescription = "Weiter" }
         ) {
             Text(
@@ -306,7 +315,10 @@ fun DesktopNewPasswordScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showPasswordInfoDialog = false }) {
+                TextButton(
+                    onClick = { showPasswordInfoDialog = false },
+                    modifier = Modifier.handCursor()
+                ) {
                     Text("Verstanden", color = DesktopAccentBlue, fontWeight = FontWeight.SemiBold)
                 }
             }

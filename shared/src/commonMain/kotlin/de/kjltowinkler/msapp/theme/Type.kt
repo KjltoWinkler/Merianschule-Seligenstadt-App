@@ -15,8 +15,10 @@ import org.jetbrains.compose.resources.Font
 @Composable
 fun getQuicksandFontFamily(): FontFamily {
     return FontFamily(
-        Font(Res.font.quicksand, weight = FontWeight.Bold),
-        Font(Res.font.quicksand, weight = FontWeight.Normal)
+        Font(Res.font.quicksand, weight = FontWeight.Normal),
+        Font(Res.font.quicksand, weight = FontWeight.Medium),
+        Font(Res.font.quicksand, weight = FontWeight.SemiBold),
+        Font(Res.font.quicksand, weight = FontWeight.Bold)
     )
 }
 

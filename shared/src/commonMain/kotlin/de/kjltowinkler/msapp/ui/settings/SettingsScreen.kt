@@ -19,8 +19,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
+import de.kjltowinkler.msapp.ui.components.handCursor
  
 @Composable
 fun SettingsScreen(
@@ -30,6 +33,8 @@ fun SettingsScreen(
     onMaterialYouChanged: (Boolean) -> Unit = {},
     initialDarkTheme: Boolean = true,
     onDarkThemeChanged: (Boolean) -> Unit = {},
+    predictiveBackEnabled: Boolean = true,
+    onPredictiveBackChanged: (Boolean) -> Unit = {},
     onSchoolWayClicked: () -> Unit = {}
 ) {
     var delayWarningsEnabled by rememberSaveable { mutableStateOf(true) }
@@ -37,6 +42,7 @@ fun SettingsScreen(
     var taskReminderEnabled by rememberSaveable { mutableStateOf(true) }
     var darkThemeEnabled by rememberSaveable { mutableStateOf(initialDarkTheme) }
     var materialYouEnabled by rememberSaveable { mutableStateOf(useMaterialYou) }
+    var isPredictiveBackOn by rememberSaveable { mutableStateOf(predictiveBackEnabled) }
 
     var selectedReminderTime by rememberSaveable { mutableStateOf("10 Minuten vorher") }
     var showPickTimeDialog by rememberSaveable { mutableStateOf(false) }
@@ -76,6 +82,7 @@ fun SettingsScreen(
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(backButtonBg)
+                        .handCursor()
                 ) {
                     Icon(
                         painter = painterResource(Res.drawable.ic_arrow_back),
@@ -90,6 +97,7 @@ fun SettingsScreen(
                 Text(
                     text = "Einstellungen",
                     style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = getQuicksandFontFamily(),
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
@@ -203,7 +211,7 @@ fun SettingsScreen(
                                 shape = CircleShape,
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                             ) {
-                                Text("Testen", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Testen", fontSize = 13.sp, fontWeight = FontWeight.Normal)
                             }
                         }
                     )
@@ -304,12 +312,41 @@ fun SettingsScreen(
                             )
                         }
                     )
+
+                    HorizontalDivider(thickness = 1.dp, color = dividerHorizontal)
+
+                    // Item 3: Intelligente Zurück-Geste (Predictive Back)
+                    SettingsItemRow(
+                        title = "Intelligente „Zurück“-Geste",
+                        subtitle = "Vorausschauende Wischgesten &\nAnimationen (Predictive Back)",
+                        titleColor = textPrimary,
+                        subtitleColor = textSecondary,
+                        trailing = {
+                            MaterialYouSwitch(
+                                checked = isPredictiveBackOn,
+                                onCheckedChange = {
+                                    isPredictiveBackOn = it
+                                    onPredictiveBackChanged(it)
+                                },
+                                contentDescription = "Intelligente Zurück-Geste"
+                            )
+                        }
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+
+    // Predictive Back Handler für offene Zeit-Dialoge
+    PredictiveBackContainer(
+        enabled = showPickTimeDialog || showCustomPickTimeDialog,
+        onBack = {
+            showPickTimeDialog = false
+            showCustomPickTimeDialog = false
+        }
+    ) {}
 
     // Dialog 1: Vordefinierte Zeiten (picktime.png)
     if (showPickTimeDialog) {
@@ -353,7 +390,7 @@ private fun CategoryHeader(
         text = title,
         style = MaterialTheme.typography.titleMedium.copy(
             fontSize = 17.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Normal,
             color = color
         ),
         modifier = modifier.padding(start = 8.dp, bottom = 10.dp, top = 4.dp)
@@ -375,7 +412,7 @@ private fun SettingsItemRow(
             .fillMaxWidth()
             .defaultMinSize(minHeight = 82.dp)
             .then(
-                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+                if (onClick != null) Modifier.handCursor().clickable(onClick = onClick) else Modifier
             )
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -388,7 +425,7 @@ private fun SettingsItemRow(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 18.5.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Normal,
                     color = titleColor
                 )
             )
@@ -422,7 +459,9 @@ private fun MaterialYouSwitch(
     modifier: Modifier = Modifier
 ) {
     Switch(
-        modifier = modifier.semantics { this.contentDescription = contentDescription },
+        modifier = modifier
+            .handCursor()
+            .semantics { this.contentDescription = contentDescription },
         checked = checked,
         onCheckedChange = onCheckedChange,
         colors = SwitchDefaults.colors(

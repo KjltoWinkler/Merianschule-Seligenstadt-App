@@ -258,6 +258,7 @@ fun AppSwitch(
             .height(trackHeight)
             .clip(CircleShape)
             .background(trackColor)
+            .handCursor(enabled && onCheckedChange != null)
             .clickable(
                 enabled = enabled && onCheckedChange != null,
                 interactionSource = interactionSource,

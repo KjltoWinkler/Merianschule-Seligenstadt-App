@@ -30,6 +30,9 @@ dependencyResolutionManagement {
 if (file("androidApp").exists()) {
     include(":androidApp")
 }
+if (file("wearApp").exists()) {
+    include(":wearApp")
+}
 if (file("desktopApp").exists()) {
     include(":desktopApp")
 }
