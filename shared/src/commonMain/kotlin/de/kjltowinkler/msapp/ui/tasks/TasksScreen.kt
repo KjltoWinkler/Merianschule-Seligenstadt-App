@@ -10,7 +10,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -135,6 +138,7 @@ fun TasksScreen(
     var showSchoolTasksSheet by remember { mutableStateOf(false) }
     var showStarredTasksSheet by remember { mutableStateOf(false) }
     var showNewListSheet by remember { mutableStateOf(false) }
+    var showReorderListsSheet by remember { mutableStateOf(false) }
     var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var activeBursts by remember { mutableStateOf(listOf<ConfettiBurst>()) }
     var burstCounter by remember { mutableStateOf(0L) }
@@ -199,6 +203,7 @@ fun TasksScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 tabs.forEachIndexed { index, tab ->
+                    val tabInteractionSource = remember { MutableInteractionSource() }
                     ToggleButton(
                         checked = pagerState.currentPage == index,
                         onCheckedChange = {
@@ -206,6 +211,7 @@ fun TasksScreen(
                                 pagerState.animateScrollToPage(index)
                             }
                         },
+                        interactionSource = tabInteractionSource,
                         shapes = when (index) {
                             0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                             tabs.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
@@ -213,6 +219,29 @@ fun TasksScreen(
                         },
                         modifier = Modifier
                             .handCursor()
+                            .pointerInput(index) {
+                                detectTapGestures(
+                                    onPress = { offset ->
+                                        val press = PressInteraction.Press(offset)
+                                        tabInteractionSource.emit(press)
+                                        val released = tryAwaitRelease()
+                                        if (released) {
+                                            tabInteractionSource.emit(PressInteraction.Release(press))
+                                        } else {
+                                            tabInteractionSource.emit(PressInteraction.Cancel(press))
+                                        }
+                                    },
+                                    onTap = {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    },
+                                    onLongPress = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        showReorderListsSheet = true
+                                    }
+                                )
+                            }
                             .semantics { role = Role.RadioButton },
                     ) {
                         when (tab) {
@@ -998,6 +1027,24 @@ fun TasksScreen(
                     currentSortOption = option
                 },
                 onDismissRequest = { showSortBottomSheet = false },
+                useMaterialYou = useMaterialYou
+            )
+        }
+
+        // --- BOTTOM SHEET FÜR LISTEN NEU ANORDNEN (tasks#listen-neu-anordnen.png) ---
+        if (showReorderListsSheet) {
+            ReorderListsBottomSheet(
+                onDismissRequest = { showReorderListsSheet = false },
+                onSelectList = { selectedList ->
+                    showReorderListsSheet = false
+                    coroutineScope.launch {
+                        delay(50)
+                        val targetIndex = tabs.indexOfFirst { (it as? TasksTab.Private)?.list?.id == selectedList.id }
+                        if (targetIndex >= 0) {
+                            pagerState.animateScrollToPage(targetIndex)
+                        }
+                    }
+                },
                 useMaterialYou = useMaterialYou
             )
         }

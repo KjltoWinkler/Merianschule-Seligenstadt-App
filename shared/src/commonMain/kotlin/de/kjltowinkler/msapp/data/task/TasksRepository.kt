@@ -539,6 +539,12 @@ object TasksRepository {
         triggerBackgroundSync()
     }
 
+    fun reorderPrivateLists(newOrder: List<TaskList>) {
+        privateLists.clear()
+        privateLists.addAll(newOrder)
+        saveToCache()
+    }
+
     fun createPrivateList(title: String): TaskList {
         val now = getCurrentEpochMillis()
         val id = "list_${(100000..999999).random()}"
