@@ -828,8 +828,9 @@ fun SubstitutionPlanScreen(
 
                                         val lastUpdated = SubstitutionRepository.lastUpdatedText
                                         if (lastUpdated.isNotBlank()) {
+                                            val clean = lastUpdated.removePrefix("Letzte Aktualisierung:").trim()
                                             Text(
-                                                text = lastUpdated,
+                                                text = "Letzte Aktualisierung: $clean",
                                                 fontSize = 12.sp,
                                                 fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1014,8 +1015,9 @@ fun SubstitutionPlanScreen(
                                     // Hinweis zur letzten Aktualisierung (aus dem Schulportal Hessen)
                                     val lastUpdated = SubstitutionRepository.lastUpdatedText
                                     if (lastUpdated.isNotBlank()) {
+                                        val clean = lastUpdated.removePrefix("Letzte Aktualisierung:").trim()
                                         Text(
-                                            text = lastUpdated,
+                                            text = "Letzte Aktualisierung: $clean",
                                             fontSize = 12.sp,
                                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
