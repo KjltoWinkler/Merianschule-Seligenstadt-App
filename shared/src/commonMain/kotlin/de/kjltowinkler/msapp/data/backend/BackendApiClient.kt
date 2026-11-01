@@ -120,6 +120,33 @@ object BackendApiClient {
     }
 
     // ==========================================
+    // KURSE & FÄCHER
+    // ==========================================
+
+    suspend fun fetchUserCourses(): Result<List<de.kjltowinkler.msapp.data.courses.UserCourse>> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/user/courses") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<List<de.kjltowinkler.msapp.data.courses.UserCourse>>(body)
+        } else {
+            error("Kurse konnten nicht geladen werden")
+        }
+    }
+
+    suspend fun syncUserCourses(courses: List<de.kjltowinkler.msapp.data.courses.UserCourse>): Result<Boolean> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.put("$serverUrl/api/user/courses") {
+            header("Authorization", "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(courses))
+        }
+        response.status == HttpStatusCode.OK
+    }
+
+    // ==========================================
     // AUFGABEN-SYNCHRONISATION
     // ==========================================
 

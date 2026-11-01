@@ -53,6 +53,7 @@ object AppRoutes {
     // Einstellungen
     const val SETTINGS = "settings"
     const val SETTINGS_SCHOOL_WAY = "settings_school_way"
+    const val SETTINGS_COURSES = "settings_courses"
 }
 
 /**
@@ -478,6 +479,9 @@ fun App() {
                     onPredictiveBackChanged = { isPredictiveBackEnabled = it },
                     onSchoolWayClicked = {
                         navController.navigate(AppRoutes.SETTINGS_SCHOOL_WAY)
+                    },
+                    onCoursesClicked = {
+                        navController.navigate(AppRoutes.SETTINGS_COURSES)
                     }
                 )
             }
@@ -485,6 +489,16 @@ fun App() {
             // --- EINSTELLUNGEN: MEIN SCHULWEG ---
             composable(AppRoutes.SETTINGS_SCHOOL_WAY) {
                 de.kjltowinkler.msapp.ui.settings.SchoolWayScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    },
+                    useMaterialYou = isDynamicColor
+                )
+            }
+
+            // --- EINSTELLUNGEN: MEINE KURSE ---
+            composable(AppRoutes.SETTINGS_COURSES) {
+                de.kjltowinkler.msapp.ui.settings.CoursesSettingsScreen(
                     onBackClicked = {
                         navController.popBackStack()
                     },

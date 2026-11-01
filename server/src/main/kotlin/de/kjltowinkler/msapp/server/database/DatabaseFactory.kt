@@ -113,6 +113,21 @@ object DatabaseFactory {
                 """.trimIndent())
 
                 stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS user_courses (
+                        id TEXT NOT NULL,
+                        user_id TEXT NOT NULL,
+                        subject TEXT NOT NULL,
+                        teacher TEXT NOT NULL DEFAULT '',
+                        name TEXT NOT NULL DEFAULT '',
+                        room TEXT NOT NULL DEFAULT '',
+                        is_custom INTEGER NOT NULL DEFAULT 0,
+                        updated_at INTEGER NOT NULL,
+                        PRIMARY KEY (id, user_id),
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                """.trimIndent())
+
+                stmt.execute("""
                     CREATE TABLE IF NOT EXISTS server_metadata (
                         key TEXT PRIMARY KEY,
                         value TEXT NOT NULL,

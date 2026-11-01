@@ -153,6 +153,7 @@ data class HealthStatusResponse(
         }
 
         authRoutes()
+        userRoutes()
         taskRoutes()
         substitutionRoutes()
         timetableRoutes()

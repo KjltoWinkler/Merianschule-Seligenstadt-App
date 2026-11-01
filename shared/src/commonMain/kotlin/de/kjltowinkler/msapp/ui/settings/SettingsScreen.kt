@@ -35,7 +35,8 @@ fun SettingsScreen(
     onDarkThemeChanged: (Boolean) -> Unit = {},
     predictiveBackEnabled: Boolean = true,
     onPredictiveBackChanged: (Boolean) -> Unit = {},
-    onSchoolWayClicked: () -> Unit = {}
+    onSchoolWayClicked: () -> Unit = {},
+    onCoursesClicked: () -> Unit = {}
 ) {
     var delayWarningsEnabled by rememberSaveable { mutableStateOf(true) }
     var relaxedDismissalEnabled by rememberSaveable { mutableStateOf(true) }
@@ -106,6 +107,33 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // --- BEREICH 0: Unterricht & Kurse ---
+            CategoryHeader(title = "Unterricht & Kurse", color = categoryHeader)
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = cardBackground,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    val courses = de.kjltowinkler.msapp.data.courses.CourseRepository.courses
+                    val courseSubtitle = if (courses.isEmpty()) {
+                        "Noch keine Kurse hinterlegt"
+                    } else {
+                        "${courses.size} Kurse hinterlegt (${courses.take(3).joinToString { it.subject }})"
+                    }
+                    SettingsItemRow(
+                        title = "Meine Kurse",
+                        subtitle = courseSubtitle,
+                        titleColor = textPrimary,
+                        subtitleColor = textSecondary,
+                        onClick = onCoursesClicked
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // --- BEREICH 1: Schulweg & Mobilität ---
             CategoryHeader(title = "Schulweg & Mobilität", color = categoryHeader)

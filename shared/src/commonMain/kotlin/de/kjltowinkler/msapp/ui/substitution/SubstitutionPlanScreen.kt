@@ -558,13 +558,17 @@ fun SubstitutionPlanScreen(
                     userScrollEnabled = !isAnyItemDragging
                 ) { page ->
                     val pageFilter = options[page]
-                    val entriesForTab = remember(allEntries, pageFilter) {
+                    val userClass = remember { de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className ?: "09AR" }
+                    val entriesForTab = remember(allEntries, pageFilter, de.kjltowinkler.msapp.data.courses.CourseRepository.courses.size) {
+                        val courseFiltered = allEntries.filter {
+                            de.kjltowinkler.msapp.data.courses.CourseRepository.isEntryRelevant(it, userClass)
+                        }
                         when (pageFilter) {
-                            SubstitutionFilter.ALL -> allEntries
+                            SubstitutionFilter.ALL -> courseFiltered
                             SubstitutionFilter.MARKED -> allEntries.filter { it.isMarked }
-                            SubstitutionFilter.CANCELLATION -> allEntries.filter { it.type.equals("Entfall", ignoreCase = true) }
-                            SubstitutionFilter.SUBSTITUTION -> allEntries.filter { it.type.equals("Vertretung", ignoreCase = true) }
-                            SubstitutionFilter.RELOCATION -> allEntries.filter { it.type.equals("Verlegung", ignoreCase = true) }
+                            SubstitutionFilter.CANCELLATION -> courseFiltered.filter { it.type.equals("Entfall", ignoreCase = true) }
+                            SubstitutionFilter.SUBSTITUTION -> courseFiltered.filter { it.type.equals("Vertretung", ignoreCase = true) }
+                            SubstitutionFilter.RELOCATION -> courseFiltered.filter { it.type.equals("Verlegung", ignoreCase = true) }
                         }
                     }
 
