@@ -153,19 +153,7 @@ fun DesktopTwoFactorConnectScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .handCursor()
-                .clickable(enabled = !isLoading) {
-                    clipboardManager.setText(AnnotatedString(backupCode))
-                    codeCopied = true
-                    coroutineScope.launch {
-                        delay(2500)
-                        codeCopied = false
-                    }
-                }
-                .padding(vertical = 6.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 text = if (isLoading) "Code wird generiert..." else if (codeCopied) "Code kopiert!" else "Code: $backupCode",
@@ -174,15 +162,44 @@ fun DesktopTwoFactorConnectScreen(
                     fontWeight = FontWeight.Medium,
                     fontFamily = FontFamily.Monospace
                 ),
-                color = if (codeCopied) DesktopAccentBlue else DesktopTextSecondary
+                color = if (codeCopied) DesktopAccentBlue else DesktopTextSecondary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .handCursor()
+                    .clickable(enabled = !isLoading) {
+                        clipboardManager.setText(AnnotatedString(backupCode))
+                        codeCopied = true
+                        coroutineScope.launch {
+                            delay(2500)
+                            codeCopied = false
+                        }
+                    }
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                painter = painterResource(Res.drawable.ic_content_copy),
-                contentDescription = "Code kopieren",
-                tint = if (codeCopied) DesktopAccentBlue else DesktopTextSecondary,
-                modifier = Modifier.size(18.dp)
-            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            IconButton(
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(backupCode))
+                    codeCopied = true
+                    coroutineScope.launch {
+                        delay(2500)
+                        codeCopied = false
+                    }
+                },
+                enabled = !isLoading,
+                modifier = Modifier
+                    .size(36.dp)
+                    .handCursor()
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_content_copy),
+                    contentDescription = "Code kopieren",
+                    tint = if (codeCopied) DesktopAccentBlue else DesktopTextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))

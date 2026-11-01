@@ -219,21 +219,11 @@ fun OnboardingTwoFactorConnectScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 6. Code-Text mit Kopier-Icon ("Code: ABCD EFGH 1234 5678")
+                // 6. Code-Text mit Kopier-Icon-Button ("Code: ABCD EFGH 1234 5678")
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable(enabled = !isLoading) {
-                            clipboardManager.setText(AnnotatedString(backupCode))
-                            codeCopied = true
-                            coroutineScope.launch {
-                                delay(2500)
-                                codeCopied = false
-                            }
-                        }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = if (isLoading) "Code wird generiert..." else if (codeCopied) "Code kopiert: $backupCode" else "Code: $backupCode",
@@ -242,15 +232,39 @@ fun OnboardingTwoFactorConnectScreen(
                             fontWeight = FontWeight.Medium,
                             fontFamily = FontFamily.Monospace
                         ),
-                        color = if (codeCopied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)
+                        color = if (codeCopied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = !isLoading) {
+                                clipboardManager.setText(AnnotatedString(backupCode))
+                                codeCopied = true
+                                coroutineScope.launch {
+                                    delay(2500)
+                                    codeCopied = false
+                                }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_content_copy),
-                        contentDescription = "Code in Zwischenablage kopieren",
-                        tint = if (codeCopied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(
+                        onClick = {
+                            clipboardManager.setText(AnnotatedString(backupCode))
+                            codeCopied = true
+                            coroutineScope.launch {
+                                delay(2500)
+                                codeCopied = false
+                            }
+                        },
+                        enabled = !isLoading,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_content_copy),
+                            contentDescription = "Code in Zwischenablage kopieren",
+                            tint = if (codeCopied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
