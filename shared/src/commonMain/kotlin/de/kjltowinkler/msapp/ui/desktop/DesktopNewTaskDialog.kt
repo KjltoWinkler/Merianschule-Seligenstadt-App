@@ -52,9 +52,6 @@ fun DesktopNewTaskDialog(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var isStarred by remember(initialIsStarred) { mutableStateOf(initialIsStarred) }
-    var isSchoolTask by remember(initialIsSchoolTask) { mutableStateOf(initialIsSchoolTask) }
-    var currentListId by remember(targetListId) { mutableStateOf(targetListId) }
-    var showListMenu by remember { mutableStateOf(false) }
     var selectedDateText by remember { mutableStateOf("Heute") }
 
     val titleFocusRequester = remember { FocusRequester() }
@@ -73,8 +70,8 @@ fun DesktopNewTaskDialog(
                 createdDate = "Heute",
                 deadlineDate = selectedDateText,
                 isStarred = isStarred,
-                isSchoolTask = isSchoolTask,
-                listId = if (isSchoolTask) "my_tasks" else currentListId
+                isSchoolTask = initialIsSchoolTask,
+                listId = if (initialIsSchoolTask) "my_tasks" else targetListId
             )
             onSaveTask(newTask)
             onDismissRequest()
@@ -262,79 +259,6 @@ fun DesktopNewTaskDialog(
                                     color = if (isDateSelected) DesktopAccentBlue else DesktopTextSecondary
                                 )
                             )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    // Listen-Auswahl Dropdown
-                    val privateLists = TasksRepository.privateLists
-                    val currentListName = when {
-                        isSchoolTask -> "Schule"
-                        currentListId == "my_tasks" -> "Meine Aufgaben"
-                        else -> privateLists.find { it.id == currentListId }?.title ?: "Meine Aufgaben"
-                    }
-
-                    Box {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF1E2129))
-                                .border(1.dp, Color(0xFF2C2F3A), RoundedCornerShape(8.dp))
-                                .pointerHoverIcon(PointerIcon.Hand)
-                                .clickable { showListMenu = true }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = currentListName,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.5.sp,
-                                        color = DesktopTextPrimary
-                                    )
-                                )
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
-                                    contentDescription = null,
-                                    tint = DesktopTextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = showListMenu,
-                            onDismissRequest = { showListMenu = false },
-                            modifier = Modifier.background(Color(0xFF1E2129))
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Schule", color = DesktopTextPrimary) },
-                                onClick = {
-                                    isSchoolTask = true
-                                    showListMenu = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Meine Aufgaben", color = DesktopTextPrimary) },
-                                onClick = {
-                                    isSchoolTask = false
-                                    currentListId = "my_tasks"
-                                    showListMenu = false
-                                }
-                            )
-                            privateLists.forEach { list ->
-                                DropdownMenuItem(
-                                    text = { Text(list.title, color = DesktopTextPrimary) },
-                                    onClick = {
-                                        isSchoolTask = false
-                                        currentListId = list.id
-                                        showListMenu = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }

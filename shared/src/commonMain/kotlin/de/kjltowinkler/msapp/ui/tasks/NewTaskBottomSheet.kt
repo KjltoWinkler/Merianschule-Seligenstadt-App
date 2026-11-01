@@ -58,8 +58,6 @@ fun NewTaskBottomSheet(
     var taskTitle by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
     var isStarred by remember(initialIsStarred) { mutableStateOf(initialIsStarred) }
-    var isSchoolTask by remember(initialIsSchoolTask) { mutableStateOf(initialIsSchoolTask) }
-    var currentTargetListId by remember(targetListId) { mutableStateOf(targetListId) }
 
     var selectedDate by remember { mutableStateOf<SimpleDate?>(null) }
     var selectedHour by remember { mutableStateOf<Int?>(null) }
@@ -67,7 +65,6 @@ fun NewTaskBottomSheet(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    var showListPicker by remember { mutableStateOf(false) }
 
     var showDescription by remember { mutableStateOf(false) }
 
@@ -210,80 +207,14 @@ fun NewTaskBottomSheet(
                     }
                 }
 
-                // Anzeige von gewähltem Datum / Uhrzeit / Liste Chips
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                ) {
-                    // Listen-Chip (Zeigt immer an, in welcher Liste gespeichert wird, und erlaubt Wechsel)
-                    Box {
-                        val currentListName = if (isSchoolTask) {
-                            "Schul-Aufgaben"
-                        } else {
-                            TasksRepository.privateLists.find { it.id == currentTargetListId }?.title ?: "Meine Aufgaben"
-                        }
-
-                        InputChip(
-                            selected = true,
-                            onClick = { showListPicker = true },
-                            modifier = Modifier.handCursor(),
-                            leadingIcon = {
-                                Icon(
-                                    painter = painterResource(if (isSchoolTask) Res.drawable.ic_school else Res.drawable.ic_nav_checklist),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            label = { Text(currentListName) },
-                            trailingIcon = {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_keyboard_arrow_down),
-                                    contentDescription = "Liste wechseln",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            },
-                            colors = InputChipDefaults.inputChipColors(
-                                containerColor = colorScheme.secondaryContainer,
-                                labelColor = colorScheme.onSecondaryContainer,
-                                selectedContainerColor = colorScheme.secondaryContainer,
-                                selectedLabelColor = colorScheme.onSecondaryContainer,
-                                selectedLeadingIconColor = colorScheme.onSecondaryContainer,
-                                selectedTrailingIconColor = colorScheme.onSecondaryContainer
-                            ),
-                            border = null
-                        )
-
-                        DropdownMenu(
-                            expanded = showListPicker,
-                            onDismissRequest = { showListPicker = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Schul-Aufgaben") },
-                                leadingIcon = {
-                                    Icon(painter = painterResource(Res.drawable.ic_school), contentDescription = null, modifier = Modifier.size(18.dp))
-                                },
-                                onClick = {
-                                    isSchoolTask = true
-                                    showListPicker = false
-                                }
-                            )
-                            TasksRepository.privateLists.forEach { list ->
-                                DropdownMenuItem(
-                                    text = { Text(list.title) },
-                                    leadingIcon = {
-                                        Icon(painter = painterResource(Res.drawable.ic_nav_checklist), contentDescription = null, modifier = Modifier.size(18.dp))
-                                    },
-                                    onClick = {
-                                        isSchoolTask = false
-                                        currentTargetListId = list.id
-                                        showListPicker = false
-                                    }
-                                )
-                            }
-                        }
-                    }
+                // Anzeige von gewähltem Datum / Uhrzeit Chips (falls gesetzt)
+                if (selectedDate != null || (selectedHour != null && selectedMinute != null)) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                    ) {
 
                     selectedDate?.let { date ->
                         InputChip(
@@ -355,6 +286,7 @@ fun NewTaskBottomSheet(
                         )
                     }
                 }
+            }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -453,8 +385,8 @@ fun NewTaskBottomSheet(
                                     dueDate = dueDateString,
                                     dueTime = dueTimeString,
                                     isStarred = isStarred,
-                                    isSchoolTask = isSchoolTask,
-                                    listId = if (isSchoolTask) "my_tasks" else currentTargetListId
+                                    isSchoolTask = initialIsSchoolTask,
+                                    listId = if (initialIsSchoolTask) "my_tasks" else targetListId
                                 )
                                 onSaveTask(newTask)
                                 keyboardController?.hide()

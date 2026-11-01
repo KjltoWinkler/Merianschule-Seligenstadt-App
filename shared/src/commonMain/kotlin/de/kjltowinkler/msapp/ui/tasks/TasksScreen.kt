@@ -707,42 +707,51 @@ fun TasksScreen(
             )
         }
 
-        val fabMenuItems = listOf(
-            TasksFabMenuItem(
-                text = "Neue Aufgabe",
-                icon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_add_task),
-                        contentDescription = null
+        val isTeacherOrAdmin = BackendApiClient.currentUser?.role?.uppercase() in listOf("TEACHER", "ADMIN", "LEHRER")
+        val canCreateTaskInCurrentTab = !(isCurrentTabSchool && !isTeacherOrAdmin)
+
+        val fabMenuItems = buildList {
+            if (canCreateTaskInCurrentTab) {
+                add(
+                    TasksFabMenuItem(
+                        text = "Neue Aufgabe",
+                        icon = {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_add_task),
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            fabMenuExpanded = false
+                            if (onAddTaskClicked != null) {
+                                onAddTaskClicked(isCurrentTabStarred, currentTargetListId, isCurrentTabSchool)
+                            } else {
+                                showNewTaskBottomSheet = true
+                            }
+                        }
                     )
-                },
-                onClick = {
-                    fabMenuExpanded = false
-                    if (onAddTaskClicked != null) {
-                        onAddTaskClicked(isCurrentTabStarred, currentTargetListId, isCurrentTabSchool)
-                    } else {
-                        showNewTaskBottomSheet = true
+                )
+            }
+            add(
+                TasksFabMenuItem(
+                    text = "Neue Liste",
+                    icon = {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_nav_checklist),
+                            contentDescription = null
+                        )
+                    },
+                    onClick = {
+                        fabMenuExpanded = false
+                        if (onNewListClicked != null) {
+                            onNewListClicked()
+                        } else {
+                            showNewListSheet = true
+                        }
                     }
-                }
-            ),
-            TasksFabMenuItem(
-                text = "Neue Liste",
-                icon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_nav_checklist),
-                        contentDescription = null
-                    )
-                },
-                onClick = {
-                    fabMenuExpanded = false
-                    if (onNewListClicked != null) {
-                        onNewListClicked()
-                    } else {
-                        showNewListSheet = true
-                    }
-                }
+                )
             )
-        )
+        }
 
         FloatingActionButtonMenu(
             modifier = Modifier.align(Alignment.BottomEnd),
