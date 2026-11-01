@@ -2,6 +2,10 @@ package de.kjltowinkler.msapp.data.timetable
 
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import de.kjltowinkler.msapp.data.storage.PlatformStorage
+import de.kjltowinkler.msapp.data.sync.ClassTimetableDto
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Repository zur Bereitstellung der Stundenplandaten.
@@ -427,6 +431,14 @@ object TimetableRepository {
         )
     )
 
+    private const val KEY_TIMETABLE_CACHE = "cached_timetable_dto"
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true
+    }
+
     // Reaktiver Speicher für die Wochentage (ermöglicht Hinzufügen/Bearbeiten über den FAB)
     private val timetableMap = mutableStateMapOf<TimetableDay, List<TimetableLesson>>().apply {
         put(TimetableDay.MONTAG, mondayLessons)
@@ -434,6 +446,39 @@ object TimetableRepository {
         put(TimetableDay.MITTWOCH, wednesdayLessons)
         put(TimetableDay.DONNERSTAG, thursdayLessons)
         put(TimetableDay.FREITAG, fridayLessons)
+    }
+
+    init {
+        loadFromCache()
+    }
+
+    /**
+     * Wendet ein geladenes Stundenplan-DTO auf den lokalen Speicher an.
+     */
+    fun applyTimetableDto(dto: ClassTimetableDto) {
+        if (dto.days.isEmpty()) return
+        TimetableDay.entries.forEach { dayEnum ->
+            val dayLessons = dto.days.entries.firstOrNull { (dayKey, _) ->
+                dayEnum.name.equals(dayKey, ignoreCase = true) ||
+                dayEnum.id.equals(dayKey, ignoreCase = true) ||
+                dayEnum.displayName.equals(dayKey, ignoreCase = true) ||
+                dayEnum.shortName.equals(dayKey, ignoreCase = true)
+            }?.value ?: emptyList()
+            timetableMap[dayEnum] = dayLessons
+        }
+    }
+
+    /**
+     * Lädt den zuletzt gespeicherten Stundenplan aus dem lokalen Offline-Cache.
+     */
+    fun loadFromCache() {
+        try {
+            val cachedJson = PlatformStorage.getString(KEY_TIMETABLE_CACHE)
+            if (!cachedJson.isNullOrBlank()) {
+                val dto = json.decodeFromString<ClassTimetableDto>(cachedJson)
+                applyTimetableDto(dto)
+            }
+        } catch (_: Exception) {}
     }
 
     /**
@@ -471,24 +516,40 @@ object TimetableRepository {
      */
     suspend fun loadFromServer(className: String = "09AR"): Boolean {
         return try {
-            val userClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.takeIf { it.isNotBlank() } ?: className
-            val res = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTimetable(userClass)
-            if (res.isSuccess) {
-                val dto = res.getOrNull()
-                if (dto != null && dto.days.isNotEmpty()) {
-                    dto.days.forEach { (dayStr, lessons) ->
-                        val dayEnum = TimetableDay.entries.firstOrNull { 
-                            it.name.equals(dayStr, ignoreCase = true) || 
-                            it.id.equals(dayStr, ignoreCase = true) || 
-                            it.displayName.equals(dayStr, ignoreCase = true)
-                        }
-                        if (dayEnum != null && lessons.isNotEmpty()) {
-                            timetableMap[dayEnum] = lessons
-                        }
+            val rawUserClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.trim()
+            val isStaff = rawUserClass.equals("Schulleitung", ignoreCase = true) || 
+                          rawUserClass.equals("Lehrer", ignoreCase = true) || 
+                          rawUserClass.equals("Kollegium", ignoreCase = true) ||
+                          de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.role?.uppercase() in listOf("TEACHER", "ADMIN", "LEHRER")
+            val userClass = if (isStaff || rawUserClass.isNullOrBlank()) className else rawUserClass
+
+            var res = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTimetable(userClass)
+            var dto = res.getOrNull()
+
+            // Falls die Klasse z. B. mit oder ohne führende 0 hinterlegt ist (09AR vs 9AR)
+            if (dto == null || dto.days.isEmpty()) {
+                val altClass = when {
+                    userClass.startsWith("0") && userClass.length > 1 && userClass[1].isDigit() -> userClass.substring(1)
+                    userClass.isNotEmpty() && userClass[0].isDigit() -> "0$userClass"
+                    else -> userClass
+                }
+                if (altClass != userClass) {
+                    val altRes = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTimetable(altClass)
+                    if (altRes.isSuccess && altRes.getOrNull()?.days?.isNotEmpty() == true) {
+                        dto = altRes.getOrNull()
                     }
-                    true
-                } else false
-            } else false
+                }
+            }
+
+            if (dto != null && dto.days.isNotEmpty()) {
+                applyTimetableDto(dto)
+                try {
+                    PlatformStorage.setString(KEY_TIMETABLE_CACHE, json.encodeToString(dto))
+                } catch (_: Exception) {}
+                true
+            } else {
+                false
+            }
         } catch (_: Exception) {
             false
         }

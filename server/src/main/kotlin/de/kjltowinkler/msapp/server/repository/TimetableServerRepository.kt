@@ -38,34 +38,82 @@ object TimetableServerRepository {
     }
 
     suspend fun getClassTimetable(className: String): ClassTimetableDto = DatabaseFactory.query { conn ->
-        val sql = "SELECT day_id, lessons_json, valid_for, updated_at FROM timetables WHERE lower(class_name) = ?;"
-        conn.prepareStatement(sql).use { stmt ->
-            stmt.setString(1, className.trim().lowercase())
-            stmt.executeQuery().use { rs ->
-                val days = mutableMapOf<String, List<TimetableLesson>>()
-                var lastUpdated = 0L
-                var validFor = ""
-                while (rs.next()) {
-                    val dayId = rs.getString("day_id")
-                    val raw = rs.getString("lessons_json")
-                    val vFor = rs.getString("valid_for") ?: ""
-                    if (vFor.isNotBlank()) validFor = vFor
-                    val updated = rs.getLong("updated_at")
-                    if (updated > lastUpdated) lastUpdated = updated
-                    try {
-                        days[dayId] = json.decodeFromString<List<TimetableLesson>>(raw)
-                    } catch (e: Exception) {
-                        days[dayId] = emptyList()
+        val trimmed = className.trim()
+        val queryClass = trimmed.lowercase()
+
+        // Generate possible aliases (e.g., "09ar" <-> "9ar")
+        val altClass = when {
+            queryClass.startsWith("0") && queryClass.length > 1 && queryClass[1].isDigit() -> queryClass.substring(1)
+            queryClass.isNotEmpty() && queryClass[0].isDigit() -> "0$queryClass"
+            else -> queryClass
+        }
+
+        fun fetchForClass(targetClass: String): ClassTimetableDto? {
+            val sql = "SELECT day_id, lessons_json, valid_for, updated_at FROM timetables WHERE lower(class_name) = ?;"
+            conn.prepareStatement(sql).use { stmt ->
+                stmt.setString(1, targetClass.lowercase())
+                stmt.executeQuery().use { rs ->
+                    val days = mutableMapOf<String, List<TimetableLesson>>()
+                    var lastUpdated = 0L
+                    var validFor = ""
+                    var foundAny = false
+                    while (rs.next()) {
+                        foundAny = true
+                        val dayId = rs.getString("day_id")
+                        val raw = rs.getString("lessons_json")
+                        val vFor = rs.getString("valid_for") ?: ""
+                        if (vFor.isNotBlank()) validFor = vFor
+                        val updated = rs.getLong("updated_at")
+                        if (updated > lastUpdated) lastUpdated = updated
+                        try {
+                            days[dayId] = json.decodeFromString<List<TimetableLesson>>(raw)
+                        } catch (e: Exception) {
+                            days[dayId] = emptyList()
+                        }
+                    }
+                    if (foundAny && days.isNotEmpty()) {
+                        return ClassTimetableDto(
+                            className = targetClass.uppercase(),
+                            days = days,
+                            lastUpdated = lastUpdated,
+                            validFor = validFor
+                        )
                     }
                 }
-                ClassTimetableDto(
-                    className = className,
-                    days = days,
-                    lastUpdated = lastUpdated,
-                    validFor = validFor
-                )
+            }
+            return null
+        }
+
+        // 1. Try exact requested class
+        var result = fetchForClass(queryClass)
+
+        // 2. Try alias (with/without leading zero)
+        if (result == null && altClass != queryClass) {
+            result = fetchForClass(altClass)
+        }
+
+        // 3. Fallback: If still nothing found (e.g. "Schulleitung", "Lehrer", or non-existent class),
+        // return the most recently updated class timetable in the database
+        if (result == null) {
+            val fallbackSql = "SELECT class_name FROM timetables ORDER BY updated_at DESC LIMIT 1;"
+            conn.createStatement().use { stmt ->
+                stmt.executeQuery(fallbackSql).use { rs ->
+                    if (rs.next()) {
+                        val availableClass = rs.getString("class_name")
+                        if (!availableClass.isNullOrBlank()) {
+                            result = fetchForClass(availableClass)
+                        }
+                    }
+                }
             }
         }
+
+        result ?: ClassTimetableDto(
+            className = className,
+            days = emptyMap(),
+            lastUpdated = 0L,
+            validFor = ""
+        )
     }
 
     suspend fun saveClassTimetable(
