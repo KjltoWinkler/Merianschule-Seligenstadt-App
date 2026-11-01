@@ -638,9 +638,10 @@ fun App() {
 
                 de.kjltowinkler.msapp.ui.onboarding.OnboardingTwoFactorConnectScreen(
                     accountName = currentAccount.username,
-                    totpUri = twoFactorSetupUri ?: "otpauth://totp/Merianschule:${currentAccount.username}?secret=ABCD%20EFGH%201234%205678&issuer=Merianschule",
-                    backupCode = twoFactorBackupSecret ?: "ABCD EFGH 1234 5678",
-                    isLoading = isLoadingTwoFactorSetup,
+                    totpUri = twoFactorSetupUri ?: "",
+                    backupCode = twoFactorBackupSecret ?: "",
+                    isLoading = isLoadingTwoFactorSetup || twoFactorSetupUri.isNullOrBlank(),
+                    showAccountBadge = !isSettingUpTwoFactorFromSettings,
                     onBackClicked = {
                         isSettingUpTwoFactorFromSettings = false
                         navController.popBackStack()
@@ -661,6 +662,7 @@ fun App() {
                     accountName = currentAccount.username,
                     isLoading = isConfirmingTwoFactor,
                     errorMessage = twoFactorConfirmError,
+                    showAccountBadge = !isSettingUpTwoFactorFromSettings,
                     onBackClicked = {
                         twoFactorConfirmError = null
                         navController.popBackStack()
@@ -670,14 +672,15 @@ fun App() {
                         twoFactorConfirmError = null
                         navController.popBackStack(AppRoutes.USERNAME, inclusive = false)
                     },
-                    onFinishClicked = { code ->
+                    onFinishClicked = { rawCode ->
+                        val cleanCode = rawCode.filter { it.isDigit() }
                         twoFactorConfirmError = null
                         isConfirmingTwoFactor = true
 
                         if (isLoginTwoFactorVerification) {
                             val tempToken = twoFactorTempToken ?: ""
                             coroutineScope.launch {
-                                BackendApiClient.verify2FaLogin(tempToken, code)
+                                BackendApiClient.verify2FaLogin(tempToken, cleanCode)
                                     .onSuccess { auth ->
                                         isConfirmingTwoFactor = false
                                         currentAccount = MockAccountState(
@@ -722,7 +725,7 @@ fun App() {
                             }
                         } else {
                             coroutineScope.launch {
-                                BackendApiClient.confirm2Fa(code)
+                                BackendApiClient.confirm2Fa(cleanCode)
                                     .onSuccess {
                                         isConfirmingTwoFactor = false
                                         currentAccount = currentAccount.copy(isTwoFactorEnabled = true)

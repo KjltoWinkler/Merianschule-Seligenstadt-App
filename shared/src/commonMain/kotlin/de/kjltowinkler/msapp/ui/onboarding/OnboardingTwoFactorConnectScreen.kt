@@ -377,7 +377,7 @@ fun OnboardingTwoFactorConnectScreen(
                         }
 
                         Text(
-                            text = "2. Scanne den oben angezeigten QR-Code mit der Kamera oder Sircle-To-Search auf deinem Android und klicke auf öffnen.\n\n" +
+                            text = "2. Scanne den oben angezeigten QR-Code mit der Kamera oder Sircle-To-Search auf deinem Android-Smartphone und klicke auf öffnen.\n\n" +
                                     "3. Falls das Scannen nicht klappt, kannst du den Textcode kopieren und manuell als Schlüssel eingeben.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

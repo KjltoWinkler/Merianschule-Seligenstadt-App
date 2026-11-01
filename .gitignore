@@ -25,3 +25,4 @@ data/*.db*
 kotlin-js-store/
 bin/
 **/bin/
+scripts/vplan_output.json

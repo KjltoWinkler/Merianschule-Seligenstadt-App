@@ -42,6 +42,7 @@ fun DesktopTwoFactorConfirmScreen(
     codeState: TextFieldState = rememberTextFieldState(initialCode),
     isLoading: Boolean = false,
     errorMessage: String? = null,
+    showAccountBadge: Boolean = true,
     onFinishClicked: (String) -> Unit = {},
     onChangeAccountClicked: () -> Unit = {},
     onHelpClicked: () -> Unit = {}
@@ -52,6 +53,17 @@ fun DesktopTwoFactorConfirmScreen(
 
     val displayedError = errorMessage ?: localError
     val isError = displayedError != null
+
+    fun validateAndSubmit() {
+        if (isLoading) return
+        val digits = codeState.text.toString().filter { it.isDigit() }
+        if (digits.length != 6) {
+            localError = "Bitte gib den 6-stelligen Code ein"
+        } else {
+            keyboardController?.hide()
+            onFinishClicked(digits)
+        }
+    }
 
     LaunchedEffect(Unit) {
         snapshotFlow { codeState.text }.collect {
@@ -79,13 +91,14 @@ fun DesktopTwoFactorConfirmScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // 2. Account Chip
-        MerianAccountBadge(
-            accountName = accountName,
-            avatarPainter = avatarPainter,
-            onClick = onChangeAccountClicked
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
+        if (showAccountBadge) {
+            MerianAccountBadge(
+                accountName = accountName,
+                avatarPainter = avatarPainter,
+                onClick = onChangeAccountClicked
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
         // 3. Beschreibung
         Text(
@@ -137,14 +150,7 @@ fun DesktopTwoFactorConfirmScreen(
                 imeAction = ImeAction.Done
             ),
             onKeyboardAction = {
-                if (isLoading) return@OutlinedTextField
-                val code = codeState.text.toString().trim()
-                if (code.length >= 6) {
-                    keyboardController?.hide()
-                    onFinishClicked(code)
-                } else {
-                    localError = "Bitte gib den 6-stelligen Code ein"
-                }
+                validateAndSubmit()
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -178,13 +184,7 @@ fun DesktopTwoFactorConfirmScreen(
         // 6. Weiter Button
         Button(
             onClick = {
-                if (isLoading) return@Button
-                val code = codeState.text.toString().trim()
-                if (code.length >= 6) {
-                    onFinishClicked(code)
-                } else {
-                    localError = "Bitte gib den 6-stelligen Code ein"
-                }
+                validateAndSubmit()
             },
             enabled = !isLoading,
             shape = CircleShape,

@@ -57,6 +57,7 @@ fun OnboardingTwoFactorConfirmScreen(
     codeState: TextFieldState = rememberTextFieldState(initialCode),
     isLoading: Boolean = false,
     errorMessage: String? = null,
+    showAccountBadge: Boolean = true,
     onBackClicked: () -> Unit = {},
     onChangeAccountClicked: () -> Unit = onBackClicked,
     onHelpClicked: () -> Unit = {},
@@ -80,12 +81,12 @@ fun OnboardingTwoFactorConfirmScreen(
 
     fun validateAndSubmit() {
         if (isLoading) return
-        val code = codeState.text.toString().trim()
-        if (code.isBlank()) {
-            localError = "Bitte gib deinen Code ein"
+        val digits = codeState.text.toString().filter { it.isDigit() }
+        if (digits.length != 6) {
+            localError = "Bitte gib deinen 6-stelligen Code ein"
         } else {
             keyboardController?.hide()
-            onFinishClicked(code)
+            onFinishClicked(digits)
         }
     }
 
@@ -100,6 +101,7 @@ fun OnboardingTwoFactorConfirmScreen(
                 codeState = codeState,
                 isLoading = isLoading,
                 errorMessage = errorMessage,
+                showAccountBadge = showAccountBadge,
                 onFinishClicked = onFinishClicked,
                 onChangeAccountClicked = onChangeAccountClicked,
                 onHelpClicked = onHelpClicked
@@ -162,13 +164,14 @@ fun OnboardingTwoFactorConfirmScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 3. Account-Chip ("Sebastian Wagner" mit Avatar)
-                MerianAccountBadge(
-                    accountName = accountName,
-                    avatarPainter = avatarPainter,
-                    onClick = onChangeAccountClicked
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
+                if (showAccountBadge) {
+                    MerianAccountBadge(
+                        accountName = accountName,
+                        avatarPainter = avatarPainter,
+                        onClick = onChangeAccountClicked
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
 
                 // 4. Beschreibungstext
                 Text(

@@ -106,4 +106,33 @@ class ServerTest {
         assertEquals(1, retrieved.size)
         assertEquals("Physik", retrieved[0].subject)
     }
+
+    @Test
+    fun testTotpService() {
+        // RFC 6238 Key: ASCII "12345678901234567890" = 20 Bytes
+        val keyAscii = "12345678901234567890"
+        val keyBytes = keyAscii.toByteArray(Charsets.US_ASCII)
+        val base32Secret = de.kjltowinkler.msapp.server.security.TotpService.encodeBase32(keyBytes)
+        println("Encoded Base32: $base32Secret")
+        assertEquals("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", base32Secret)
+
+        val decoded = de.kjltowinkler.msapp.server.security.TotpService.decodeBase32(base32Secret)
+        assertNotNull(decoded)
+        assertEquals(keyAscii, String(decoded, Charsets.US_ASCII))
+
+        // RFC 6238 Table 1 test vector: Time = 59s -> Code = 287082
+        val code59 = de.kjltowinkler.msapp.server.security.TotpService.generateCodeForStep(keyBytes, 59L / 30L)
+        assertEquals("287082", code59)
+
+        // RFC 6238 Table 1 test vector: Time = 1111111109s -> Code = 081804
+        val code1111111109 = de.kjltowinkler.msapp.server.security.TotpService.generateCodeForStep(keyBytes, 1111111109L / 30L)
+        assertEquals("081804", code1111111109)
+
+        // RFC 6238 Table 1 test vector: Time = 1234567890s -> Code = 005924
+        val code1234567890 = de.kjltowinkler.msapp.server.security.TotpService.generateCodeForStep(keyBytes, 1234567890L / 30L)
+        assertEquals("005924", code1234567890)
+
+        // Verify with verifyCode()
+        assertTrue(de.kjltowinkler.msapp.server.security.TotpService.verifyCode(base32Secret, "005924", timeMillis = 1234567890L * 1000L))
+    }
 }

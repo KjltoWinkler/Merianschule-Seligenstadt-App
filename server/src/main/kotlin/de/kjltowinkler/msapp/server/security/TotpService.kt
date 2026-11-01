@@ -40,9 +40,9 @@ object TotpService {
         secret: String
     ): String {
         val cleanSecret = secret.replace(" ", "").uppercase()
-        val encodedIssuer = issuer.replace(" ", "%20")
-        val encodedAccount = accountName.replace(" ", "%20")
-        return "otpauth://totp/$encodedIssuer:$encodedAccount?secret=$cleanSecret&issuer=$encodedIssuer&algorithm=SHA1&digits=$CODE_DIGITS&period=$TIME_STEP_SECONDS"
+        val cleanAccount = accountName.trim().replace(":", "_").replace(" ", "%20")
+        val cleanIssuer = issuer.trim().replace(":", "_").replace(" ", "%20")
+        return "otpauth://totp/$cleanIssuer:$cleanAccount?secret=$cleanSecret&issuer=$cleanIssuer"
     }
 
     /**
@@ -55,17 +55,17 @@ object TotpService {
 
     /**
      * Verifiziert einen vom Nutzer eingegebenen 6-stelligen Code gegen das Secret.
-     * Unterstützt ein Zeitfenster von ±1 Zeitschritt (30 Sekunden vorher / nachher),
-     * um leichte Zeitabweichungen auf Endgeräten auszugleichen.
+     * Unterstützt ein Zeitfenster von ±2 Zeitschritten (±60 Sekunden),
+     * um leichte Zeitabweichungen auf Endgeräten sicher auszugleichen.
      */
     fun verifyCode(
         secret: String,
         code: String,
-        window: Int = 1,
+        window: Int = 2,
         timeMillis: Long = System.currentTimeMillis()
     ): Boolean {
-        val cleanCode = code.trim().replace(" ", "")
-        if (cleanCode.length != CODE_DIGITS || cleanCode.toIntOrNull() == null) return false
+        val cleanCode = code.filter { it.isDigit() }
+        if (cleanCode.length != CODE_DIGITS) return false
 
         val cleanSecret = secret.replace(" ", "").uppercase()
         val keyBytes = decodeBase32(cleanSecret) ?: return false

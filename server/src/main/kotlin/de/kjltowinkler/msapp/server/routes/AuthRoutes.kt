@@ -186,7 +186,8 @@ fun Route.authRoutes() {
                 return@post
             }
 
-            val isValid = de.kjltowinkler.msapp.server.security.TotpService.verifyCode(user.twoFactorSecret, req.code)
+            val cleanCode = req.code.filter { it.isDigit() }
+            val isValid = de.kjltowinkler.msapp.server.security.TotpService.verifyCode(user.twoFactorSecret, cleanCode)
             if (!isValid) {
                 call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Der Bestätigungscode ist ungültig oder abgelaufen."))
                 return@post
@@ -252,7 +253,8 @@ fun Route.authRoutes() {
                     return@post
                 }
 
-                val isValid = de.kjltowinkler.msapp.server.security.TotpService.verifyCode(secretToVerify, req.code)
+                val cleanCode = req.code.filter { it.isDigit() }
+                val isValid = de.kjltowinkler.msapp.server.security.TotpService.verifyCode(secretToVerify, cleanCode)
                 if (!isValid) {
                     call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Der Bestätigungscode ist falsch oder abgelaufen. Bitte prüfe deine Authenticator-App."))
                     return@post
