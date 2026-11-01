@@ -17,78 +17,78 @@ object TimetableRepository {
     val teacherDirectory: Map<String, TeacherInfo> = mapOf(
         "Rd" to TeacherInfo(
             code = "Rd",
-            fullName = "Julia Ridel",
-            email = "j.ridel@merianschule-seligenstadt.de",
+            fullName = "Julia Riedel",
+            email = "Julia.Riedel@mssof.onmicrosoft.com",
             subjects = listOf("Englisch"),
             officeHours = "Nach Vereinbarung"
         ),
         "Reu" to TeacherInfo(
             code = "Reu",
             fullName = "Alvin Bernhard Perry Reuter",
-            email = "a.reuter@merianschule-seligenstadt.de",
+            email = "Alvin.Reuter@mssof.onmicrosoft.com",
             subjects = listOf("Deutsch", "Englisch"),
             officeHours = "Nach Vereinbarung"
         ),
         "Tho" to TeacherInfo(
             code = "Tho",
             fullName = "Daniel Thomas",
-            email = "d.thomas@merianschule-seligenstadt.de",
+            email = "Daniel.Thomas@mssof.onmicrosoft.com",
             subjects = listOf("Biologie", "Chemie", "Geschichte"),
             officeHours = "Mo. 13:10 - 13:40 Uhr"
         ),
         "Kne" to TeacherInfo(
             code = "Kne",
             fullName = "Gerrit Jens Knebel",
-            email = "g.knebel@merianschule-seligenstadt.de",
+            email = "Gerrit.Knebel@mssof.onmicrosoft.com",
             subjects = listOf("Mathematik"),
             officeHours = "Nach Vereinbarung"
         ),
         "Car" to TeacherInfo(
             code = "Car",
             fullName = "Rui Carvalho",
-            email = "r.carvalho@merianschule-seligenstadt.de",
+            email = "rui.carvalho@mssof.onmicrosoft.com",
             subjects = listOf("Ethik"),
             officeHours = "Nach Vereinbarung"
         ),
         "Af" to TeacherInfo(
             code = "Af",
             fullName = "Kati Afrasiabi",
-            email = "k.afrasiabi@merianschule-seligenstadt.de",
+            email = "Kati.Afrasiabi@mssof.onmicrosoft.com",
             subjects = listOf("Deutsch", "Ethik"),
             officeHours = "Mo. 11:15 - 11:45 Uhr (nach Vereinbarung)"
         ),
         "Za" to TeacherInfo(
             code = "Za",
             fullName = "Eleni Zania",
-            email = "e.zania@merianschule-seligenstadt.de",
+            email = "eleni.zania@mssof.onmicrosoft.com",
             subjects = listOf("Geschichte", "Politik und Wirtschaft"),
             officeHours = "Nach Vereinbarung"
         ),
         "Tho / Za" to TeacherInfo(
             code = "Tho / Za",
             fullName = "Daniel Thomas / Eleni Zania",
-            email = "d.thomas@merianschule-seligenstadt.de",
+            email = "Daniel.Thomas@mssof.onmicrosoft.com",
             subjects = listOf("Geschichte", "Politik und Wirtschaft"),
             officeHours = "Mo. 13:10 - 13:40 Uhr"
         ),
         "Hol" to TeacherInfo(
             code = "Hol",
             fullName = "Iris Holstein",
-            email = "i.holstein@merianschule-seligenstadt.de",
+            email = "Iris.Holstein@mssof.onmicrosoft.com",
             subjects = listOf("Französisch"),
             officeHours = "Nach Vereinbarung"
         ),
         "Hv" to TeacherInfo(
             code = "Hv",
             fullName = "Tibor Horvath-Walther",
-            email = "t.horvath-walther@merianschule-seligenstadt.de",
+            email = "Tibor.Horvath-Walther@mssof.onmicrosoft.com",
             subjects = listOf("Politik und Wirtschaft"),
             officeHours = "Nach Vereinbarung"
         ),
         "Bü" to TeacherInfo(
             code = "Bü",
             fullName = "Dominique Bürkle",
-            email = "d.buerkle@merianschule-seligenstadt.de",
+            email = "dominique.buerkle@mssof.onmicrosoft.com",
             subjects = listOf("Kunst"),
             officeHours = "Nach Vereinbarung"
         ),
