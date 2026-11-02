@@ -399,4 +399,45 @@ class SharedCommonTest {
 
         assertFalse(diff.hasChanges)
     }
+
+    @Test
+    fun testSimpleDateMinusDays() {
+        val nov2 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2)
+        assertEquals("2026-11-01", nov2.minusDays(1).toIsoString())
+        assertEquals("2026-10-31", nov2.minusDays(2).toIsoString())
+        assertEquals("2026-10-26", nov2.minusDays(7).toIsoString())
+
+        val jan1 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 1, 1)
+        assertEquals("2025-12-31", jan1.minusDays(1).toIsoString())
+
+        val leapMarch1 = de.kjltowinkler.msapp.data.task.SimpleDate(2024, 3, 1)
+        assertEquals("2024-02-29", leapMarch1.minusDays(1).toIsoString())
+    }
+
+    @Test
+    fun testIsDateInCurrentWeek() {
+        // Montag, 02. November 2026 (Woche: 02.11.2026 - 08.11.2026)
+        val mondayNov2 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2)
+        assertEquals(1, mondayNov2.dayOfWeek) // Montag
+
+        // Einträge dieser Woche müssen true sein
+        assertTrue(mondayNov2.isDateInCurrentWeek("2026-11-02"))
+        assertTrue(mondayNov2.isDateInCurrentWeek("2026-11-03"))
+        assertTrue(mondayNov2.isDateInCurrentWeek("2026-11-06"))
+
+        // Einträge der VORWOCHE (z.B. Freitag, 30. Oktober 2026) MÜSSEN FALSE sein!
+        assertFalse(mondayNov2.isDateInCurrentWeek("2026-10-30"))
+        assertFalse(mondayNov2.isDateInCurrentWeek("2026-10-23"))
+        assertFalse(mondayNov2.isDateInCurrentWeek("2026-10-22"))
+
+        // Nächste Woche muss ebenfalls false sein
+        assertFalse(mondayNov2.isDateInCurrentWeek("2026-11-09"))
+
+        // Donnerstag, 05. November 2026
+        val thursdayNov5 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 5)
+        assertEquals(4, thursdayNov5.dayOfWeek)
+        assertTrue(thursdayNov5.isDateInCurrentWeek("2026-11-02")) // Montag derselben Woche
+        assertTrue(thursdayNov5.isDateInCurrentWeek("2026-11-05")) // Heute
+        assertFalse(thursdayNov5.isDateInCurrentWeek("2026-10-30")) // Freitag letzter Woche
+    }
 }

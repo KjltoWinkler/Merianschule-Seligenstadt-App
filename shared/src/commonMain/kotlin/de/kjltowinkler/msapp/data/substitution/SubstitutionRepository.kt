@@ -220,7 +220,9 @@ object SubstitutionRepository {
      * ohne eine Netzwerk- oder I/O-Verzögerung.
      */
     fun getInitialOrCachedEntries(): List<SubstitutionEntry> {
-        return cachedLiveEntries ?: emptyList()
+        val list = cachedLiveEntries ?: emptyList()
+        val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+        return list.filter { today.isDateInCurrentWeek(it.date) }
     }
 
     /**
@@ -328,12 +330,14 @@ object SubstitutionRepository {
                 val serverEntries = backendResult.getOrNull()
                 if (!serverEntries.isNullOrEmpty()) {
                     val normalized = expandAndNormalizeEntries(serverEntries)
-                    cachedLiveEntries = normalized
+                    val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+                    val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
+                    cachedLiveEntries = currentWeek
                     isLiveDataSource = true
                     de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
                         updateLastUpdatedText(it)
                     }
-                    return normalized
+                    return currentWeek
                 }
             }
         } catch (_: Exception) {
@@ -350,9 +354,11 @@ object SubstitutionRepository {
                 val liveEntries = liveResult.getOrNull()
                 if (!liveEntries.isNullOrEmpty()) {
                     val normalized = expandAndNormalizeEntries(liveEntries)
-                    cachedLiveEntries = normalized
+                    val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+                    val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
+                    cachedLiveEntries = currentWeek
                     isLiveDataSource = true
-                    return normalized
+                    return currentWeek
                 }
             }
         }
@@ -368,7 +374,9 @@ object SubstitutionRepository {
             defaultEntries
         }
         val normalizedFallback = expandAndNormalizeEntries(fallback)
-        return normalizedFallback
+        val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+        val currentWeek = normalizedFallback.filter { today.isDateInCurrentWeek(it.date) }
+        return currentWeek
     }
 
     /**

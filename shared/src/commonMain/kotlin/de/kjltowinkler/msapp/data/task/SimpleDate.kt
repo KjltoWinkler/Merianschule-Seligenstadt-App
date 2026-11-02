@@ -54,6 +54,72 @@ data class SimpleDate(
         }
         return SimpleDate(y, m, d)
     }
+
+    fun minusDays(days: Int): SimpleDate {
+        if (days <= 0) return plusDays(-days)
+        var d = dayOfMonth - days
+        var m = monthNumber
+        var y = year
+        while (d < 1) {
+            m--
+            if (m < 1) {
+                m = 12
+                y--
+            }
+            val daysInPrevMonth = when (m) {
+                1, 3, 5, 7, 8, 10, 12 -> 31
+                4, 6, 9, 11 -> 30
+                2 -> if (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) 29 else 28
+                else -> 31
+            }
+            d += daysInPrevMonth
+        }
+        return SimpleDate(y, m, d)
+    }
+
+    /**
+     * Liefert Montag und Sonntag der aktiven Schulwoche.
+     * Montag bis Freitag: Aktuelle Woche (Mo..So).
+     * Am Wochenende (Sa/So): Orientiert sich an der kommenden Woche (Mo..So).
+     */
+    fun getWeekRange(): Pair<SimpleDate, SimpleDate> {
+        val effective = when (dayOfWeek) {
+            6 -> plusDays(2) // Samstag -> kommender Montag
+            0 -> plusDays(1) // Sonntag -> kommender Montag
+            else -> this
+        }
+        val daysSinceMonday = effective.dayOfWeek - 1
+        val monday = effective.minusDays(daysSinceMonday)
+        val sunday = monday.plusDays(6)
+        return monday to sunday
+    }
+
+    /**
+     * Prüft, ob das gegebene ISO-Datum (YYYY-MM-DD) zur aktuellen Schulwoche gehört.
+     * An Schultagen (Mo-Fr) werden nur Einträge der aktuellen Kalenderwoche akzeptiert.
+     * Am Wochenende (Sa/So) werden sowohl die gerade endende als auch die kommende Woche akzeptiert,
+     * aber niemals ältere Wochen (z. B. letzte Woche).
+     */
+    fun isDateInCurrentWeek(dateIso: String): Boolean {
+        val trimmed = dateIso.trim()
+        if (trimmed.length < 10) return false
+        val (monday, sunday) = getWeekRange()
+        val mondayIso = monday.toIsoString()
+        val sundayIso = sunday.toIsoString()
+
+        if (trimmed in mondayIso..sundayIso) return true
+
+        // Am Wochenende (Sa/So) darf zusätzlich auch noch der Freitag der gerade beendeten Woche eingesehen werden
+        if (dayOfWeek in listOf(0, 6)) {
+            val daysSinceMonday = if (dayOfWeek == 0) 6 else 5
+            val lastMonday = minusDays(daysSinceMonday)
+            val lastSunday = lastMonday.plusDays(6)
+            if (trimmed in lastMonday.toIsoString()..lastSunday.toIsoString()) {
+                return true
+            }
+        }
+        return false
+    }
 }
 
 data class SimpleTime(

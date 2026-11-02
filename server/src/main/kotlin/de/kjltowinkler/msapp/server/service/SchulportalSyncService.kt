@@ -154,6 +154,7 @@ object SchulportalSyncService {
 
             if (hasChanges || force || currentEntries.isEmpty()) {
                 val savedCount = SubstitutionServerRepository.replaceEntries(remoteEntries, replaceAll = true)
+                SubstitutionServerRepository.cleanupOldWeeks()
                 lastStatusMessage = "Erfolgreich synchronisiert: $savedCount Einträge übernommen ($updatedTime)."
                 println(">>> $lastStatusMessage")
 

@@ -327,6 +327,11 @@ fun SubstitutionPlanScreen(
         }
     }
 
+    val today = remember { getTodayDate() }
+    val todayIso = remember(today) { today.toIsoString() }
+    val tomorrowIso = remember(today) { today.plusDays(1).toIsoString() }
+    val dayAfterTomorrowIso = remember(today) { today.plusDays(2).toIsoString() }
+
     var isInitialLoading by remember { mutableStateOf(allEntries.isEmpty()) }
     var isRefreshing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
@@ -341,7 +346,7 @@ fun SubstitutionPlanScreen(
                     notifyIfChanged = false
                 )
                 SubstitutionStateManager.initMarked(loaded)
-                allEntries = loaded.map { entry ->
+                allEntries = loaded.filter { today.isDateInCurrentWeek(it.date) }.map { entry ->
                     entry.copy(
                         isNew = SubstitutionStateManager.isNew(entry.id),
                         isMarked = SubstitutionStateManager.isMarked(entry.id)
@@ -362,7 +367,7 @@ fun SubstitutionPlanScreen(
         val loaded = SubstitutionRepository.loadSubstitutions()
         de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.initializeBaseline(loaded)
         SubstitutionStateManager.initMarked(loaded)
-        allEntries = loaded.map { entry ->
+        allEntries = loaded.filter { today.isDateInCurrentWeek(it.date) }.map { entry ->
             entry.copy(
                 isNew = SubstitutionStateManager.isNew(entry.id),
                 isMarked = SubstitutionStateManager.isMarked(entry.id)
@@ -373,7 +378,7 @@ fun SubstitutionPlanScreen(
         de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.changeEvents.collect { diff ->
             val updated = SubstitutionRepository.getInitialOrCachedEntries()
             SubstitutionStateManager.initMarked(updated)
-            allEntries = updated.map { entry ->
+            allEntries = updated.filter { today.isDateInCurrentWeek(it.date) }.map { entry ->
                 entry.copy(
                     isNew = SubstitutionStateManager.isNew(entry.id),
                     isMarked = SubstitutionStateManager.isMarked(entry.id)
@@ -385,11 +390,6 @@ fun SubstitutionPlanScreen(
             )
         }
     }
-
-    val today = remember { getTodayDate() }
-    val todayIso = remember(today) { today.toIsoString() }
-    val tomorrowIso = remember(today) { today.plusDays(1).toIsoString() }
-    val dayAfterTomorrowIso = remember(today) { today.plusDays(2).toIsoString() }
 
     // Berechne die nächsten zwei Schultage (Montag bis Freitag):
     // - Wenn heute ein Schultag ist (Mo-Fr): Schultag 1 = Heute, Schultag 2 = Nächster Schultag (z.B. Morgen bzw. Montag bei Fr)
@@ -566,12 +566,13 @@ fun SubstitutionPlanScreen(
                     val pageFilter = options[page]
                     val userClass = remember { de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className ?: "09AR" }
                     val entriesForTab = remember(allEntries, pageFilter, de.kjltowinkler.msapp.data.courses.CourseRepository.courses.size) {
-                        val courseFiltered = allEntries.filter {
+                        val currentWeekOnly = allEntries.filter { today.isDateInCurrentWeek(it.date) }
+                        val courseFiltered = currentWeekOnly.filter {
                             de.kjltowinkler.msapp.data.courses.CourseRepository.isEntryRelevant(it, userClass)
                         }
                         when (pageFilter) {
                             SubstitutionFilter.ALL -> courseFiltered
-                            SubstitutionFilter.MARKED -> allEntries.filter { it.isMarked }
+                            SubstitutionFilter.MARKED -> currentWeekOnly.filter { it.isMarked }
                             SubstitutionFilter.CANCELLATION -> courseFiltered.filter { it.type.equals("Entfall", ignoreCase = true) }
                             SubstitutionFilter.SUBSTITUTION -> courseFiltered.filter { it.type.equals("Vertretung", ignoreCase = true) }
                             SubstitutionFilter.RELOCATION -> courseFiltered.filter { it.type.equals("Verlegung", ignoreCase = true) }
@@ -699,14 +700,14 @@ fun SubstitutionPlanScreen(
                             }
 
                             val focusEntries = remember(entriesForTab, targetDate, isUpcoming) {
-                                entriesForTab.filter { it.date == targetDate || (it.date.isBlank() && !isUpcoming) }
+                                entriesForTab.filter { (it.date == targetDate || (it.date.isBlank() && !isUpcoming)) && today.isDateInCurrentWeek(it.date) }
                             }
 
                             // Einträge für weitere kommende Schultage (z. B. nach morgen)
                             val upcomingOtherDays: List<Pair<String, List<SubstitutionEntry>>> = remember(entriesForTab, morgenDate, isUpcoming) {
                                 if (isUpcoming) {
                                     entriesForTab
-                                        .filter { it.date.isNotBlank() && it.date > morgenDate }
+                                        .filter { it.date.isNotBlank() && it.date > morgenDate && today.isDateInCurrentWeek(it.date) }
                                         .groupBy { it.date }
                                         .toList()
                                         .sortedBy { it.first }
@@ -717,7 +718,7 @@ fun SubstitutionPlanScreen(
 
                             val pastDays: List<Pair<String, List<SubstitutionEntry>>> = remember(entriesForTab, heuteDate) {
                                 entriesForTab
-                                    .filter { it.date.isNotBlank() && it.date < heuteDate }
+                                    .filter { it.date.isNotBlank() && it.date < heuteDate && today.isDateInCurrentWeek(it.date) }
                                     .groupBy { it.date }
                                     .toList()
                                     .sortedByDescending { it.first }

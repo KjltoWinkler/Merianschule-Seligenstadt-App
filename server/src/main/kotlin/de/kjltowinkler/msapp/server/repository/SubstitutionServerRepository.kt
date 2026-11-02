@@ -35,6 +35,7 @@ object SubstitutionServerRepository {
     )
 
     suspend fun initDefaultsIfEmpty() {
+        cleanupOldWeeks()
         val count = getCount()
         if (count == 0) {
             val file = getJsonFile()
@@ -94,6 +95,12 @@ object SubstitutionServerRepository {
             stmt.setString(1, cutoffDate)
             stmt.executeUpdate()
         }
+    }
+
+    suspend fun cleanupOldWeeks(): Int {
+        val today = java.time.LocalDate.now()
+        val mondayOfCurrentWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).toString()
+        return deleteOlderThan(mondayOfCurrentWeek)
     }
 
     suspend fun clearAll(): Int = DatabaseFactory.query { conn ->
