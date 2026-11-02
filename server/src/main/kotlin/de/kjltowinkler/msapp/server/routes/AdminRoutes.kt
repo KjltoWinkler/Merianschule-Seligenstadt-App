@@ -14,6 +14,7 @@ import de.kjltowinkler.msapp.server.repository.TaskRepository
 import de.kjltowinkler.msapp.server.repository.TimetableServerRepository
 import de.kjltowinkler.msapp.server.repository.UserRepository
 import de.kjltowinkler.msapp.server.security.JwtService
+import de.kjltowinkler.msapp.server.security.PasswordHasher
 import de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -33,7 +34,7 @@ import kotlinx.serialization.json.Json
 data class AdminCreateUserRequest(
     val username: String,
     val email: String,
-    val password: String,
+    val password: String = "",
     val fullName: String = "",
     val className: String = "9aR",
     val schoolType: String = "Realschule",
@@ -44,7 +45,7 @@ data class AdminCreateUserRequest(
 
 @Serializable
 data class AdminResetPasswordRequest(
-    val newPassword: String
+    val newPassword: String = ""
 )
 
 @Serializable
@@ -113,9 +114,19 @@ fun Route.adminRoutes() {
                     return@post
                 }
 
-                if (req.username.isBlank() || req.password.isBlank() || req.email.isBlank()) {
-                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Benutzername, E-Mail und Passwort sind erforderlich."))
+                if (req.username.isBlank() || req.email.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Benutzername und E-Mail sind erforderlich."))
                     return@post
+                }
+
+                val finalPassword = if (req.password.isNotBlank()) {
+                    if (req.password.trim().length < 6) {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Das Passwort muss mindestens 6 Zeichen lang sein."))
+                        return@post
+                    }
+                    req.password.trim()
+                } else {
+                    PasswordHasher.generateInitialPassword()
                 }
 
                 try {
@@ -123,7 +134,7 @@ fun Route.adminRoutes() {
                         RegisterRequest(
                             username = req.username,
                             email = req.email,
-                            password = req.password,
+                            password = finalPassword,
                             fullName = req.fullName,
                             className = req.className,
                             schoolType = req.schoolType,
@@ -172,17 +183,21 @@ fun Route.adminRoutes() {
                     return@post
                 }
                 val req = runCatching { call.receive<AdminResetPasswordRequest>() }.getOrElse {
-                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Neues Passwort fehlt."))
-                    return@post
+                    AdminResetPasswordRequest("")
                 }
-                if (req.newPassword.isBlank()) {
-                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Neues Passwort darf nicht leer sein."))
-                    return@post
+                val finalNewPassword = if (req.newPassword.isNotBlank()) {
+                    if (req.newPassword.trim().length < 6) {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Das neue Passwort muss mindestens 6 Zeichen lang sein."))
+                        return@post
+                    }
+                    req.newPassword.trim()
+                } else {
+                    PasswordHasher.generateInitialPassword()
                 }
-                val success = UserRepository.resetPassword(id, req.newPassword)
+                val success = UserRepository.resetPassword(id, finalNewPassword)
                 if (success) {
-                    UserRepository.setHasCustomPassword(id, false)
-                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Passwort erfolgreich zurückgesetzt."))
+                    val updatedUser = UserRepository.findById(id)
+                    call.respond(HttpStatusCode.OK, updatedUser?.toDto() ?: SimpleApiResponse(true, "Passwort erfolgreich zurückgesetzt."))
                 } else {
                     call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Benutzer nicht gefunden."))
                 }

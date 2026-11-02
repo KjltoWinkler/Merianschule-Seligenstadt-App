@@ -18,6 +18,28 @@ object PasswordHasher {
         return Base64.getEncoder().encodeToString(salt)
     }
 
+    fun generateInitialPassword(length: Int = 10): String {
+        val uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+        val lowercase = "abcdefghjkmnpqrstuvwxyz"
+        val digits = "23456789"
+        val allChars = uppercase + lowercase + digits
+
+        val chars = CharArray(length)
+        chars[0] = uppercase[secureRandom.nextInt(uppercase.length)]
+        chars[1] = lowercase[secureRandom.nextInt(lowercase.length)]
+        chars[2] = digits[secureRandom.nextInt(digits.length)]
+        for (i in 3 until length) {
+            chars[i] = allChars[secureRandom.nextInt(allChars.length)]
+        }
+        for (i in chars.indices.reversed()) {
+            val j = secureRandom.nextInt(i + 1)
+            val temp = chars[i]
+            chars[i] = chars[j]
+            chars[j] = temp
+        }
+        return String(chars)
+    }
+
     fun hashPassword(password: String, saltBase64: String): String {
         val salt = Base64.getDecoder().decode(saltBase64)
         val spec = PBEKeySpec(password.toCharArray(), salt, ITERATIONS, KEY_LENGTH)

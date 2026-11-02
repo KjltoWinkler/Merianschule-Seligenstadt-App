@@ -1216,7 +1216,7 @@
             <md-outlined-text-field id="addFullName" label="Vollständiger Name" placeholder="z. B. Max Mustermann">
               <md-icon slot="leading-icon">badge</md-icon>
             </md-outlined-text-field>
-            <md-outlined-text-field id="addPassword" label="Initiales Passwort*" type="password" required placeholder="Mindestens 6 Zeichen">
+            <md-outlined-text-field id="addPassword" label="Initiales Passwort (optional)" type="text" placeholder="Leer lassen für automatische Generierung" supporting-text="Wird automatisch erstellt, falls leer gelassen">
               <md-icon slot="leading-icon">lock</md-icon>
             </md-outlined-text-field>
           </div>
@@ -1269,7 +1269,7 @@
       <div class="m3-dialog-content">
         <p id="resetPasswordDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 12px;"></p>
         <input type="hidden" id="resetPasswordUserId">
-        <md-outlined-text-field id="resetPasswordInput" label="Neues Passwort" type="password" required placeholder="Neues Passwort eingeben">
+        <md-outlined-text-field id="resetPasswordInput" label="Neues Passwort (optional)" type="text" placeholder="Leer lassen für automatische Generierung" supporting-text="Wird automatisch erstellt, falls leer gelassen">
           <md-icon slot="leading-icon">key</md-icon>
         </md-outlined-text-field>
       </div>
@@ -1949,12 +1949,12 @@
       const role = document.getElementById('addRole').value;
       const studentId = document.getElementById('addStudentId').value.trim();
 
-      if (!username || !email || !password) {
-        showToast('Benutzername, E-Mail und Passwort sind Pflichtfelder.', true);
+      if (!username || !email) {
+        showToast('Benutzername und E-Mail sind Pflichtfelder.', true);
         return;
       }
 
-      if (password.length < 6) {
+      if (password && password.length < 6) {
         showToast('Das Passwort muss mindestens 6 Zeichen lang sein.', true);
         return;
       }
@@ -1981,7 +1981,12 @@
         const data = await res.json();
         if (res.ok) {
           closeAddUserDialog();
-          showToast(`Benutzer "${payload.fullName}" erfolgreich angelegt!`);
+          const initPw = data.initialPassword;
+          if (initPw) {
+            showToast(`Benutzer "${payload.fullName}" erstellt! Initialpasswort: ${initPw}`);
+          } else {
+            showToast(`Benutzer "${payload.fullName}" erfolgreich angelegt!`);
+          }
           loadUsers();
         } else {
           showToast(data.message || 'Fehler beim Anlegen des Benutzers.', true);
@@ -2003,7 +2008,7 @@
       const userId = document.getElementById('resetPasswordUserId').value;
       const newPassword = document.getElementById('resetPasswordInput').value.trim();
 
-      if (!newPassword || newPassword.length < 6) {
+      if (newPassword && newPassword.length < 6) {
         showToast('Das neue Passwort muss mindestens 6 Zeichen lang sein.', true);
         return;
       }
@@ -2017,7 +2022,13 @@
         const data = await res.json();
         if (res.ok) {
           document.getElementById('resetPasswordDialog').close();
-          showToast('Passwort erfolgreich zurückgesetzt!');
+          const initPw = data.initialPassword;
+          if (initPw) {
+            showToast(`Passwort zurückgesetzt! Neues Initialpasswort: ${initPw}`);
+          } else {
+            showToast('Passwort erfolgreich zurückgesetzt!');
+          }
+          loadUsers();
         } else {
           showToast(data.message || 'Fehler beim Zurücksetzen.', true);
         }

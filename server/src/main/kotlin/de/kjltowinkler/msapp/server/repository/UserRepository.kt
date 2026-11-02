@@ -135,11 +135,17 @@ object UserRepository {
             generateUniqueStudentId(conn)
         }
 
+        val effectivePassword = if (request.password.isNotBlank()) {
+            request.password
+        } else {
+            PasswordHasher.generateInitialPassword()
+        }
+
         val id = UUID.randomUUID().toString()
         val salt = PasswordHasher.generateSalt()
-        val hash = PasswordHasher.hashPassword(request.password, salt)
+        val hash = PasswordHasher.hashPassword(effectivePassword, salt)
         val encryptedInitialPassword = if (!hasCustomPassword) {
-            DataEncryptionService.encrypt(request.password)
+            DataEncryptionService.encrypt(effectivePassword)
         } else {
             null
         }
@@ -195,7 +201,7 @@ object UserRepository {
             avatarColorHex = request.avatarColorHex,
             role = role,
             hasCustomPassword = hasCustomPassword,
-            initialPassword = if (!hasCustomPassword) request.password else null,
+            initialPassword = if (!hasCustomPassword) effectivePassword else null,
             isTwoFactorEnabled = isTwoFactorEnabled,
             createdAt = now,
             updatedAt = now
