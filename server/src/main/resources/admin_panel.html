@@ -1061,58 +1061,6 @@
           </table>
         </div>
       </div>
-
-      <!-- User Tasks Table Card (Synchronisierte persönliche Aufgaben der Schüler) -->
-      <div class="m3-card" style="margin-top: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px;">
-              <md-icon>checklist</md-icon> Alle synchronisierten Schüler- & Nutzeraufgaben
-            </h3>
-            <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px; margin-top: 4px;">
-              Hier siehst du alle von Nutzern in der App erstellten Aufgaben und kannst verwaiste oder Test-Aufgaben (z. B. "yo", "test") direkt entfernen.
-            </p>
-          </div>
-          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <md-outlined-button onclick="loadUserTasks()">
-              <md-icon slot="icon">refresh</md-icon>
-              Aktualisieren
-            </md-outlined-button>
-          </div>
-        </div>
-
-        <div class="toolbar-row" style="margin-bottom: 16px;">
-          <div class="search-field" style="max-width: 100%;">
-            <md-outlined-text-field id="userTaskSearch" placeholder="Schüleraufgaben durchsuchen (Nutzer, Titel, Fach, Klasse)..." style="width: 100%;" oninput="filterUserTasks()">
-              <md-icon slot="leading-icon">search</md-icon>
-            </md-outlined-text-field>
-          </div>
-        </div>
-
-        <div class="user-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Schüler / Nutzer</th>
-                <th>Klasse</th>
-                <th>Titel & Beschreibung</th>
-                <th>Typ</th>
-                <th>Fälligkeit</th>
-                <th>Status</th>
-                <th style="text-align: right;">Aktion</th>
-              </tr>
-            </thead>
-            <tbody id="userTasksTableBody">
-              <tr>
-                <td colspan="7" style="text-align: center; padding: 24px;">
-                  <md-circular-progress indeterminate></md-circular-progress>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </section>
 
   </main>
@@ -1425,25 +1373,6 @@
     </div>
   </md-dialog>
 
-  <!-- Modal Dialog: Schüleraufgabe löschen -->
-  <md-dialog id="deleteUserTaskDialog">
-    <div slot="headline" style="color: var(--md-sys-color-error); display: flex; align-items: center; gap: 8px;">
-      <md-icon>delete_forever</md-icon>
-      Aufgabe aus Datenbank löschen
-    </div>
-    <form slot="content" method="dialog">
-      <input type="hidden" id="deleteUserTaskId">
-      <p id="deleteUserTaskDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 8px;"></p>
-      <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px;">Diese Aufgabe wird sofort dauerhaft gelöscht und auf allen Geräten des Nutzers entfernt.</p>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('deleteUserTaskDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error); --md-filled-button-label-text-color: var(--md-sys-color-on-error);" onclick="submitDeleteUserTask()">
-        Löschen
-      </md-filled-button>
-    </div>
-  </md-dialog>
-
   <datalist id="subjectsDatalist">
     <option value="Mathematik">
     <option value="Deutsch">
@@ -1523,7 +1452,6 @@
         }
         if (index === 4) {
           loadSchoolTasks();
-          loadUserTasks();
         }
       });
 
@@ -2827,118 +2755,7 @@
         showToast('Netzwerkfehler: ' + err.message, true);
       }
     }
-
-    // ----------------------------------------------------
-    // User Tasks Management (Schüler-Aufgaben)
-    // ----------------------------------------------------
-    let allUserTasks = [];
-
-    async function loadUserTasks() {
-      const tbody = document.getElementById('userTasksTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px;"><md-circular-progress indeterminate></md-circular-progress></td></tr>`;
-
-      try {
-        const res = await apiFetch('/api/admin/user-tasks');
-        if (!res.ok) throw new Error('Nutzeraufgaben konnten nicht geladen werden.');
-        allUserTasks = await res.json();
-        renderUserTasks(allUserTasks);
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--md-sys-color-error);">${escapeHtml(err.message)}</td></tr>`;
-      }
-    }
-
-    function renderUserTasks(tasks) {
-      const tbody = document.getElementById('userTasksTableBody');
-      if (!tbody) return;
-
-      if (!tasks || tasks.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" style="text-align: center; padding: 36px; color: var(--md-sys-color-on-surface-variant);">
-              <md-icon style="font-size: 36px; margin-bottom: 8px;">check_circle</md-icon>
-              <div>Keine aktiven Schüler-Aufgaben in der Datenbank vorhanden.</div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = tasks.map(task => {
-        const user = escapeHtml(task.fullName || task.username || 'Unbekannt');
-        const userSub = task.username ? `<div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">${escapeHtml(task.username)}</div>` : '';
-        const className = escapeHtml(task.className || '-');
-        const title = escapeHtml(task.title || '-');
-        const desc = task.description ? `<div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px;">${escapeHtml(task.description)}</div>` : '';
-        const isSchool = task.isSchoolTask ? '<span class="role-badge role-user" style="font-size: 11px;">Schulaufgabe</span>' : '<span class="role-badge" style="font-size: 11px; background: rgba(255,255,255,0.08);">Privat</span>';
-        const due = escapeHtml(task.dueDate || '-');
-        const status = task.isCompleted ? '<span style="color: #81c784; font-size: 12px; font-weight: 600;">Erledigt</span>' : '<span style="color: #ffb74d; font-size: 12px; font-weight: 600;">Offen</span>';
-
-        return `
-          <tr>
-            <td>
-              <div style="font-weight: 600; font-size: 13px;">${user}</div>
-              ${userSub}
-            </td>
-            <td>
-              <span class="role-badge role-user">${className}</span>
-            </td>
-            <td>
-              <div style="font-weight: 500; font-size: 14px;">${title}</div>
-              ${desc}
-            </td>
-            <td>${isSchool}</td>
-            <td><div style="font-size: 13px;">${due}</div></td>
-            <td>${status}</td>
-            <td style="text-align: right; white-space: nowrap;">
-              <md-icon-button title="Aufgabe aus Datenbank löschen" onclick="openDeleteUserTaskDialog('${escapeHtml(task.id)}', '${escapeHtml(task.title)}')">
-                <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
-              </md-icon-button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function filterUserTasks() {
-      const q = (document.getElementById('userTaskSearch').value || '').trim().toLowerCase();
-      const filtered = allUserTasks.filter(t => {
-        return !q ||
-          (t.title && t.title.toLowerCase().includes(q)) ||
-          (t.description && t.description.toLowerCase().includes(q)) ||
-          (t.username && t.username.toLowerCase().includes(q)) ||
-          (t.fullName && t.fullName.toLowerCase().includes(q)) ||
-          (t.className && t.className.toLowerCase().includes(q));
-      });
-      renderUserTasks(filtered);
-    }
-
-    function openDeleteUserTaskDialog(id, title) {
-      document.getElementById('deleteUserTaskId').value = id;
-      document.getElementById('deleteUserTaskDesc').textContent = `Möchtest du die Aufgabe "${title}" wirklich dauerhaft aus der Datenbank löschen?`;
-      document.getElementById('deleteUserTaskDialog').show();
-    }
-
-    async function submitDeleteUserTask() {
-      const id = document.getElementById('deleteUserTaskId').value;
-      if (!id) return;
-
-      try {
-        const res = await apiFetch('/api/admin/user-tasks/' + encodeURIComponent(id), {
-          method: 'DELETE'
-        });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          document.getElementById('deleteUserTaskDialog').close();
-          showToast('Aufgabe erfolgreich gelöscht!');
-          loadUserTasks();
-        } else {
-          showToast(data.message || 'Fehler beim Löschen der Aufgabe.', true);
-        }
-      } catch (err) {
-        showToast('Netzwerkfehler: ' + err.message, true);
-      }
-    }
   </script>
 </body>
 </html>
+

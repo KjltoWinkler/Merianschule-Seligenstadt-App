@@ -5,6 +5,7 @@ import de.kjltowinkler.msapp.data.sync.SyncTasksResponse
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TaskList
 import de.kjltowinkler.msapp.server.database.DatabaseFactory
+import de.kjltowinkler.msapp.server.security.DataEncryptionService
 import java.sql.ResultSet
 import kotlinx.serialization.Serializable
 
@@ -31,15 +32,15 @@ object TaskRepository {
 
     private fun mapTask(rs: ResultSet): TaskItem = TaskItem(
         id = rs.getString("id"),
-        title = rs.getString("title"),
-        description = rs.getString("description") ?: "",
-        subject = rs.getString("subject") ?: "",
+        title = DataEncryptionService.decrypt(rs.getString("title")),
+        description = DataEncryptionService.decrypt(rs.getString("description") ?: ""),
+        subject = DataEncryptionService.decrypt(rs.getString("subject") ?: ""),
         dueDate = rs.getString("due_date") ?: "",
         dueTime = rs.getString("due_time") ?: "",
         isCompleted = rs.getInt("is_completed") == 1,
-        completedDate = rs.getString("completed_date") ?: "",
-        createdDate = rs.getString("created_date") ?: "",
-        deadlineDate = rs.getString("deadline_date") ?: "",
+        completedDate = DataEncryptionService.decrypt(rs.getString("completed_date") ?: ""),
+        createdDate = DataEncryptionService.decrypt(rs.getString("created_date") ?: ""),
+        deadlineDate = DataEncryptionService.decrypt(rs.getString("deadline_date") ?: ""),
         isStarred = rs.getInt("is_starred") == 1,
         isSchoolTask = rs.getInt("is_school_task") == 1,
         listId = rs.getString("list_id") ?: "my_tasks",
@@ -48,7 +49,7 @@ object TaskRepository {
 
     private fun mapList(rs: ResultSet): TaskList = TaskList(
         id = rs.getString("id"),
-        title = rs.getString("title"),
+        title = if (rs.getString("id") == "my_tasks") "Meine Aufgaben" else DataEncryptionService.decrypt(rs.getString("title")),
         updatedAt = rs.getLong("updated_at")
     )
 
@@ -70,13 +71,13 @@ object TaskRepository {
                     for (st in schoolTasks) {
                         stmt.setString(1, st.id)
                         stmt.setString(2, userId)
-                        stmt.setString(3, st.title)
-                        stmt.setString(4, st.description)
-                        stmt.setString(5, st.subject)
+                        stmt.setString(3, DataEncryptionService.encrypt(st.title))
+                        stmt.setString(4, DataEncryptionService.encrypt(st.description))
+                        stmt.setString(5, DataEncryptionService.encrypt(st.subject))
                         stmt.setString(6, st.dueDate)
                         stmt.setString(7, st.dueTime)
-                        stmt.setString(8, st.createdDate)
-                        stmt.setString(9, st.deadlineDate)
+                        stmt.setString(8, DataEncryptionService.encrypt(st.createdDate))
+                        stmt.setString(9, DataEncryptionService.encrypt(st.deadlineDate))
                         stmt.setLong(10, st.updatedAt)
                         stmt.addBatch()
                     }
@@ -144,15 +145,15 @@ object TaskRepository {
             stmt.setString(1, task.id)
             stmt.setString(2, userId)
             stmt.setString(3, task.listId)
-            stmt.setString(4, task.title)
-            stmt.setString(5, task.description)
-            stmt.setString(6, task.subject)
+            stmt.setString(4, DataEncryptionService.encrypt(task.title))
+            stmt.setString(5, DataEncryptionService.encrypt(task.description))
+            stmt.setString(6, DataEncryptionService.encrypt(task.subject))
             stmt.setString(7, task.dueDate)
             stmt.setString(8, task.dueTime)
             stmt.setInt(9, if (task.isCompleted) 1 else 0)
-            stmt.setString(10, task.completedDate)
-            stmt.setString(11, task.createdDate)
-            stmt.setString(12, task.deadlineDate)
+            stmt.setString(10, DataEncryptionService.encrypt(task.completedDate))
+            stmt.setString(11, DataEncryptionService.encrypt(task.createdDate))
+            stmt.setString(12, DataEncryptionService.encrypt(task.deadlineDate))
             stmt.setInt(13, if (task.isStarred) 1 else 0)
             stmt.setInt(14, if (task.isSchoolTask) 1 else 0)
             stmt.setLong(15, now)
@@ -178,40 +179,12 @@ object TaskRepository {
         }
     }
 
-    suspend fun getAllUserTasks(): List<AdminUserTaskDto> = DatabaseFactory.query { conn ->
-        val sql = """
-            SELECT t.*, u.username, u.full_name, u.class_name 
-            FROM tasks t 
-            LEFT JOIN users u ON t.user_id = u.id 
-            ORDER BY t.updated_at DESC;
-        """.trimIndent()
-        conn.prepareStatement(sql).use { stmt ->
-            stmt.executeQuery().use { rs ->
-                val list = mutableListOf<AdminUserTaskDto>()
-                while (rs.next()) {
-                    list.add(
-                        AdminUserTaskDto(
-                            id = rs.getString("id"),
-                            userId = rs.getString("user_id"),
-                            username = rs.getString("username") ?: "Unbekannt",
-                            fullName = rs.getString("full_name") ?: "",
-                            className = rs.getString("class_name") ?: "",
-                            title = rs.getString("title"),
-                            description = rs.getString("description") ?: "",
-                            subject = rs.getString("subject") ?: "",
-                            dueDate = rs.getString("due_date") ?: "",
-                            dueTime = rs.getString("due_time") ?: "",
-                            isCompleted = rs.getInt("is_completed") == 1,
-                            isStarred = rs.getInt("is_starred") == 1,
-                            isSchoolTask = rs.getInt("is_school_task") == 1,
-                            listId = rs.getString("list_id") ?: "my_tasks",
-                            updatedAt = rs.getLong("updated_at")
-                        )
-                    )
-                }
-                list
-            }
-        }
+    /**
+     * Aus Datenschutzgründen (DSGVO Art. 5 & 9) werden Schüleraufgaben
+     * nicht an das Admin-Panel oder Administratoren herausgegeben.
+     */
+    suspend fun getAllUserTasks(): List<AdminUserTaskDto> {
+        return emptyList()
     }
 
     suspend fun upsertList(userId: String, list: TaskList): TaskList = DatabaseFactory.query { conn ->
@@ -228,7 +201,7 @@ object TaskRepository {
         conn.prepareStatement(sql).use { stmt ->
             stmt.setString(1, list.id)
             stmt.setString(2, userId)
-            stmt.setString(3, list.title)
+            stmt.setString(3, if (list.id == "my_tasks") "Meine Aufgaben" else DataEncryptionService.encrypt(list.title))
             stmt.setLong(4, now)
             stmt.executeUpdate()
         }
@@ -306,7 +279,7 @@ object TaskRepository {
                     val updateTime = if (l.updatedAt > 0L) l.updatedAt else now
                     stmt.setString(1, l.id)
                     stmt.setString(2, userId)
-                    stmt.setString(3, l.title)
+                    stmt.setString(3, if (l.id == "my_tasks") "Meine Aufgaben" else DataEncryptionService.encrypt(l.title))
                     stmt.setLong(4, updateTime)
                     stmt.addBatch()
                 }
@@ -344,15 +317,15 @@ object TaskRepository {
                     stmt.setString(1, t.id)
                     stmt.setString(2, userId)
                     stmt.setString(3, t.listId)
-                    stmt.setString(4, t.title)
-                    stmt.setString(5, t.description)
-                    stmt.setString(6, t.subject)
+                    stmt.setString(4, DataEncryptionService.encrypt(t.title))
+                    stmt.setString(5, DataEncryptionService.encrypt(t.description))
+                    stmt.setString(6, DataEncryptionService.encrypt(t.subject))
                     stmt.setString(7, t.dueDate)
                     stmt.setString(8, t.dueTime)
                     stmt.setInt(9, if (t.isCompleted) 1 else 0)
-                    stmt.setString(10, t.completedDate)
-                    stmt.setString(11, t.createdDate)
-                    stmt.setString(12, t.deadlineDate)
+                    stmt.setString(10, DataEncryptionService.encrypt(t.completedDate))
+                    stmt.setString(11, DataEncryptionService.encrypt(t.createdDate))
+                    stmt.setString(12, DataEncryptionService.encrypt(t.deadlineDate))
                     stmt.setInt(13, if (t.isStarred) 1 else 0)
                     stmt.setInt(14, if (t.isSchoolTask) 1 else 0)
                     stmt.setLong(15, updateTime)
@@ -375,13 +348,13 @@ object TaskRepository {
                 for (st in schoolTasks) {
                     stmt.setString(1, st.id)
                     stmt.setString(2, userId)
-                    stmt.setString(3, st.title)
-                    stmt.setString(4, st.description)
-                    stmt.setString(5, st.subject)
+                    stmt.setString(3, DataEncryptionService.encrypt(st.title))
+                    stmt.setString(4, DataEncryptionService.encrypt(st.description))
+                    stmt.setString(5, DataEncryptionService.encrypt(st.subject))
                     stmt.setString(6, st.dueDate)
                     stmt.setString(7, st.dueTime)
-                    stmt.setString(8, st.createdDate)
-                    stmt.setString(9, st.deadlineDate)
+                    stmt.setString(8, DataEncryptionService.encrypt(st.createdDate))
+                    stmt.setString(9, DataEncryptionService.encrypt(st.deadlineDate))
                     stmt.setLong(10, st.updatedAt)
                     stmt.addBatch()
                 }

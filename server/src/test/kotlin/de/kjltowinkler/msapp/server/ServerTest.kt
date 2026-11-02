@@ -19,6 +19,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ServerTest {
@@ -220,4 +221,121 @@ class ServerTest {
         // Notification an User ohne Sessions darf ohne Fehler durchlaufen
         de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager.notifyTaskUpdate(userId, "test_event")
     }
+
+    @Test
+    fun testDataEncryptionServiceDirectly() {
+        val plaintext = "Geheime Schüler-Notiz für Mathe: 1+1=2"
+        val encrypted = de.kjltowinkler.msapp.server.security.DataEncryptionService.encrypt(plaintext)
+        assertNotNull(encrypted)
+        assertTrue(encrypted.startsWith("enc:v1:"), "Verschlüsselter Text muss Präfix enc:v1: haben")
+        assertFalse(encrypted.contains("Geheime"), "Ciphertext darf keinen Klartext enthalten")
+
+        val decrypted = de.kjltowinkler.msapp.server.security.DataEncryptionService.decrypt(encrypted)
+        assertEquals(plaintext, decrypted, "Entschlüsselter Text muss dem Original entsprechen")
+
+        // Legacy Klartext ohne Präfix enc:v1: muss transparent zurückgegeben werden (Rückwärtskompatibilität)
+        val legacyPlaintext = "Alte unverschlüsselte Aufgabe"
+        val decryptedLegacy = de.kjltowinkler.msapp.server.security.DataEncryptionService.decrypt(legacyPlaintext)
+        assertEquals(legacyPlaintext, decryptedLegacy)
+
+        // Null- & Empty-Handling
+        assertEquals("", de.kjltowinkler.msapp.server.security.DataEncryptionService.encrypt(null))
+        assertEquals("", de.kjltowinkler.msapp.server.security.DataEncryptionService.decrypt(null))
+        assertEquals("", de.kjltowinkler.msapp.server.security.DataEncryptionService.encrypt(""))
+        assertEquals("", de.kjltowinkler.msapp.server.security.DataEncryptionService.decrypt(""))
+
+        // Manipulierter Ciphertext (AES-GCM Auth Tag Failure)
+        val tampered = encrypted.dropLast(2) + "=="
+        val decryptedTampered = de.kjltowinkler.msapp.server.security.DataEncryptionService.decrypt(tampered)
+        // Bei Integritätsverletzung gibt decrypt für Fehlertoleranz den Fallback zurück
+        assertEquals(tampered, decryptedTampered)
+    }
+
+    @Test
+    fun testTaskEncryptionAtRestAndGdprProtection() = runBlocking {
+        val suffix = System.currentTimeMillis()
+        val user = UserRepository.createUser(
+            RegisterRequest("gdpr_user_$suffix", "gdpr_$suffix@school.de", "Pw123!", "Datenschutz Test", "10BR")
+        )
+
+        val taskTitle = "Sensible Schüleraufgabe Biologie"
+        val taskDesc = "Persönliche Notizen zur Klassenarbeit"
+        val listTitle = "Mein Privates Projekt"
+
+        val privateList = TaskList(id = "list_privat_$suffix", title = listTitle)
+        val privateTask = TaskItem(
+            id = "task_privat_$suffix",
+            title = taskTitle,
+            description = taskDesc,
+            listId = privateList.id,
+            subject = "Biologie"
+        )
+
+        // Syncen / Speichern
+        TaskRepository.sync(user.id, SyncTasksRequest(tasks = listOf(privateTask), lists = listOf(privateList)))
+
+        // 1. Direkte Prüfung in der SQLite-Datenbank: Die Daten müssen dort zwingend AES-256-GCM verschlüsselt liegen!
+        DatabaseFactory.query { conn ->
+            conn.prepareStatement("SELECT title, description, subject FROM tasks WHERE id = ?").use { stmt ->
+                stmt.setString(1, privateTask.id)
+                val rs = stmt.executeQuery()
+                assertTrue(rs.next(), "Task muss in SQLite-Tabelle tasks existieren")
+
+                val rawTitle = rs.getString("title")
+                val rawDesc = rs.getString("description")
+                val rawSubject = rs.getString("subject")
+
+                assertTrue(rawTitle.startsWith("enc:v1:"), "Titel in Datenbank muss mit enc:v1: verschlüsselt sein. Ist: $rawTitle")
+                assertTrue(rawDesc.startsWith("enc:v1:"), "Beschreibung in Datenbank muss mit enc:v1: verschlüsselt sein. Ist: $rawDesc")
+                assertTrue(rawSubject.startsWith("enc:v1:"), "Fach in Datenbank muss mit enc:v1: verschlüsselt sein. Ist: $rawSubject")
+
+                assertFalse(rawTitle.contains("Sensible"), "Rohdaten in DB dürfen keinen Klartext-Titel enthalten")
+                assertFalse(rawDesc.contains("Persönliche"), "Rohdaten in DB dürfen keine Klartext-Beschreibung enthalten")
+            }
+
+            conn.prepareStatement("SELECT title FROM task_lists WHERE id = ?").use { stmt ->
+                stmt.setString(1, privateList.id)
+                val rs = stmt.executeQuery()
+                assertTrue(rs.next(), "Liste muss in SQLite-Tabelle task_lists existieren")
+
+                val rawListTitle = rs.getString("title")
+                assertTrue(rawListTitle.startsWith("enc:v1:"), "Listentitel in DB muss verschlüsselt sein. Ist: $rawListTitle")
+                assertFalse(rawListTitle.contains("Privates"), "Rohdaten des Listentitels dürfen keinen Klartext enthalten")
+            }
+        }
+
+        // 2. Client-Abfrage: Der authentifizierte Schüler erhält seine Daten transparent entschlüsselt zurück
+        val userTasks = TaskRepository.getTasks(user.id)
+        val retrievedTask = userTasks.first { it.id == privateTask.id }
+        assertEquals(taskTitle, retrievedTask.title)
+        assertEquals(taskDesc, retrievedTask.description)
+        assertEquals("Biologie", retrievedTask.subject)
+
+        val userLists = TaskRepository.getLists(user.id)
+        val retrievedList = userLists.first { it.id == privateList.id }
+        assertEquals(listTitle, retrievedList.title)
+
+        // 3. DSGVO Schutz: getAllUserTasks() für Admins muss zwingend leer sein (Datensparsamkeit)
+        val adminExposedTasks = TaskRepository.getAllUserTasks()
+        assertTrue(adminExposedTasks.isEmpty(), "DSGVO-Schutz: Schüleraufgaben dürfen niemals an Admin-Schnittstelle exposed werden!")
+
+        // 4. Verschlüsselung von 2FA-Secrets in der Datenbank
+        val base32Secret = "JBSWY3DPEHPK3PXP"
+        UserRepository.setTwoFactorTempSecret(user.id, base32Secret)
+
+        DatabaseFactory.query { conn ->
+            conn.prepareStatement("SELECT two_factor_temp_secret FROM users WHERE id = ?").use { stmt ->
+                stmt.setString(1, user.id)
+                val rs = stmt.executeQuery()
+                assertTrue(rs.next())
+                val rawSecretInDb = rs.getString("two_factor_temp_secret")
+                assertTrue(rawSecretInDb.startsWith("enc:v1:"), "2FA-Secret in DB muss verschlüsselt sein. Ist: $rawSecretInDb")
+                assertFalse(rawSecretInDb.contains(base32Secret), "2FA-Secret darf nicht als Klartext in der DB liegen")
+            }
+        }
+
+        val userRecord = UserRepository.findById(user.id)
+        assertEquals(base32Secret, userRecord?.twoFactorTempSecret, "UserRepository muss 2FA-Secret transparent entschlüsseln")
+    }
 }
+

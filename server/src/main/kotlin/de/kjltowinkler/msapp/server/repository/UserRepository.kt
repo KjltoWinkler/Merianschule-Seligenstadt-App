@@ -4,6 +4,7 @@ import de.kjltowinkler.msapp.data.auth.RegisterRequest
 import de.kjltowinkler.msapp.data.auth.UpdateProfileRequest
 import de.kjltowinkler.msapp.data.auth.UserProfileDto
 import de.kjltowinkler.msapp.server.database.DatabaseFactory
+import de.kjltowinkler.msapp.server.security.DataEncryptionService
 import de.kjltowinkler.msapp.server.security.PasswordHasher
 import java.sql.ResultSet
 import java.util.UUID
@@ -65,8 +66,8 @@ object UserRepository {
         val hasCustom = runCatching { rs.getInt("has_custom_password") == 1 }.getOrDefault(true)
         val is2fa = runCatching { rs.getInt("is_two_factor_enabled") == 1 }.getOrDefault(false)
         val sId = runCatching { rs.getString("student_id") ?: "" }.getOrDefault("")
-        val secret = runCatching { rs.getString("two_factor_secret") }.getOrNull()
-        val tempSecret = runCatching { rs.getString("two_factor_temp_secret") }.getOrNull()
+        val secret = runCatching { rs.getString("two_factor_secret")?.let { DataEncryptionService.decrypt(it) } }.getOrNull()
+        val tempSecret = runCatching { rs.getString("two_factor_temp_secret")?.let { DataEncryptionService.decrypt(it) } }.getOrNull()
         return UserRecord(
             id = rs.getString("id"),
             username = rs.getString("username"),
@@ -205,7 +206,7 @@ object UserRepository {
     suspend fun setTwoFactorTempSecret(userId: String, tempSecret: String?): Boolean = DatabaseFactory.query { conn ->
         val sql = "UPDATE users SET two_factor_temp_secret = ?, updated_at = ? WHERE id = ?;"
         conn.prepareStatement(sql).use { stmt ->
-            stmt.setString(1, tempSecret)
+            stmt.setString(1, tempSecret?.let { DataEncryptionService.encrypt(it) })
             stmt.setLong(2, System.currentTimeMillis())
             stmt.setString(3, userId)
             stmt.executeUpdate() > 0
@@ -215,7 +216,7 @@ object UserRepository {
     suspend fun activateTwoFactor(userId: String, secret: String): Boolean = DatabaseFactory.query { conn ->
         val sql = "UPDATE users SET is_two_factor_enabled = 1, two_factor_secret = ?, two_factor_temp_secret = NULL, updated_at = ? WHERE id = ?;"
         conn.prepareStatement(sql).use { stmt ->
-            stmt.setString(1, secret)
+            stmt.setString(1, DataEncryptionService.encrypt(secret))
             stmt.setLong(2, System.currentTimeMillis())
             stmt.setString(3, userId)
             stmt.executeUpdate() > 0

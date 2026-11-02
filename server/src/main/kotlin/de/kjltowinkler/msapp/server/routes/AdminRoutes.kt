@@ -594,34 +594,20 @@ fun Route.adminRoutes() {
             }
         }
 
-        // User Tasks Management (View all created student/user tasks & delete if needed)
+        // Schüleraufgaben unterliegen dem Datenschutz (DSGVO) und sind für Administratoren nicht einsehbar.
         route("/user-tasks") {
             get {
-                if (!verifyAdminAccess(call)) {
-                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
-                    return@get
-                }
-                val tasks = TaskRepository.getAllUserTasks()
-                call.respond(HttpStatusCode.OK, tasks)
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    SimpleApiResponse(false, "Schüleraufgaben unterliegen dem Datenschutz (DSGVO) und sind für Administratoren nicht einsehbar.")
+                )
             }
 
             delete("/{id}") {
-                if (!verifyAdminAccess(call)) {
-                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
-                    return@delete
-                }
-                val taskId = call.parameters["id"]
-                if (taskId.isNullOrBlank()) {
-                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Aufgaben-ID fehlt."))
-                    return@delete
-                }
-                val deleted = TaskRepository.adminDeleteTask(taskId)
-                if (deleted) {
-                    TaskWebSocketManager.broadcastTaskUpdate(reason = "user_task_deleted")
-                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Aufgabe erfolgreich aus der Datenbank gelöscht."))
-                } else {
-                    call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Aufgabe nicht gefunden."))
-                }
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    SimpleApiResponse(false, "Schüleraufgaben unterliegen dem Datenschutz (DSGVO) und sind für Administratoren nicht einsehbar.")
+                )
             }
         }
     }
