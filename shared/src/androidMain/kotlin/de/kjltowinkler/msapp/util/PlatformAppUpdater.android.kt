@@ -100,11 +100,13 @@ actual object PlatformAppUpdater {
             val destinationFile = File(updatesDir, "MerianschuleApp-$cleanVersionName.apk")
             if (destinationFile.exists()) destinationFile.delete()
 
-            val fullUrl = if (updateInfo.downloadUrl.startsWith("http://") || updateInfo.downloadUrl.startsWith("https://")) {
+            val rawUrl = if (updateInfo.downloadUrl.startsWith("http://") || updateInfo.downloadUrl.startsWith("https://")) {
                 updateInfo.downloadUrl
             } else {
                 "${BackendApiClient.serverUrl.trimEnd('/')}/${updateInfo.downloadUrl.trimStart('/')}"
             }
+            val separator = if (rawUrl.contains("?")) "&" else "?"
+            val fullUrl = "$rawUrl${separator}t=${System.currentTimeMillis()}"
 
             val client = HttpClient(CIO)
             val response = client.get(fullUrl)

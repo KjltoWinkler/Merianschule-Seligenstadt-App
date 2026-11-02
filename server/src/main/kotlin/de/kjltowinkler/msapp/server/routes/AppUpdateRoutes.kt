@@ -133,6 +133,8 @@ fun Route.appUpdateRoutes() {
 
         // Öffentlich: App-Version und Update-Informationen abfragen
         get("/version") {
+            call.response.header(HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
+            call.response.header(HttpHeaders.Pragma, "no-cache")
             val info = AppUpdateRepository.getUpdateInfo()
             call.respond(HttpStatusCode.OK, info)
         }
@@ -151,6 +153,8 @@ fun Route.appUpdateRoutes() {
             val info = AppUpdateRepository.getUpdateInfo()
             val filename = "MerianschuleApp-${info.versionName}.apk"
 
+            call.response.header(HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
+            call.response.header(HttpHeaders.Pragma, "no-cache")
             call.response.header(
                 HttpHeaders.ContentDisposition,
                 ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, filename).toString()
