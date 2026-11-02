@@ -68,80 +68,19 @@ object TasksRepository {
         }
 
     init {
-        val loaded = loadFromCache()
-        if (!loaded) {
-            if (!BackendApiClient.isLoggedIn) {
-                _tasks.addAll(getSampleTasks())
-            }
+        loadFromCache()
+        // Vorhandene Dummy-Sample-Aufgaben (z. B. "Bis", "Yes") vollständig aus dem Speicher entfernen
+        val legacySamples = _tasks.filter { it.id.startsWith("sample_") }
+        if (legacySamples.isNotEmpty()) {
+            _tasks.removeAll(legacySamples)
+            _pendingDeletedTaskIds.addAll(legacySamples.map { it.id })
+            saveToCache()
         }
         if (BackendApiClient.isLoggedIn) {
             triggerBackgroundSync(debounceMs = 0)
             startRealtimeSync()
         }
     }
-
-    private fun getSampleTasks(): List<TaskItem> = listOf(
-        TaskItem(
-            id = "sample_1",
-            title = "Bis",
-            description = "Nö",
-            isCompleted = false,
-            createdDate = "Di., 13. Okt.",
-            deadlineDate = "Do., 15. Okt.",
-            isStarred = true,
-            isSchoolTask = true
-        ),
-        TaskItem(
-            id = "sample_2",
-            title = "Yes",
-            description = "",
-            isCompleted = false,
-            createdDate = "Di., 13. Okt.",
-            isStarred = true,
-            isSchoolTask = true
-        ),
-        TaskItem(
-            id = "sample_3",
-            title = "Yes",
-            description = "",
-            isCompleted = false,
-            createdDate = "Di., 13. Okt.",
-            isStarred = true,
-            isSchoolTask = false
-        ),
-        TaskItem(
-            id = "sample_4",
-            title = "Hausaufgaben Deutsch",
-            description = "S. 42 Nr. 3",
-            isCompleted = false,
-            createdDate = "Di., 13. Okt.",
-            dueDate = "15.10.2026",
-            deadlineDate = "Do., 15. Okt.",
-            isStarred = false,
-            isSchoolTask = true
-        ),
-        TaskItem(
-            id = "sample_5",
-            title = "VG1",
-            description = "",
-            isCompleted = true,
-            createdDate = "Di., 13. Okt.",
-            completedDate = "Mi., 14. Okt.",
-            deadlineDate = "Do., 15. Okt.",
-            isStarred = true,
-            isSchoolTask = true
-        ),
-        TaskItem(
-            id = "sample_6",
-            title = "VG2",
-            description = "",
-            isCompleted = true,
-            createdDate = "Di., 13. Okt.",
-            completedDate = "Mi., 14. Okt.",
-            isStarred = true,
-            isSchoolTask = false
-        )
-    )
 
     private fun saveToCache() {
         runCatching {
@@ -223,9 +162,10 @@ object TasksRepository {
         isSyncing = true
         lastSyncError = null
         return try {
-            val currentTasks = _tasks.toList()
+            val currentTasks = _tasks.filterNot { it.id.startsWith("sample_") }
             val currentLists = privateLists.toList()
-            val delTasks = _pendingDeletedTaskIds.toList()
+            val legacySampleIds = _tasks.filter { it.id.startsWith("sample_") }.map { it.id }
+            val delTasks = (_pendingDeletedTaskIds + legacySampleIds).distinct().toList()
             val delLists = _pendingDeletedListIds.toList()
 
             val result = BackendApiClient.syncTasks(
@@ -242,10 +182,16 @@ object TasksRepository {
                     _dirtyTaskIds.removeAll(currentTasks.map { it.id }.toSet())
                     _dirtyListIds.removeAll(currentLists.map { it.id }.toSet())
 
+                    val cleanServerTasks = response.tasks.filterNot { it.id.startsWith("sample_") }
+                    val extraServerSampleIds = response.tasks.filter { it.id.startsWith("sample_") }.map { it.id }
+                    if (extraServerSampleIds.isNotEmpty()) {
+                        _pendingDeletedTaskIds.addAll(extraServerSampleIds)
+                    }
+
                     // In-place Abgleich, damit kein Flackern oder Statusverlust in Compose entsteht
-                    val serverIds = response.tasks.map { it.id }.toSet()
-                    _tasks.removeAll { !serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id) }
-                    for (serverTask in response.tasks) {
+                    val serverIds = cleanServerTasks.map { it.id }.toSet()
+                    _tasks.removeAll { (!serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id)) || it.id.startsWith("sample_") }
+                    for (serverTask in cleanServerTasks) {
                         val index = _tasks.indexOfFirst { it.id == serverTask.id }
                         if (index != -1) {
                             val local = _tasks[index]
@@ -301,15 +247,17 @@ object TasksRepository {
     suspend fun reloadAndSync(): Boolean {
         if (!BackendApiClient.isLoggedIn) {
             loadFromCache()
+            _tasks.removeAll { it.id.startsWith("sample_") }
             return true
         }
         return syncMutex.withLock {
             isSyncing = true
             lastSyncError = null
             try {
-                val currentTasks = _tasks.toList()
+                val currentTasks = _tasks.filterNot { it.id.startsWith("sample_") }
                 val currentLists = privateLists.toList()
-                val delTasks = _pendingDeletedTaskIds.toList()
+                val legacySampleIds = _tasks.filter { it.id.startsWith("sample_") }.map { it.id }
+                val delTasks = (_pendingDeletedTaskIds + legacySampleIds).distinct().toList()
                 val delLists = _pendingDeletedListIds.toList()
 
                 val result = BackendApiClient.syncTasks(
@@ -326,9 +274,15 @@ object TasksRepository {
                         _dirtyTaskIds.removeAll(currentTasks.map { it.id }.toSet())
                         _dirtyListIds.removeAll(currentLists.map { it.id }.toSet())
 
-                        val serverIds = response.tasks.map { it.id }.toSet()
-                        _tasks.removeAll { !serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id) }
-                        for (serverTask in response.tasks) {
+                        val cleanServerTasks = response.tasks.filterNot { it.id.startsWith("sample_") }
+                        val extraServerSampleIds = response.tasks.filter { it.id.startsWith("sample_") }.map { it.id }
+                        if (extraServerSampleIds.isNotEmpty()) {
+                            _pendingDeletedTaskIds.addAll(extraServerSampleIds)
+                        }
+
+                        val serverIds = cleanServerTasks.map { it.id }.toSet()
+                        _tasks.removeAll { (!serverIds.contains(it.id) && !_dirtyTaskIds.contains(it.id)) || it.id.startsWith("sample_") }
+                        for (serverTask in cleanServerTasks) {
                             val index = _tasks.indexOfFirst { it.id == serverTask.id }
                             if (index != -1) {
                                 val local = _tasks[index]
@@ -466,7 +420,8 @@ object TasksRepository {
         PlatformStorage.remove(KEY_CACHED_LISTS)
         PlatformStorage.remove(KEY_PENDING_DEL_TASKS)
         PlatformStorage.remove(KEY_PENDING_DEL_LISTS)
-        _tasks.addAll(getSampleTasks())
+        PlatformStorage.remove(KEY_DIRTY_TASKS)
+        PlatformStorage.remove(KEY_DIRTY_LISTS)
     }
 
     fun addTask(task: TaskItem) {

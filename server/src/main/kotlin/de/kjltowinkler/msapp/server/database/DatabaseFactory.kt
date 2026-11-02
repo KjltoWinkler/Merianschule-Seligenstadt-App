@@ -136,6 +136,11 @@ object DatabaseFactory {
                     );
                 """.trimIndent())
 
+                // Bereinige eventuell vorhandene Alt-Sample-Aufgaben (z. B. "sample_1" bis "sample_6")
+                try {
+                    stmt.execute("DELETE FROM tasks WHERE id LIKE 'sample_%';")
+                } catch (_: Exception) {}
+
                 stmt.execute("""
                     CREATE TABLE IF NOT EXISTS substitutions (
                         id TEXT PRIMARY KEY,

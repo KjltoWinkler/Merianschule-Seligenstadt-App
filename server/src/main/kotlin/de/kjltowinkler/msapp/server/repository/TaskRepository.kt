@@ -85,7 +85,7 @@ object TaskRepository {
                 }
             }
 
-            val sql = "SELECT * FROM tasks WHERE user_id = ? ORDER BY is_completed ASC, updated_at DESC;"
+            val sql = "SELECT * FROM tasks WHERE user_id = ? AND id NOT LIKE 'sample_%' ORDER BY is_completed ASC, updated_at DESC;"
             conn.prepareStatement(sql).use { stmt ->
                 stmt.setString(1, userId)
                 stmt.executeQuery().use { rs ->
@@ -287,8 +287,9 @@ object TaskRepository {
             }
         }
 
-        // 2. Upsert tasks from client
-        if (request.tasks.isNotEmpty()) {
+        // 2. Upsert tasks from client (reject any legacy sample tasks)
+        val cleanTasks = request.tasks.filterNot { it.id.startsWith("sample_") }
+        if (cleanTasks.isNotEmpty()) {
             val taskSql = """
                 INSERT INTO tasks (
                     id, user_id, list_id, title, description, subject, 
@@ -312,7 +313,7 @@ object TaskRepository {
                 WHERE excluded.updated_at >= tasks.updated_at;
             """.trimIndent()
             conn.prepareStatement(taskSql).use { stmt ->
-                for (t in request.tasks) {
+                for (t in cleanTasks) {
                     val updateTime = if (t.updatedAt > 0L) t.updatedAt else now
                     stmt.setString(1, t.id)
                     stmt.setString(2, userId)
