@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
+import de.kjltowinkler.msapp.data.task.TaskNotificationManager
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.ui.components.handCursor
  
@@ -45,12 +46,12 @@ fun SettingsScreen(
 ) {
     var delayWarningsEnabled by rememberSaveable { mutableStateOf(true) }
     var relaxedDismissalEnabled by rememberSaveable { mutableStateOf(true) }
-    var taskReminderEnabled by rememberSaveable { mutableStateOf(true) }
+    var taskReminderEnabled by rememberSaveable { mutableStateOf(TaskNotificationManager.isRemindersEnabled) }
     var darkThemeEnabled by rememberSaveable { mutableStateOf(initialDarkTheme) }
     var materialYouEnabled by rememberSaveable { mutableStateOf(useMaterialYou) }
     var isPredictiveBackOn by rememberSaveable { mutableStateOf(predictiveBackEnabled) }
 
-    var selectedReminderTime by rememberSaveable { mutableStateOf("10 Minuten vorher") }
+    var selectedReminderTime by rememberSaveable { mutableStateOf(TaskNotificationManager.reminderLeadTime) }
     var showPickTimeDialog by rememberSaveable { mutableStateOf(false) }
     var showCustomPickTimeDialog by rememberSaveable { mutableStateOf(false) }
     var isTwoFactorOn by remember(isTwoFactorEnabled) { mutableStateOf(isTwoFactorEnabled) }
@@ -228,7 +229,7 @@ fun SettingsScreen(
                     // Item 2: Aufgaben-Erinnerung mit Zeitauswahl-Chevron
                     SettingsItemRow(
                         title = "Aufgaben-Erinnerung",
-                        subtitle = "Einstellbare Erinnerungszeit\nvor Ablauf einer Aufgabe.",
+                        subtitle = "$selectedReminderTime vor Ablauf\nsowie bei Überfälligkeit.",
                         titleColor = textPrimary,
                         subtitleColor = textSecondary,
                         onClick = { showPickTimeDialog = true },
@@ -263,7 +264,11 @@ fun SettingsScreen(
 
                                 MaterialYouSwitch(
                                     checked = taskReminderEnabled,
-                                    onCheckedChange = { taskReminderEnabled = it },
+                                    onCheckedChange = {
+                                        taskReminderEnabled = it
+                                        TaskNotificationManager.isRemindersEnabled = it
+                                        if (it) TaskNotificationManager.checkAndNotify()
+                                    },
                                     contentDescription = "Aufgaben-Erinnerung"
                                 )
                             }
@@ -406,6 +411,8 @@ fun SettingsScreen(
             selectedOption = selectedReminderTime,
             onOptionSelected = { option ->
                 selectedReminderTime = option
+                TaskNotificationManager.reminderLeadTime = option
+                TaskNotificationManager.checkAndNotify()
                 showPickTimeDialog = false
             },
             onCustomClicked = {
@@ -424,6 +431,8 @@ fun SettingsScreen(
             initialUnitIndex = 0,
             onConfirm = { result ->
                 selectedReminderTime = result
+                TaskNotificationManager.reminderLeadTime = result
+                TaskNotificationManager.checkAndNotify()
                 showCustomPickTimeDialog = false
             },
             onDismissRequest = { showCustomPickTimeDialog = false },

@@ -33,6 +33,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
+import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -1227,6 +1228,7 @@ private fun ActiveTaskRowItem(
                 )
             }
 
+            val isOverdue = !task.isCompleted && task.isOverdue()
             Column(
                 verticalArrangement = Arrangement.spacedBy(1.dp),
                 modifier = Modifier
@@ -1240,8 +1242,8 @@ private fun ActiveTaskRowItem(
                 Text(
                     text = task.title,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorScheme.onSurface
+                    fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.SemiBold,
+                    color = if (isOverdue) colorScheme.error else colorScheme.onSurface
                 )
                 if (task.description.isNotBlank()) {
                     Text(
@@ -1262,8 +1264,8 @@ private fun ActiveTaskRowItem(
                     Text(
                         text = dateLabel,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colorScheme.primary
+                        fontWeight = if (isOverdue) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (isOverdue) colorScheme.error else colorScheme.primary
                     )
                 }
             }

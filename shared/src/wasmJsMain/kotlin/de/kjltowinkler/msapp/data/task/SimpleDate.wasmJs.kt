@@ -20,6 +20,10 @@ private fun jsGetMinutes(): Int = js("new Date().getMinutes()")
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun jsDateNow(): Double = js("Date.now()")
 
+@OptIn(ExperimentalWasmJsInterop::class)
+private fun jsDateToMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Double =
+    js("new Date(year, month - 1, day, hour, minute, 0, 0).getTime()")
+
 actual fun getTodayDate(): SimpleDate = SimpleDate(
     year = jsGetFullYear(),
     monthNumber = jsGetMonth(),
@@ -32,3 +36,7 @@ actual fun getCurrentTime(): SimpleTime = SimpleTime(
 )
 
 actual fun getCurrentEpochMillis(): Long = jsDateNow().toLong()
+
+actual fun parseDateTimeToEpochMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
+    jsDateToMillis(year, month, day, hour, minute).toLong()
+

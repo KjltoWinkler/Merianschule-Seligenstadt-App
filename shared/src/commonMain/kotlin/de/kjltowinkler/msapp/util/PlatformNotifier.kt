@@ -12,4 +12,10 @@ expect object PlatformNotifier {
      * @param details Detaillierte Liste der Änderungen (für die aufklappbare Mehrzeilen-Ansicht)
      */
     fun sendNotification(title: String, summary: String, details: List<String> = emptyList())
+
+    /**
+     * Sendet eine Benachrichtigung zu Aufgaben (Erinnerungen an fällige / überfällige Fristen).
+     */
+    fun sendTaskNotification(title: String, summary: String, details: List<String> = emptyList())
 }
+

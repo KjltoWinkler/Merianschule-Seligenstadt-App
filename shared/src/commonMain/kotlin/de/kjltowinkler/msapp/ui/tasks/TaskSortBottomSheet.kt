@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.task.TaskItem
+import de.kjltowinkler.msapp.data.task.getDueEpochMillis
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.Res
@@ -48,17 +49,15 @@ fun List<TaskItem>.sortedByOption(option: TaskSortOption): List<TaskItem> {
         TaskSortOption.DATE -> {
             sortedWith(
                 compareBy<TaskItem> { task ->
-                    val date = task.dueDate.ifBlank { task.createdDate }
-                    if (date.isBlank()) "zzz" else date
-                }
+                    task.getDueEpochMillis() ?: Long.MAX_VALUE
+                }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
             )
         }
         TaskSortOption.DEADLINE -> {
             sortedWith(
                 compareBy<TaskItem> { task ->
-                    val deadline = task.deadlineDate.ifBlank { task.dueDate }
-                    if (deadline.isBlank()) "zzz" else deadline
-                }
+                    task.getDueEpochMillis() ?: Long.MAX_VALUE
+                }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
             )
         }
         TaskSortOption.RECENTLY_STARRED -> {

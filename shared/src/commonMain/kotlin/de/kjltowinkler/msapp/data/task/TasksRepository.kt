@@ -433,6 +433,7 @@ object TasksRepository {
         _tasks.add(0, taskWithDate)
         saveToCache()
         triggerBackgroundSync()
+        TaskNotificationManager.checkAndNotify()
     }
 
     fun updateTask(task: TaskItem) {
@@ -444,6 +445,7 @@ object TasksRepository {
             _tasks[index] = updated
             saveToCache()
             triggerBackgroundSync()
+            TaskNotificationManager.checkAndNotify()
         }
     }
 

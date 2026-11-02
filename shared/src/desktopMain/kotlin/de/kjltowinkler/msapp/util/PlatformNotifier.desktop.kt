@@ -26,4 +26,9 @@ actual object PlatformNotifier {
             println("[Desktop-Benachrichtigung] $title: $summary (${details.joinToString("; ")})")
         }
     }
+
+    actual fun sendTaskNotification(title: String, summary: String, details: List<String>) {
+        sendNotification(title, summary, details)
+    }
 }
+

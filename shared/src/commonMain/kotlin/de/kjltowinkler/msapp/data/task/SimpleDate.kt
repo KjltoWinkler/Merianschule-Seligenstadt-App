@@ -130,3 +130,5 @@ data class SimpleTime(
 expect fun getTodayDate(): SimpleDate
 expect fun getCurrentTime(): SimpleTime
 expect fun getCurrentEpochMillis(): Long
+expect fun parseDateTimeToEpochMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long
+

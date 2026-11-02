@@ -2,6 +2,9 @@ package de.kjltowinkler.msapp
 
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TasksRepository
+import de.kjltowinkler.msapp.data.task.isOverdue
+import de.kjltowinkler.msapp.ui.tasks.TaskSortOption
+import de.kjltowinkler.msapp.ui.tasks.sortedByOption
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -439,5 +442,72 @@ class SharedCommonTest {
         assertTrue(thursdayNov5.isDateInCurrentWeek("2026-11-02")) // Montag derselben Woche
         assertTrue(thursdayNov5.isDateInCurrentWeek("2026-11-05")) // Heute
         assertFalse(thursdayNov5.isDateInCurrentWeek("2026-10-30")) // Freitag letzter Woche
+    }
+
+    @Test
+    fun testTaskDeadlineSortingOrdersNearestFirst() {
+        val taskOverdue = TaskItem(
+            id = "t_overdue",
+            title = "Aufsatz abgeben (Überfällig)",
+            dueDate = "2026-10-25",
+            dueTime = "12:00"
+        )
+        val taskSoon = TaskItem(
+            id = "t_soon",
+            title = "Mathe Hausaufgabe",
+            dueDate = "2026-11-03",
+            dueTime = "08:00"
+        )
+        val taskLater = TaskItem(
+            id = "t_later",
+            title = "Biologie Projekt",
+            dueDate = "2026-11-20",
+            dueTime = "14:00"
+        )
+        val taskNoDate = TaskItem(
+            id = "t_nodate",
+            title = "Zimmer aufräumen",
+            dueDate = "",
+            dueTime = "",
+            deadlineDate = ""
+        )
+
+        val unsorted = listOf(taskLater, taskNoDate, taskOverdue, taskSoon)
+        val sortedByDeadline = unsorted.sortedByOption(TaskSortOption.DEADLINE)
+
+        // Die am nächsten / dringendsten fälligen Aufgaben MÜSSEN oben stehen!
+        // 1. Überfällig (25. Okt)
+        // 2. Bald fällig (3. Nov)
+        // 3. Später fällig (20. Nov)
+        // 4. Ohne Frist ganz unten
+        assertEquals("t_overdue", sortedByDeadline[0].id)
+        assertEquals("t_soon", sortedByDeadline[1].id)
+        assertEquals("t_later", sortedByDeadline[2].id)
+        assertEquals("t_nodate", sortedByDeadline[3].id)
+    }
+
+    @Test
+    fun testTaskOverdueDetectionAndDateParsing() {
+        // Überfällige Aufgabe
+        val overdueTask = TaskItem(
+            id = "t_overdue_check",
+            title = "Geschichte Hausaufgabe",
+            dueDate = "2026-10-15",
+            dueTime = "10:00"
+        )
+        assertTrue(overdueTask.isOverdue(nowMillis = de.kjltowinkler.msapp.data.task.parseDateTimeToEpochMillis(2026, 11, 2, 10, 0)))
+
+        // Erledigte Aufgaben dürfen NIEMALS als überfällig gelten!
+        val completedTask = overdueTask.copy(isCompleted = true)
+        assertFalse(completedTask.isOverdue(nowMillis = de.kjltowinkler.msapp.data.task.parseDateTimeToEpochMillis(2026, 11, 2, 10, 0)))
+
+        // Zukünftige Aufgabe
+        val futureTask = TaskItem(
+            id = "t_future_check",
+            title = "Chemie Protokoll",
+            dueDate = "2026-11-10",
+            dueTime = "12:00"
+        )
+        assertFalse(futureTask.isOverdue(nowMillis = de.kjltowinkler.msapp.data.task.parseDateTimeToEpochMillis(2026, 11, 2, 10, 0)))
     }
 }

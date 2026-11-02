@@ -39,3 +39,18 @@ actual fun getCurrentTime(): SimpleTime {
 actual fun getCurrentEpochMillis(): Long {
     return (NSDate().timeIntervalSince1970 * 1000).toLong()
 }
+
+actual fun parseDateTimeToEpochMillis(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long {
+    val calendar = NSCalendar.currentCalendar
+    val components = platform.Foundation.NSDateComponents().apply {
+        this.year = year.toLong()
+        this.month = month.toLong()
+        this.day = day.toLong()
+        this.hour = hour.toLong()
+        this.minute = minute.toLong()
+        this.second = 0
+    }
+    val date = calendar.dateFromComponents(components)
+    return date?.let { (it.timeIntervalSince1970 * 1000).toLong() } ?: 0L
+}
+

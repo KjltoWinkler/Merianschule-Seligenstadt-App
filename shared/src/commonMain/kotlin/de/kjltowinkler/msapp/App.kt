@@ -248,6 +248,7 @@ fun App() {
                 if (BackendApiClient.isLoggedIn) {
                     de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
                     de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()
+                    de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
                     BackendApiClient.fetchUserCourses().onSuccess { courses ->
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                     }
@@ -286,6 +287,14 @@ fun App() {
                             }
                         }
                     }
+                }
+            }
+
+            // Periodischer Aufgaben-Erinnerungs- und Überfälligkeits-Checker (jede Minute bei aktiver App)
+            LaunchedEffect(Unit) {
+                while (true) {
+                    de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
+                    kotlinx.coroutines.delay(60_000L)
                 }
             }
 

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.substitution.SubstitutionStateManager
 import de.kjltowinkler.msapp.data.task.TasksRepository
+import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.theme.*
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -345,13 +346,14 @@ fun DesktopStartseiteDashboard(
 
                                     Spacer(modifier = Modifier.width(10.dp))
 
+                                    val isOverdue = !task.isCompleted && task.isOverdue()
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = task.title,
                                             style = MaterialTheme.typography.bodyMedium.copy(
                                                 fontSize = 13.5.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = DesktopTextPrimary
+                                                fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isOverdue) MaterialTheme.colorScheme.error else DesktopTextPrimary
                                             )
                                         )
                                         if (task.deadlineDate.isNotBlank()) {
@@ -359,7 +361,7 @@ fun DesktopStartseiteDashboard(
                                                 text = "Fällig: ${task.deadlineDate}",
                                                 style = MaterialTheme.typography.bodySmall.copy(
                                                     fontSize = 11.5.sp,
-                                                    color = DesktopTextSecondary.copy(alpha = 0.7f)
+                                                    color = if (isOverdue) MaterialTheme.colorScheme.error else DesktopTextSecondary.copy(alpha = 0.7f)
                                                 )
                                             )
                                         }
