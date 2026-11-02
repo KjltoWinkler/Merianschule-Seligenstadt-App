@@ -507,6 +507,129 @@
     @keyframes initial-spin {
       to { transform: rotate(360deg); }
     }
+
+    /* ==================================================== */
+    /* Custom Material 3 Dialog System (Rock-Solid & Centered) */
+    /* ==================================================== */
+    .m3-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: visibility 0.2s, opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .m3-dialog-overlay.is-open {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .m3-dialog-overlay.is-closing {
+      opacity: 0;
+      transition: opacity 0.15s cubic-bezier(0.4, 0, 1, 1);
+    }
+
+    .m3-dialog-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    .m3-dialog-surface {
+      position: relative;
+      background-color: var(--md-sys-color-surface-container-high, #252830);
+      color: var(--md-sys-color-on-surface, #e2e2e8);
+      border-radius: 28px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 4px 16px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      width: 100%;
+      max-width: 580px;
+      max-height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 1;
+      transform: scale(0.92) translateY(-10px);
+      opacity: 0;
+      transition: transform 0.25s cubic-bezier(0.05, 0.7, 0.1, 1.0), opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .m3-dialog-overlay.is-open .m3-dialog-surface {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .m3-dialog-overlay.is-closing .m3-dialog-surface {
+      transform: scale(0.94);
+      opacity: 0;
+      transition: transform 0.15s cubic-bezier(0.4, 0, 1, 1), opacity 0.15s cubic-bezier(0.4, 0, 1, 1);
+    }
+
+    .m3-dialog-surface.dialog-sm {
+      max-width: 440px;
+    }
+
+    .m3-dialog-surface.dialog-lg {
+      max-width: 720px;
+    }
+
+    .m3-dialog-headline {
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 28px;
+      color: var(--md-sys-color-on-surface, #e2e2e8);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+
+    .m3-dialog-headline md-icon {
+      font-size: 26px;
+      color: var(--md-sys-color-primary, #a8c7fa);
+    }
+
+    .m3-dialog-headline.headline-error md-icon {
+      color: var(--md-sys-color-error, #ffb4ab);
+    }
+
+    .m3-dialog-content {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 4px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    .m3-dialog-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .m3-dialog-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    .m3-dialog-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 24px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -1065,313 +1188,366 @@
 
   </main>
 
+  <!-- ==================================================== -->
+  <!-- Custom Modal Dialogs (Material 3 Rock-Solid Centering)  -->
+  <!-- ==================================================== -->
+
   <!-- Modal Dialog: Nutzer hinzufügen -->
-  <md-dialog id="addUserDialog">
-    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
-      <md-icon>person_add</md-icon>
-      Neuen Nutzer anlegen
+  <div class="m3-dialog-overlay" id="addUserDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface">
+      <div class="m3-dialog-headline">
+        <md-icon>person_add</md-icon>
+        <span>Neuen Nutzer anlegen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <form id="addUserForm" class="form-group" onsubmit="event.preventDefault(); submitAddUser();">
+          <div class="grid-2">
+            <md-outlined-text-field id="addUsername" label="Benutzername*" required placeholder="z. B. max.mustermann">
+              <md-icon slot="leading-icon">account_circle</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-text-field id="addEmail" label="E-Mail*" type="email" required placeholder="z. B. max.mustermann@mssof.onmicrosoft.com">
+              <md-icon slot="leading-icon">email</md-icon>
+            </md-outlined-text-field>
+          </div>
+
+          <div class="grid-2">
+            <md-outlined-text-field id="addFullName" label="Vollständiger Name" placeholder="z. B. Max Mustermann">
+              <md-icon slot="leading-icon">badge</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-text-field id="addPassword" label="Initiales Passwort*" type="password" required placeholder="Mindestens 6 Zeichen">
+              <md-icon slot="leading-icon">lock</md-icon>
+            </md-outlined-text-field>
+          </div>
+
+          <div class="grid-2">
+            <md-outlined-text-field id="addClassName" label="Klasse" value="9aR" placeholder="z. B. 9aR">
+              <md-icon slot="leading-icon">meeting_room</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-select id="addSchoolType" label="Schulform">
+              <md-select-option value="Realschule" selected><div slot="headline">Realschule</div></md-select-option>
+              <md-select-option value="Gymnasium"><div slot="headline">Gymnasium</div></md-select-option>
+              <md-select-option value="Hauptschule"><div slot="headline">Hauptschule</div></md-select-option>
+              <md-select-option value="Verwaltung"><div slot="headline">Verwaltung</div></md-select-option>
+            </md-outlined-select>
+          </div>
+
+          <div class="grid-2">
+            <md-outlined-text-field id="addClassTeacher" label="Klassenlehrer" value="Hr. Thomas" placeholder="z. B. Hr. Thomas">
+              <md-icon slot="leading-icon">person_outline</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-select id="addRole" label="Rolle">
+              <md-select-option value="USER" selected><div slot="headline">Benutzer (Schüler/Lehrer)</div></md-select-option>
+              <md-select-option value="ADMIN"><div slot="headline">Administrator</div></md-select-option>
+            </md-outlined-select>
+          </div>
+
+          <md-outlined-text-field id="addStudentId" label="Schüler-ID (optional)" placeholder="z. B. #104829 (leer lassen für automatische Vergabe)">
+            <md-icon slot="leading-icon">tag</md-icon>
+          </md-outlined-text-field>
+        </form>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="closeAddUserDialog()">Abbrechen</md-text-button>
+        <md-filled-button id="btnSubmitAddUser" onclick="submitAddUser()">
+          <md-icon slot="icon">check</md-icon>
+          Nutzer anlegen
+        </md-filled-button>
+      </div>
     </div>
-    <form id="addUserForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
-      <div class="grid-2">
-        <md-outlined-text-field id="addUsername" label="Benutzername*" required placeholder="z. B. max.mustermann">
-          <md-icon slot="leading-icon">account_circle</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="addEmail" label="E-Mail*" type="email" required placeholder="z. B. max.mustermann@mssof.onmicrosoft.com">
-          <md-icon slot="leading-icon">email</md-icon>
-        </md-outlined-text-field>
-      </div>
-
-      <div class="grid-2">
-        <md-outlined-text-field id="addFullName" label="Vollständiger Name" placeholder="z. B. Max Mustermann">
-          <md-icon slot="leading-icon">badge</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="addPassword" label="Initiales Passwort*" type="password" required placeholder="Mindestens 6 Zeichen">
-          <md-icon slot="leading-icon">lock</md-icon>
-        </md-outlined-text-field>
-      </div>
-
-      <div class="grid-2">
-        <md-outlined-text-field id="addClassName" label="Klasse" value="9aR" placeholder="z. B. 9aR">
-          <md-icon slot="leading-icon">meeting_room</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-select id="addSchoolType" label="Schulform">
-          <md-select-option value="Realschule" selected><div slot="headline">Realschule</div></md-select-option>
-          <md-select-option value="Gymnasium"><div slot="headline">Gymnasium</div></md-select-option>
-          <md-select-option value="Hauptschule"><div slot="headline">Hauptschule</div></md-select-option>
-          <md-select-option value="Verwaltung"><div slot="headline">Verwaltung</div></md-select-option>
-        </md-outlined-select>
-      </div>
-
-      <div class="grid-2">
-        <md-outlined-text-field id="addClassTeacher" label="Klassenlehrer" value="Hr. Thomas" placeholder="z. B. Hr. Thomas">
-          <md-icon slot="leading-icon">person_outline</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-select id="addRole" label="Rolle">
-          <md-select-option value="USER" selected><div slot="headline">Benutzer (Schüler/Lehrer)</div></md-select-option>
-          <md-select-option value="ADMIN"><div slot="headline">Administrator</div></md-select-option>
-        </md-outlined-select>
-      </div>
-
-      <md-outlined-text-field id="addStudentId" label="Schüler-ID (optional)" placeholder="z. B. #104829 (leer lassen für automatische Vergabe)">
-        <md-icon slot="leading-icon">tag</md-icon>
-      </md-outlined-text-field>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="closeAddUserDialog()">Abbrechen</md-text-button>
-      <md-filled-button id="btnSubmitAddUser" onclick="submitAddUser()">
-        <md-icon slot="icon">check</md-icon>
-        Nutzer anlegen
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Passwort zurücksetzen -->
-  <md-dialog id="resetPasswordDialog">
-    <div slot="headline">Passwort zurücksetzen</div>
-    <form slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
-      <p id="resetPasswordDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 12px;"></p>
-      <input type="hidden" id="resetPasswordUserId">
-      <md-outlined-text-field id="resetPasswordInput" label="Neues Passwort" type="password" required placeholder="Neues Passwort eingeben">
-        <md-icon slot="leading-icon">key</md-icon>
-      </md-outlined-text-field>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('resetPasswordDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button onclick="submitResetPassword()">Speichern</md-filled-button>
+  <div class="m3-dialog-overlay" id="resetPasswordDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface dialog-sm">
+      <div class="m3-dialog-headline">
+        <md-icon>lock_reset</md-icon>
+        <span>Passwort zurücksetzen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p id="resetPasswordDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 12px;"></p>
+        <input type="hidden" id="resetPasswordUserId">
+        <md-outlined-text-field id="resetPasswordInput" label="Neues Passwort" type="password" required placeholder="Neues Passwort eingeben">
+          <md-icon slot="leading-icon">key</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('resetPasswordDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button onclick="submitResetPassword()">Speichern</md-filled-button>
+      </div>
     </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Nutzer löschen bestätigen -->
-  <md-dialog id="deleteUserDialog">
-    <div slot="headline" style="color: var(--md-sys-color-error);">Benutzer löschen</div>
-    <div slot="content">
-      <p id="deleteUserDesc" style="font-size: 14px; line-height: 1.5;"></p>
-      <input type="hidden" id="deleteUserId">
+  <div class="m3-dialog-overlay" id="deleteUserDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface dialog-sm">
+      <div class="m3-dialog-headline headline-error" style="color: var(--md-sys-color-error);">
+        <md-icon style="color: var(--md-sys-color-error);">person_remove</md-icon>
+        <span>Benutzer löschen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p id="deleteUserDesc" style="font-size: 14px; line-height: 1.5;"></p>
+        <input type="hidden" id="deleteUserId">
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('deleteUserDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteUser()">
+          Unwiderruflich löschen
+        </md-filled-button>
+      </div>
     </div>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('deleteUserDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteUser()">
-        Unwiderruflich löschen
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Schulportal Zugangsdaten bearbeiten -->
-  <md-dialog id="editSchulportalDialog">
-    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
-      <md-icon>sync_saved_locally</md-icon>
-      Schulportal Zugangsdaten
+  <div class="m3-dialog-overlay" id="editSchulportalDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface">
+      <div class="m3-dialog-headline">
+        <md-icon>sync_saved_locally</md-icon>
+        <span>Schulportal Zugangsdaten</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px; margin-bottom: 8px;">
+          Hinterlege die offiziellen Zugangsdaten des Schulportals Hessen (LANIS), damit der Server die Vertretungspläne automatisiert abrufen kann.
+        </p>
+        <div class="grid-2">
+          <md-outlined-text-field id="inputSpSchoolId" label="Schul-ID" value="4322" required>
+            <md-icon slot="leading-icon">domain</md-icon>
+          </md-outlined-text-field>
+          <md-outlined-text-field id="inputSpUsername" label="Benutzername" required placeholder="z. B. lehrer.max">
+            <md-icon slot="leading-icon">account_circle</md-icon>
+          </md-outlined-text-field>
+        </div>
+        <div class="grid-2">
+          <md-outlined-text-field id="inputSpPassword" label="Passwort" type="password" required placeholder="LANIS Passwort">
+            <md-icon slot="leading-icon">lock</md-icon>
+          </md-outlined-text-field>
+          <md-outlined-text-field id="inputSpInterval" label="Intervall (Minuten)" type="number" min="5" max="1440" value="15" required>
+            <md-icon slot="leading-icon">timer</md-icon>
+          </md-outlined-text-field>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
+            <input type="checkbox" id="inputSpAutoSync" checked style="accent-color: var(--md-sys-color-primary); width: 18px; height: 18px;">
+            Automatischen Hintergrundabgleich aktivieren
+          </label>
+        </div>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('editSchulportalDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button onclick="submitSchulportalCredentials()">
+          <md-icon slot="icon">save</md-icon>
+          Speichern & Synchronisieren
+        </md-filled-button>
+      </div>
     </div>
-    <form id="editSchulportalForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
-      <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px; margin-bottom: 8px;">
-        Hinterlege die offiziellen Zugangsdaten des Schulportals Hessen (LANIS), damit der Server die Vertretungspläne automatisiert abrufen kann.
-      </p>
-      <div class="grid-2">
-        <md-outlined-text-field id="inputSpSchoolId" label="Schul-ID" value="4322" required>
-          <md-icon slot="leading-icon">domain</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="inputSpUsername" label="Benutzername" required placeholder="z. B. lehrer.max">
-          <md-icon slot="leading-icon">account_circle</md-icon>
-        </md-outlined-text-field>
-      </div>
-      <div class="grid-2">
-        <md-outlined-text-field id="inputSpPassword" label="Passwort" type="password" required placeholder="LANIS Passwort">
-          <md-icon slot="leading-icon">lock</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="inputSpInterval" label="Intervall (Minuten)" type="number" min="5" max="1440" value="15" required>
-          <md-icon slot="leading-icon">timer</md-icon>
-        </md-outlined-text-field>
-      </div>
-      <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;">
-          <input type="checkbox" id="inputSpAutoSync" checked style="accent-color: var(--md-sys-color-primary); width: 18px; height: 18px;">
-          Automatischen Hintergrundabgleich aktivieren
-        </label>
-      </div>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('editSchulportalDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button onclick="submitSchulportalCredentials()">
-        <md-icon slot="icon">save</md-icon>
-        Speichern & Synchronisieren
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Vertretungseintrag manuell anlegen -->
-  <md-dialog id="addSubstitutionDialog">
-    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
-      <md-icon>post_add</md-icon>
-      Vertretungseintrag hinzufügen
+  <div class="m3-dialog-overlay" id="addSubstitutionDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface">
+      <div class="m3-dialog-headline">
+        <md-icon>post_add</md-icon>
+        <span>Vertretungseintrag hinzufügen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <div class="grid-2">
+          <md-outlined-text-field id="subInputDate" label="Datum (JJJJ-MM-TT)*" required placeholder="z. B. 2026-11-03">
+            <md-icon slot="leading-icon">event</md-icon>
+          </md-outlined-text-field>
+          <md-outlined-text-field id="subInputDayLabel" label="Tag / Wochentag" placeholder="z. B. Heute, Di">
+            <md-icon slot="leading-icon">calendar_today</md-icon>
+          </md-outlined-text-field>
+        </div>
+        <div class="grid-2">
+          <md-outlined-text-field id="subInputPeriod" label="Stunde(n)*" required placeholder="z. B. 3 - 4 oder 1. Std">
+            <md-icon slot="leading-icon">schedule</md-icon>
+          </md-outlined-text-field>
+          <md-outlined-text-field id="subInputClass" label="Klasse(n)*" required placeholder="z. B. 9aR">
+            <md-icon slot="leading-icon">groups</md-icon>
+          </md-outlined-text-field>
+        </div>
+        <div class="grid-2">
+          <md-outlined-text-field id="subInputSubject" label="Fach*" required placeholder="z. B. Mathematik">
+            <md-icon slot="leading-icon">menu_book</md-icon>
+          </md-outlined-text-field>
+          <md-outlined-select id="subInputType" label="Art der Vertretung">
+            <md-select-option value="Vertretung" selected><div slot="headline">Vertretung</div></md-select-option>
+            <md-select-option value="Entfall"><div slot="headline">Entfall</div></md-select-option>
+            <md-select-option value="Raumänderung"><div slot="headline">Raumänderung</div></md-select-option>
+            <md-select-option value="Verlegung"><div slot="headline">Verlegung</div></md-select-option>
+            <md-select-option value="Stillarbeit"><div slot="headline">Stillarbeit</div></md-select-option>
+            <md-select-option value="Sondereinsatz"><div slot="headline">Sondereinsatz</div></md-select-option>
+          </md-outlined-select>
+        </div>
+        <div class="grid-2">
+          <md-outlined-text-field id="subInputDetails" label="Vertretung / Details*" required placeholder="z. B. Hr. Müller statt Fr. Meier">
+            <md-icon slot="leading-icon">description</md-icon>
+          </md-outlined-text-field>
+          <md-outlined-text-field id="subInputRoom" label="Raum-Info" placeholder="z. B. R 204 (statt 102)">
+            <md-icon slot="leading-icon">meeting_room</md-icon>
+          </md-outlined-text-field>
+        </div>
+        <md-outlined-text-field id="subInputTime" label="Uhrzeit / Info" placeholder="z. B. 09:50 - 11:25">
+          <md-icon slot="leading-icon">info</md-icon>
+        </md-outlined-text-field>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('addSubstitutionDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button onclick="submitAddSubstitution()">
+          <md-icon slot="icon">check</md-icon>
+          Eintrag speichern
+        </md-filled-button>
+      </div>
     </div>
-    <form id="addSubstitutionForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
-      <div class="grid-2">
-        <md-outlined-text-field id="subInputDate" label="Datum (JJJJ-MM-TT)*" required placeholder="z. B. 2026-11-03">
-          <md-icon slot="leading-icon">event</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="subInputDayLabel" label="Tag / Wochentag" placeholder="z. B. Heute, Di">
-          <md-icon slot="leading-icon">calendar_today</md-icon>
-        </md-outlined-text-field>
-      </div>
-      <div class="grid-2">
-        <md-outlined-text-field id="subInputPeriod" label="Stunde(n)*" required placeholder="z. B. 3 - 4 oder 1. Std">
-          <md-icon slot="leading-icon">schedule</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="subInputClass" label="Klasse(n)*" required placeholder="z. B. 9aR">
-          <md-icon slot="leading-icon">groups</md-icon>
-        </md-outlined-text-field>
-      </div>
-      <div class="grid-2">
-        <md-outlined-text-field id="subInputSubject" label="Fach*" required placeholder="z. B. Mathematik">
-          <md-icon slot="leading-icon">menu_book</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-select id="subInputType" label="Art der Vertretung">
-          <md-select-option value="Vertretung" selected><div slot="headline">Vertretung</div></md-select-option>
-          <md-select-option value="Entfall"><div slot="headline">Entfall</div></md-select-option>
-          <md-select-option value="Raumänderung"><div slot="headline">Raumänderung</div></md-select-option>
-          <md-select-option value="Verlegung"><div slot="headline">Verlegung</div></md-select-option>
-          <md-select-option value="Stillarbeit"><div slot="headline">Stillarbeit</div></md-select-option>
-          <md-select-option value="Sondereinsatz"><div slot="headline">Sondereinsatz</div></md-select-option>
-        </md-outlined-select>
-      </div>
-      <div class="grid-2">
-        <md-outlined-text-field id="subInputDetails" label="Vertretung / Details*" required placeholder="z. B. Hr. Müller statt Fr. Meier">
-          <md-icon slot="leading-icon">description</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="subInputRoom" label="Raum-Info" placeholder="z. B. R 204 (statt 102)">
-          <md-icon slot="leading-icon">meeting_room</md-icon>
-        </md-outlined-text-field>
-      </div>
-      <md-outlined-text-field id="subInputTime" label="Uhrzeit / Info" placeholder="z. B. 09:50 - 11:25">
-        <md-icon slot="leading-icon">info</md-icon>
-      </md-outlined-text-field>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('addSubstitutionDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button onclick="submitAddSubstitution()">
-        <md-icon slot="icon">check</md-icon>
-        Eintrag speichern
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Vertretungseintrag löschen -->
-  <md-dialog id="deleteSubDialog">
-    <div slot="headline" style="color: var(--md-sys-color-error);">Vertretungseintrag löschen</div>
-    <div slot="content">
-      <p id="deleteSubDesc" style="font-size: 14px; line-height: 1.5;"></p>
-      <input type="hidden" id="deleteSubId">
+  <div class="m3-dialog-overlay" id="deleteSubDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface dialog-sm">
+      <div class="m3-dialog-headline headline-error" style="color: var(--md-sys-color-error);">
+        <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
+        <span>Vertretungseintrag löschen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p id="deleteSubDesc" style="font-size: 14px; line-height: 1.5;"></p>
+        <input type="hidden" id="deleteSubId">
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('deleteSubDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteSub()">
+          Löschen
+        </md-filled-button>
+      </div>
     </div>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('deleteSubDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteSub()">
-        Löschen
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Alle Vertretungseinträge löschen -->
-  <md-dialog id="clearSubsDialog">
-    <div slot="headline" style="color: var(--md-sys-color-error);">Alle Vertretungseinträge löschen</div>
-    <div slot="content">
-      <p style="font-size: 14px; line-height: 1.5;">
-        Möchtest du wirklich alle im Cache gespeicherten Vertretungseinträge unwiderruflich löschen?
-      </p>
+  <div class="m3-dialog-overlay" id="clearSubsDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface dialog-sm">
+      <div class="m3-dialog-headline headline-error" style="color: var(--md-sys-color-error);">
+        <md-icon style="color: var(--md-sys-color-error);">delete_sweep</md-icon>
+        <span>Alle Vertretungseinträge löschen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p style="font-size: 14px; line-height: 1.5;">
+          Möchtest du wirklich alle im Cache gespeicherten Vertretungseinträge unwiderruflich löschen?
+        </p>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('clearSubsDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitClearAllSubs()">
+          Alle löschen
+        </md-filled-button>
+      </div>
     </div>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('clearSubsDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitClearAllSubs()">
-        Alle löschen
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Stundenplan löschen -->
-  <md-dialog id="deleteTimetableDialog">
-    <div slot="headline" style="color: var(--md-sys-color-error);">Stundenplan löschen</div>
-    <div slot="content">
-      <p id="deleteTimetableDesc" style="font-size: 14px; line-height: 1.5;"></p>
-      <input type="hidden" id="deleteTimetableClassName">
+  <div class="m3-dialog-overlay" id="deleteTimetableDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface dialog-sm">
+      <div class="m3-dialog-headline headline-error" style="color: var(--md-sys-color-error);">
+        <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
+        <span>Stundenplan löschen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p id="deleteTimetableDesc" style="font-size: 14px; line-height: 1.5;"></p>
+        <input type="hidden" id="deleteTimetableClassName">
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('deleteTimetableDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteTimetable()">
+          Löschen
+        </md-filled-button>
+      </div>
     </div>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('deleteTimetableDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button style="--md-sys-color-primary: #ffb4ab; --md-sys-color-on-primary: #690005;" onclick="submitDeleteTimetable()">
-        Löschen
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Schulaufgabe erstellen / bearbeiten -->
-  <md-dialog id="schoolTaskDialog">
-    <div slot="headline" style="display: flex; align-items: center; gap: 8px;">
-      <md-icon id="schoolTaskDialogIcon">assignment</md-icon>
-      <span id="schoolTaskDialogTitle">Neue Schulaufgabe anlegen</span>
+  <div class="m3-dialog-overlay" id="schoolTaskDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface">
+      <div class="m3-dialog-headline">
+        <md-icon id="schoolTaskDialogIcon">assignment</md-icon>
+        <span id="schoolTaskDialogTitle">Neue Schulaufgabe anlegen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <form id="schoolTaskForm" class="form-group" onsubmit="event.preventDefault(); submitSchoolTask();">
+          <input type="hidden" id="schoolTaskId">
+          
+          <div class="grid-2">
+            <md-outlined-text-field id="schoolTaskTitle" label="Titel der Aufgabe*" required placeholder="z. B. Buch S. 42 Nr. 1-4">
+              <md-icon slot="leading-icon">edit_note</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-text-field id="schoolTaskSubject" label="Schulfach*" required placeholder="z. B. Mathematik, Deutsch, Englisch..." list="subjectsDatalist">
+              <md-icon slot="leading-icon">menu_book</md-icon>
+            </md-outlined-text-field>
+          </div>
+
+          <div class="grid-2">
+            <md-outlined-text-field id="schoolTaskClass" label="Zielklasse*" required value="09AR" placeholder="z. B. 09AR, 09BR oder ALL">
+              <md-icon slot="leading-icon">school</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-text-field id="schoolTaskDeadlineDate" label="Deadline-Anzeige" placeholder="z. B. Do., 05. Nov.">
+              <md-icon slot="leading-icon">event</md-icon>
+            </md-outlined-text-field>
+          </div>
+
+          <div class="grid-2">
+            <md-outlined-text-field id="schoolTaskDueDate" label="Fälligkeitsdatum (JJJJ-MM-TT)" type="date">
+              <md-icon slot="leading-icon">calendar_today</md-icon>
+            </md-outlined-text-field>
+            <md-outlined-text-field id="schoolTaskDueTime" label="Uhrzeit (optional)" placeholder="z. B. 08:00 oder 13:00">
+              <md-icon slot="leading-icon">schedule</md-icon>
+            </md-outlined-text-field>
+          </div>
+
+          <md-outlined-text-field id="schoolTaskCreator" label="Erstellt von (Name der Lehrkraft)" value="Lehrkraft" placeholder="z. B. Hr. Thomas oder Fr. Riedel">
+            <md-icon slot="leading-icon">person</md-icon>
+          </md-outlined-text-field>
+
+          <md-outlined-text-field id="schoolTaskDescription" label="Beschreibung / Details zur Aufgabe" type="textarea" rows="3" placeholder="Zusätzliche Hinweise, Arbeitsanweisungen oder Buchseiten...">
+            <md-icon slot="leading-icon">notes</md-icon>
+          </md-outlined-text-field>
+        </form>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('schoolTaskDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button onclick="submitSchoolTask()">
+          <md-icon slot="icon">check</md-icon>
+          Speichern
+        </md-filled-button>
+      </div>
     </div>
-    <form id="schoolTaskForm" slot="content" method="dialog" class="form-group" style="padding-top: 8px;">
-      <input type="hidden" id="schoolTaskId">
-      
-      <div class="grid-2">
-        <md-outlined-text-field id="schoolTaskTitle" label="Titel der Aufgabe*" required placeholder="z. B. Buch S. 42 Nr. 1-4">
-          <md-icon slot="leading-icon">edit_note</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="schoolTaskSubject" label="Schulfach*" required placeholder="z. B. Mathematik, Deutsch, Englisch..." list="subjectsDatalist">
-          <md-icon slot="leading-icon">menu_book</md-icon>
-        </md-outlined-text-field>
-      </div>
-
-      <div class="grid-2">
-        <md-outlined-text-field id="schoolTaskClass" label="Zielklasse*" required value="09AR" placeholder="z. B. 09AR, 09BR oder ALL">
-          <md-icon slot="leading-icon">school</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="schoolTaskDeadlineDate" label="Deadline-Anzeige" placeholder="z. B. Do., 05. Nov.">
-          <md-icon slot="leading-icon">event</md-icon>
-        </md-outlined-text-field>
-      </div>
-
-      <div class="grid-2">
-        <md-outlined-text-field id="schoolTaskDueDate" label="Fälligkeitsdatum (JJJJ-MM-TT)" type="date">
-          <md-icon slot="leading-icon">calendar_today</md-icon>
-        </md-outlined-text-field>
-        <md-outlined-text-field id="schoolTaskDueTime" label="Uhrzeit (optional)" placeholder="z. B. 08:00 oder 13:00">
-          <md-icon slot="leading-icon">schedule</md-icon>
-        </md-outlined-text-field>
-      </div>
-
-      <md-outlined-text-field id="schoolTaskCreator" label="Erstellt von (Name der Lehrkraft)" value="Lehrkraft" placeholder="z. B. Hr. Thomas oder Fr. Riedel">
-        <md-icon slot="leading-icon">person</md-icon>
-      </md-outlined-text-field>
-
-      <md-outlined-text-field id="schoolTaskDescription" label="Beschreibung / Details zur Aufgabe" type="textarea" rows="3" placeholder="Zusätzliche Hinweise, Arbeitsanweisungen oder Buchseiten...">
-        <md-icon slot="leading-icon">notes</md-icon>
-      </md-outlined-text-field>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('schoolTaskDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button onclick="submitSchoolTask()">
-        <md-icon slot="icon">check</md-icon>
-        Speichern
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <!-- Modal Dialog: Schulaufgabe löschen -->
-  <md-dialog id="deleteSchoolTaskDialog">
-    <div slot="headline" style="color: var(--md-sys-color-error); display: flex; align-items: center; gap: 8px;">
-      <md-icon>delete_forever</md-icon>
-      Schulaufgabe löschen
+  <div class="m3-dialog-overlay" id="deleteSchoolTaskDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface dialog-sm">
+      <div class="m3-dialog-headline headline-error" style="color: var(--md-sys-color-error);">
+        <md-icon style="color: var(--md-sys-color-error);">delete_forever</md-icon>
+        <span>Schulaufgabe löschen</span>
+      </div>
+      <div class="m3-dialog-content">
+        <input type="hidden" id="deleteSchoolTaskId">
+        <p id="deleteSchoolTaskDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 8px;"></p>
+        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px;">Diese Schulaufgabe wird bei allen Schülern der Klasse entfernt.</p>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('deleteSchoolTaskDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error); --md-filled-button-label-text-color: var(--md-sys-color-on-error);" onclick="submitDeleteSchoolTask()">
+          Löschen
+        </md-filled-button>
+      </div>
     </div>
-    <form slot="content" method="dialog">
-      <input type="hidden" id="deleteSchoolTaskId">
-      <p id="deleteSchoolTaskDesc" style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin-bottom: 8px;"></p>
-      <p style="color: var(--md-sys-color-on-surface-variant); font-size: 13px;">Diese Schulaufgabe wird bei allen Schülern der Klasse entfernt.</p>
-    </form>
-    <div slot="actions">
-      <md-text-button onclick="document.getElementById('deleteSchoolTaskDialog').close()">Abbrechen</md-text-button>
-      <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error); --md-filled-button-label-text-color: var(--md-sys-color-on-error);" onclick="submitDeleteSchoolTask()">
-        Löschen
-      </md-filled-button>
-    </div>
-  </md-dialog>
+  </div>
 
   <datalist id="subjectsDatalist">
     <option value="Mathematik">
@@ -1403,6 +1579,64 @@
   </div>
 
   <script>
+    // ----------------------------------------------------
+    // Custom Material 3 Dialog Controller (Rock-Solid Centering & Animations)
+    // ----------------------------------------------------
+    function initCustomDialogs() {
+      document.querySelectorAll('.m3-dialog-overlay').forEach(dialog => {
+        dialog.show = function() {
+          openCustomDialog(dialog);
+        };
+        dialog.close = function() {
+          closeCustomDialog(dialog);
+        };
+
+        const scrim = dialog.querySelector('.m3-dialog-scrim');
+        if (scrim) {
+          scrim.onclick = () => closeCustomDialog(dialog);
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const openDialog = document.querySelector('.m3-dialog-overlay.is-open');
+          if (openDialog) closeCustomDialog(openDialog);
+        }
+      });
+    }
+
+    function openCustomDialog(dialogEl) {
+      if (!dialogEl) return;
+      document.querySelectorAll('.m3-dialog-overlay.is-open').forEach(d => {
+        if (d !== dialogEl) closeCustomDialog(d);
+      });
+
+      dialogEl.classList.remove('is-closing');
+      dialogEl.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+
+      setTimeout(() => {
+        const input = dialogEl.querySelector('input:not([type="hidden"]), md-outlined-text-field');
+        if (input && typeof input.focus === 'function') {
+          input.focus();
+        }
+      }, 60);
+    }
+
+    function closeCustomDialog(dialogEl) {
+      if (!dialogEl || !dialogEl.classList.contains('is-open')) return;
+      dialogEl.classList.add('is-closing');
+      setTimeout(() => {
+        dialogEl.classList.remove('is-open', 'is-closing');
+        const remaining = document.querySelector('.m3-dialog-overlay.is-open');
+        if (!remaining) {
+          document.body.style.overflow = '';
+        }
+      }, 160);
+    }
+
+    initCustomDialogs();
+
     let authToken = localStorage.getItem('merian_admin_token') || '';
     let allUsers = [];
 
