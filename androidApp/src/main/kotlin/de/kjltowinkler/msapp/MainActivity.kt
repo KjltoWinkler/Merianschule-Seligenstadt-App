@@ -15,6 +15,8 @@ class MainActivity : ComponentActivity() {
         de.kjltowinkler.msapp.util.AppContextProvider.init(this)
         de.kjltowinkler.msapp.worker.SubstitutionWorkScheduler.schedulePeriodicSync(this)
 
+        handleNavigationIntent(intent)
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (androidx.core.content.ContextCompat.checkSelfPermission(
                     this,
@@ -31,6 +33,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             App()
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleNavigationIntent(intent)
+    }
+
+    private fun handleNavigationIntent(intent: android.content.Intent?) {
+        val nav = intent?.getStringExtra("navigate_to")
+        if (nav != null) {
+            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_navigate_to", nav)
         }
     }
 }

@@ -243,8 +243,19 @@ fun App() {
                 }
             }
 
-            // Automatische Sitzungsüberprüfung beim Start
+            // Automatische Sitzungsüberprüfung beim Start & Update-Check
             LaunchedEffect(Unit) {
+                // Prüft auf neue App-Updates und benachrichtigt bei neuer Version
+                de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
+
+                val pendingNav = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_navigate_to")
+                if (pendingNav != null) {
+                    de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_navigate_to")
+                    if (pendingNav == "settings" && BackendApiClient.isLoggedIn) {
+                        navController.navigate(AppRoutes.SETTINGS)
+                    }
+                }
+
                 if (BackendApiClient.isLoggedIn) {
                     de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
                     de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()

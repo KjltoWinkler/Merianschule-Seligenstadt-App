@@ -39,6 +39,45 @@ object AppUpdateManager {
         }
     }
 
+    /**
+     * Prüft, ob ein neues Update verfügbar ist, und sendet bei Bedarf eine Push-Benachrichtigung.
+     * @param forceNotify Wenn true, wird auch benachrichtigt, wenn für diese Version bereits benachrichtigt wurde.
+     */
+    suspend fun checkAndNotifyUpdate(forceNotify: Boolean = false): Boolean {
+        return try {
+            val result = BackendApiClient.fetchAppUpdateInfo()
+            val info = result.getOrNull() ?: return false
+            val currentCode = PlatformAppUpdater.currentVersionCode
+            if (info.versionCode > currentCode) {
+                _checkStatus.value = UpdateCheckStatus.UpdateAvailable(info)
+
+                val lastNotified = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("last_notified_update_version_code")?.toIntOrNull() ?: 0
+                if (forceNotify || info.versionCode > lastNotified) {
+                    val title = "Neues App-Update verfügbar! 🚀"
+                    val summary = "Version ${info.versionName} steht zum Download bereit."
+                    val details = mutableListOf<String>().apply {
+                        add("Version ${info.versionName} (Build ${info.versionCode})")
+                        if (info.releaseNotes.isNotBlank()) {
+                            add("Änderungen: ${info.releaseNotes}")
+                        }
+                        add("Tippe hier zum Herunterladen & Installieren.")
+                    }
+                    de.kjltowinkler.msapp.util.PlatformNotifier.sendUpdateNotification(title, summary, details)
+                    de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("last_notified_update_version_code", info.versionCode.toString())
+                    true
+                } else {
+                    false
+                }
+            } else {
+                _checkStatus.value = UpdateCheckStatus.UpToDate
+                false
+            }
+        } catch (e: Throwable) {
+            println("AppUpdateManager: Fehler beim Update-Check: ${e.message}")
+            false
+        }
+    }
+
     fun startDownloadAndInstall(updateInfo: AppUpdateInfo) {
         _downloadStatus.value = UpdateDownloadStatus.Downloading(0, 0L, updateInfo.fileSizeBytes)
         scope.launch {

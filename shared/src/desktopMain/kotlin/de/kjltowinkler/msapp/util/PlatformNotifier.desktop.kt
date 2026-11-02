@@ -30,5 +30,9 @@ actual object PlatformNotifier {
     actual fun sendTaskNotification(title: String, summary: String, details: List<String>) {
         sendNotification(title, summary, details)
     }
+
+    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>) {
+        sendNotification(title, summary, details)
+    }
 }
 

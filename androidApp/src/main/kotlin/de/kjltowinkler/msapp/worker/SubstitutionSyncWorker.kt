@@ -41,6 +41,9 @@ class SubstitutionSyncWorker(
             // Aufgaben-Erinnerungen und Überfälligkeits-Check im Hintergrund
             de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
 
+            // App-Updates im Hintergrund prüfen und Push-Benachrichtigung senden
+            de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate(forceNotify = forceNotify)
+
             println("SubstitutionSyncWorker: Background-Check abgeschlossen (hasChanges=${diff.hasChanges}, neu=${diff.addedEntries.size}, geändert=${diff.modifiedEntries.size})")
             Result.success()
         } catch (e: Throwable) {

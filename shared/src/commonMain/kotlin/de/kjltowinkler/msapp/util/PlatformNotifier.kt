@@ -17,5 +17,10 @@ expect object PlatformNotifier {
      * Sendet eine Benachrichtigung zu Aufgaben (Erinnerungen an fällige / überfällige Fristen).
      */
     fun sendTaskNotification(title: String, summary: String, details: List<String> = emptyList())
+
+    /**
+     * Sendet eine Push-Benachrichtigung, wenn ein neues App-Update verfügbar ist.
+     */
+    fun sendUpdateNotification(title: String, summary: String, details: List<String> = emptyList())
 }
 

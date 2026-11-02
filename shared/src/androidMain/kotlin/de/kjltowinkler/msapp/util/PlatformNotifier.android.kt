@@ -19,8 +19,13 @@ actual object PlatformNotifier {
     private const val TASK_CHANNEL_NAME = "Aufgaben & Fristen"
     private const val TASK_CHANNEL_DESC = "Erinnerungen an fällige und überfällige Aufgaben"
 
+    private const val UPDATE_CHANNEL_ID = "merian_app_updates_v1"
+    private const val UPDATE_CHANNEL_NAME = "App-Updates"
+    private const val UPDATE_CHANNEL_DESC = "Benachrichtigungen über neue Versionen und Updates der App"
+
     private var notificationId = 2001
     private var taskNotificationId = 3001
+    private const val UPDATE_NOTIFICATION_ID = 4001
 
     private fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -61,6 +66,21 @@ actual object PlatformNotifier {
                     lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
                 notificationManager.createNotificationChannel(taskChannel)
+            }
+
+            if (notificationManager.getNotificationChannel(UPDATE_CHANNEL_ID) == null) {
+                val updateChannel = NotificationChannel(
+                    UPDATE_CHANNEL_ID,
+                    UPDATE_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = UPDATE_CHANNEL_DESC
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 200, 100, 200)
+                    setSound(defaultSoundUri, audioAttributes)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                }
+                notificationManager.createNotificationChannel(updateChannel)
             }
         }
     }
@@ -187,6 +207,68 @@ actual object PlatformNotifier {
             manager.notify(taskNotificationId++, builder.build())
         } catch (e: Throwable) {
             println("PlatformNotifier.android: Fehler beim Senden von Task-Notif: ${e.message}")
+        }
+    }
+
+    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>) {
+        try {
+            val context = AppContextProvider.context
+            ensureChannels(context)
+
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("navigate_to", "settings")
+            }
+            val pendingIntent = if (launchIntent != null) {
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+                PendingIntent.getActivity(context, 4001, launchIntent, flags)
+            } else {
+                null
+            }
+
+            val notifResId = context.resources.getIdentifier("ic_notification", "drawable", context.packageName)
+            val smallIconRes = if (notifResId != 0) notifResId else (context.applicationInfo.icon.takeIf { it != 0 } ?: android.R.drawable.ic_dialog_info)
+            val defaultSoundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+
+            val builder = NotificationCompat.Builder(context, UPDATE_CHANNEL_ID)
+                .setSmallIcon(smallIconRes)
+                .setColor(0xFF2E6B39.toInt())
+                .setContentTitle(title)
+                .setContentText(summary)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setCategory(NotificationCompat.CATEGORY_STATUS)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setSound(defaultSoundUri)
+                .setVibrate(longArrayOf(0, 200, 100, 200))
+                .setAutoCancel(true)
+
+            try {
+                val appIconRes = context.applicationInfo.icon
+                if (appIconRes != 0) {
+                    val largeIcon = android.graphics.BitmapFactory.decodeResource(context.resources, appIconRes)
+                    if (largeIcon != null) {
+                        builder.setLargeIcon(largeIcon)
+                    }
+                }
+            } catch (_: Throwable) {}
+
+            if (pendingIntent != null) {
+                builder.setContentIntent(pendingIntent)
+            }
+
+            if (details.isNotEmpty()) {
+                val bigTextStyle = NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(title)
+                    .setSummaryText("Update verfügbar")
+                    .bigText(details.joinToString("\n"))
+                builder.setStyle(bigTextStyle)
+            }
+
+            val manager = NotificationManagerCompat.from(context)
+            manager.notify(UPDATE_NOTIFICATION_ID, builder.build())
+        } catch (e: Throwable) {
+            println("PlatformNotifier.android: Fehler beim Senden von Update-Notif: ${e.message}")
         }
     }
 }
