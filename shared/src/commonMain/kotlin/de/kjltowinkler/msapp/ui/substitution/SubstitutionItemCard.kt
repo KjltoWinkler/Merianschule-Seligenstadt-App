@@ -103,8 +103,9 @@ fun SubstitutionItemCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Zeile 2: Details (z.B. "Hr. Müller statt Fr. Schmidt")
+            val formattedDetails = de.kjltowinkler.msapp.data.timetable.TimetableRepository.formatDetailsWithTeacherNames(entry.details)
             Text(
-                text = entry.details,
+                text = formattedDetails,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurface,

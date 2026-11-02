@@ -211,13 +211,18 @@ fun SubstitutionDetailBottomSheet(
                     }
 
                     // Zeile 2: Stunde & Uhrzeit (z.B. "3. Stunde (09:45 – 10:30 Uhr)")
-                    val periodTimeDetail = when {
-                        entry.period.contains("1") -> "1. Stunde (07:55 – 08:40 Uhr)"
-                        entry.period.contains("2") -> "2. Stunde (08:45 – 09:30 Uhr)"
-                        entry.period.contains("3") -> "3. Stunde (09:45 – 10:30 Uhr)"
-                        entry.period.contains("4") -> "4. Stunde (10:35 – 11:20 Uhr)"
-                        entry.period.contains("5") -> "5. Stunde (11:35 – 12:20 Uhr)"
-                        entry.period.contains("6") -> "6. Stunde (12:25 – 13:10 Uhr)"
+                    val periodNum = Regex("""\b(\d+)\b""").find(entry.period)?.value?.toIntOrNull()
+                    val periodTimeDetail = when (periodNum) {
+                        1 -> "1. Stunde (07:55 – 08:40 Uhr)"
+                        2 -> "2. Stunde (08:45 – 09:30 Uhr)"
+                        3 -> "3. Stunde (09:45 – 10:30 Uhr)"
+                        4 -> "4. Stunde (10:35 – 11:20 Uhr)"
+                        5 -> "5. Stunde (11:35 – 12:20 Uhr)"
+                        6 -> "6. Stunde (12:25 – 13:10 Uhr)"
+                        7 -> "7. Stunde (13:15 – 14:00 Uhr)"
+                        8 -> "8. Stunde (14:05 – 14:50 Uhr)"
+                        9 -> "9. Stunde (14:55 – 15:40 Uhr)"
+                        10 -> "10. Stunde (15:45 – 16:30 Uhr)"
                         else -> "${entry.period} Stunde"
                     }
                     Row(
@@ -266,11 +271,12 @@ fun SubstitutionDetailBottomSheet(
 
             // --- INFO-BLOCK GRUPPE (Lehrkraft, Raum, Aufgaben/Notizen als Bricks) ---
             // Parse details and roomInfo
-            val (teacherMain, teacherSub) = if (entry.details.contains(" statt ")) {
-                val parts = entry.details.split(" statt ", limit = 2)
+            val formattedDetails = de.kjltowinkler.msapp.data.timetable.TimetableRepository.formatDetailsWithTeacherNames(entry.details)
+            val (teacherMain, teacherSub) = if (formattedDetails.contains(" statt ")) {
+                val parts = formattedDetails.split(" statt ", limit = 2)
                 parts[0].trim() to "statt ${parts[1].trim()}"
             } else {
-                entry.details to ""
+                formattedDetails to ""
             }
 
             val (roomMain, roomSub) = if (entry.roomInfo.contains(" | ")) {

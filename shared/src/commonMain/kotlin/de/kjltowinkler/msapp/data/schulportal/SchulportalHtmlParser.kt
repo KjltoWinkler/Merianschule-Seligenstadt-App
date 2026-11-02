@@ -1,6 +1,7 @@
 package de.kjltowinkler.msapp.data.schulportal
 
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
+import de.kjltowinkler.msapp.data.timetable.TimetableRepository
 
 /**
  * Parser für das HTML des Schulportal Hessen (LANIS) Vertretungsplans.
@@ -117,14 +118,17 @@ object SchulportalHtmlParser {
                 val type = if (isEntfall) "Entfall" else "Vertretung"
                 val subject = mapSubject(fachRaw)
 
+                val lehrerDisplay = TimetableRepository.getTeacherDisplayName(lehrer)
+                val vertreterDisplay = TimetableRepository.getTeacherDisplayName(vertreter)
+
                 val details = if (isEntfall) {
-                    if (lehrer.isNotBlank()) "$lehrer entfällt ersatzlos" else "Unterricht entfällt"
-                } else if (vertreter.isNotBlank() && lehrer.isNotBlank()) {
-                    "$vertreter statt $lehrer"
-                } else if (vertreter.isNotBlank()) {
-                    "Vertretung durch $vertreter"
+                    if (lehrerDisplay.isNotBlank()) "$lehrerDisplay entfällt ersatzlos" else "Unterricht entfällt"
+                } else if (vertreterDisplay.isNotBlank() && lehrerDisplay.isNotBlank()) {
+                    "$vertreterDisplay statt $lehrerDisplay"
+                } else if (vertreterDisplay.isNotBlank()) {
+                    "Vertretung durch $vertreterDisplay"
                 } else {
-                    lehrer.ifBlank { "Vertretung" }
+                    lehrerDisplay.ifBlank { "Vertretung" }
                 }
 
                 val roomInfo = when {
@@ -136,28 +140,55 @@ object SchulportalHtmlParser {
                     else -> ""
                 }
 
-                val periodFormatted = if (stunde.endsWith(". Std") || stunde.endsWith(". Stunde")) {
-                    stunde
-                } else {
-                    "$stunde. Std"
-                }
+                // Prüfung auf Stundenbereich (z. B. "3 - 4", "3-4", "1 - 2")
+                val rangeMatch = Regex("""(\d+)\s*[-–]\s*(\d+)""").find(stunde)
+                val startHour = rangeMatch?.groupValues?.get(1)?.toIntOrNull()
+                val endHour = rangeMatch?.groupValues?.get(2)?.toIntOrNull()
 
-                result.add(
-                    SubstitutionEntry(
-                        id = "sph_${isoDate}_$globalIndex",
-                        date = isoDate,
-                        dayLabel = dayLabel,
-                        period = periodFormatted,
-                        subject = subject,
-                        className = klasse,
-                        type = type,
-                        details = details,
-                        roomInfo = roomInfo,
-                        time = displayDate,
-                        isNew = true,
-                        isMarked = false
+                if (startHour != null && endHour != null && startHour < endHour && (endHour - startHour) <= 10) {
+                    for (h in startHour..endHour) {
+                        result.add(
+                            SubstitutionEntry(
+                                id = "sph_${isoDate}_${globalIndex}_h$h",
+                                date = isoDate,
+                                dayLabel = dayLabel,
+                                period = "$h. Std",
+                                subject = subject,
+                                className = klasse,
+                                type = type,
+                                details = details,
+                                roomInfo = roomInfo,
+                                time = displayDate,
+                                isNew = true,
+                                isMarked = false
+                            )
+                        )
+                    }
+                } else {
+                    val singleHour = Regex("""\b(\d+)\b""").find(stunde)?.value
+                    val periodFormatted = when {
+                        singleHour != null -> "$singleHour. Std"
+                        stunde.endsWith(". Std") || stunde.endsWith(". Stunde") -> stunde
+                        stunde.isNotBlank() -> "$stunde. Std"
+                        else -> ""
+                    }
+                    result.add(
+                        SubstitutionEntry(
+                            id = "sph_${isoDate}_$globalIndex",
+                            date = isoDate,
+                            dayLabel = dayLabel,
+                            period = periodFormatted,
+                            subject = subject,
+                            className = klasse,
+                            type = type,
+                            details = details,
+                            roomInfo = roomInfo,
+                            time = displayDate,
+                            isNew = true,
+                            isMarked = false
+                        )
                     )
-                )
+                }
                 globalIndex++
             }
         }

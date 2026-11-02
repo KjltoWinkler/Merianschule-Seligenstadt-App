@@ -23,21 +23,35 @@ object SubstitutionRepository {
             subject = "Biologie",
             className = "09AR",
             type = "Entfall",
-            details = "Tho entfällt ersatzlos",
+            details = "Hr. Thomas entfällt ersatzlos",
             roomInfo = "Entfall (geplant C202) - fällt aus",
             time = "22.10.2026",
             isNew = true,
             isMarked = false
         ),
         SubstitutionEntry(
-            id = "sph_2026-10-22_2",
+            id = "sph_2026-10-22_2_h3",
             date = "2026-10-22",
             dayLabel = "Heute, 22. Oktober",
-            period = "3 - 4. Std",
+            period = "3. Std",
             subject = "Deutsch",
             className = "09AR",
             type = "Entfall",
-            details = "Af entfällt ersatzlos",
+            details = "Fr. Affeldt entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "22.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-22_2_h4",
+            date = "2026-10-22",
+            dayLabel = "Heute, 22. Oktober",
+            period = "4. Std",
+            subject = "Deutsch",
+            className = "09AR",
+            type = "Entfall",
+            details = "Fr. Affeldt entfällt ersatzlos",
             roomInfo = "Entfall - fällt aus",
             time = "22.10.2026",
             isNew = true,
@@ -51,7 +65,7 @@ object SubstitutionRepository {
             subject = "Klassenlehrerstunde",
             className = "09AR",
             type = "Entfall",
-            details = "Tho entfällt ersatzlos",
+            details = "Hr. Thomas entfällt ersatzlos",
             roomInfo = "Entfall (geplant D209) - fällt aus",
             time = "22.10.2026",
             isNew = true,
@@ -65,7 +79,7 @@ object SubstitutionRepository {
             subject = "Geschichte",
             className = "09AR",
             type = "Entfall",
-            details = "Za entfällt ersatzlos",
+            details = "Fr. Zander entfällt ersatzlos",
             roomInfo = "Entfall - fällt aus",
             time = "22.10.2026",
             isNew = true,
@@ -79,7 +93,7 @@ object SubstitutionRepository {
             subject = "Französisch",
             className = "09AR, 09BR, 09CR",
             type = "Entfall",
-            details = "Hol entfällt ersatzlos",
+            details = "Fr. Holstein entfällt ersatzlos",
             roomInfo = "Entfall - fällt aus",
             time = "22.10.2026",
             isNew = true,
@@ -93,7 +107,7 @@ object SubstitutionRepository {
             subject = "Politik & Wirtschaft",
             className = "09AR",
             type = "Entfall",
-            details = "Hv entfällt ersatzlos",
+            details = "Hr. Horvath-Walther entfällt ersatzlos",
             roomInfo = "Entfall (geplant D209) - fällt aus",
             time = "23.10.2026",
             isNew = true,
@@ -107,7 +121,7 @@ object SubstitutionRepository {
             subject = "Chemie",
             className = "09AR",
             type = "Entfall",
-            details = "Tho entfällt ersatzlos",
+            details = "Hr. Thomas entfällt ersatzlos",
             roomInfo = "Entfall (geplant D209) - fällt aus",
             time = "23.10.2026",
             isNew = true,
@@ -121,7 +135,7 @@ object SubstitutionRepository {
             subject = "Mathematik",
             className = "09AR",
             type = "Entfall",
-            details = "Kne entfällt ersatzlos",
+            details = "Hr. Knebel entfällt ersatzlos",
             roomInfo = "Entfall (geplant D209) - fällt aus",
             time = "23.10.2026",
             isNew = true,
@@ -135,7 +149,7 @@ object SubstitutionRepository {
             subject = "Ethik",
             className = "09AR, 09BR, 09CR",
             type = "Entfall",
-            details = "Car entfällt ersatzlos",
+            details = "Hr. Carvalho entfällt ersatzlos",
             roomInfo = "Entfall - fällt aus",
             time = "23.10.2026",
             isNew = true,
@@ -149,7 +163,7 @@ object SubstitutionRepository {
             subject = "Ethik",
             className = "09AR, 09BR, 09CR",
             type = "Entfall",
-            details = "Web entfällt ersatzlos",
+            details = "Hr. Weber entfällt ersatzlos",
             roomInfo = "Entfall (geplant D210) - fällt aus",
             time = "23.10.2026",
             isNew = true,
@@ -170,14 +184,28 @@ object SubstitutionRepository {
             isMarked = false
         ),
         SubstitutionEntry(
-            id = "sph_2026-10-23_12",
+            id = "sph_2026-10-23_12_h5",
             date = "2026-10-23",
             dayLabel = "Morgen, 23. Oktober",
-            period = "5 - 6. Std",
+            period = "5. Std",
             subject = "Kunst",
             className = "09AR",
             type = "Entfall",
-            details = "Bü entfällt ersatzlos",
+            details = "Fr. Bürkle entfällt ersatzlos",
+            roomInfo = "Entfall - fällt aus",
+            time = "23.10.2026",
+            isNew = true,
+            isMarked = false
+        ),
+        SubstitutionEntry(
+            id = "sph_2026-10-23_12_h6",
+            date = "2026-10-23",
+            dayLabel = "Morgen, 23. Oktober",
+            period = "6. Std",
+            subject = "Kunst",
+            className = "09AR",
+            type = "Entfall",
+            details = "Fr. Bürkle entfällt ersatzlos",
             roomInfo = "Entfall - fällt aus",
             time = "23.10.2026",
             isNew = true,
@@ -242,6 +270,47 @@ object SubstitutionRepository {
         private set
 
     /**
+     * Spaltet Einträge mit mehreren Stunden (z. B. "3 - 4. Std" oder "3-4") in einzelne Stunden-Einträge auf
+     * und sorgt dafür, dass Lehrerkürzel in den Details als "Fr. / Hr. Nachname" formatiert sind.
+     */
+    fun expandAndNormalizeEntries(entries: List<SubstitutionEntry>): List<SubstitutionEntry> {
+        val result = mutableListOf<SubstitutionEntry>()
+        for (entry in entries) {
+            val rangeMatch = Regex("""(\d+)\s*[-–]\s*(\d+)""").find(entry.period)
+            val startHour = rangeMatch?.groupValues?.get(1)?.toIntOrNull()
+            val endHour = rangeMatch?.groupValues?.get(2)?.toIntOrNull()
+
+            val formattedDetails = de.kjltowinkler.msapp.data.timetable.TimetableRepository.formatDetailsWithTeacherNames(entry.details)
+
+            if (startHour != null && endHour != null && startHour < endHour && (endHour - startHour) <= 10) {
+                for (h in startHour..endHour) {
+                    result.add(
+                        entry.copy(
+                            id = "${entry.id}_h$h",
+                            period = "$h. Std",
+                            details = formattedDetails
+                        )
+                    )
+                }
+            } else {
+                val singleHour = Regex("""\b(\d+)\b""").find(entry.period)?.value
+                val normalizedPeriod = when {
+                    entry.period.endsWith(". Std") || entry.period.endsWith(". Stunde") -> entry.period
+                    singleHour != null -> "$singleHour. Std"
+                    else -> entry.period
+                }
+                result.add(
+                    entry.copy(
+                        period = normalizedPeriod,
+                        details = formattedDetails
+                    )
+                )
+            }
+        }
+        return result
+    }
+
+    /**
      * Lädt Vertretungsplan-Einträge:
      * 1. Versucht Live-Abruf über Schulportal Hessen, falls Zugangsdaten vorliegen.
      * 2. Fallback auf `substitutions.json` (lokale Assets).
@@ -258,12 +327,13 @@ object SubstitutionRepository {
             if (backendResult.isSuccess) {
                 val serverEntries = backendResult.getOrNull()
                 if (!serverEntries.isNullOrEmpty()) {
-                    cachedLiveEntries = serverEntries
+                    val normalized = expandAndNormalizeEntries(serverEntries)
+                    cachedLiveEntries = normalized
                     isLiveDataSource = true
                     de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
                         updateLastUpdatedText(it)
                     }
-                    return serverEntries
+                    return normalized
                 }
             }
         } catch (_: Exception) {
@@ -279,16 +349,17 @@ object SubstitutionRepository {
                 }
                 val liveEntries = liveResult.getOrNull()
                 if (!liveEntries.isNullOrEmpty()) {
-                    cachedLiveEntries = liveEntries
+                    val normalized = expandAndNormalizeEntries(liveEntries)
+                    cachedLiveEntries = normalized
                     isLiveDataSource = true
-                    return liveEntries
+                    return normalized
                 }
             }
         }
 
         // 3. Fallback auf lokale substitutions.json Assets (keine Live-Daten)
         isLiveDataSource = false
-        return try {
+        val fallback = try {
             val bytes = Res.readBytes("files/substitutions.json")
             val jsonString = bytes.decodeToString()
             val parsed = parseJsonEntries(jsonString)
@@ -296,11 +367,10 @@ object SubstitutionRepository {
         } catch (_: Exception) {
             defaultEntries
         }
+        val normalizedFallback = expandAndNormalizeEntries(fallback)
+        return normalizedFallback
     }
 
-    /**
-     * Robuster nativer JSON-Parser für das Array aus SubstitutionEntry Objekten
-     */
     /**
      * Robuster nativer JSON-Parser für das Array aus SubstitutionEntry Objekten
      */

@@ -117,16 +117,35 @@ class SharedCommonTest {
         """.trimIndent()
 
         val parsed = de.kjltowinkler.msapp.data.schulportal.SchulportalHtmlParser.parseHtml(sampleHtml)
-        assertEquals(2, parsed.size)
+        assertEquals(3, parsed.size)
         assertEquals("2. Std", parsed[0].period)
         assertEquals("09AR", parsed[0].className)
         assertEquals("Biologie", parsed[0].subject)
         assertEquals("Entfall", parsed[0].type)
-        assertEquals("Tho entfällt ersatzlos", parsed[0].details)
+        assertEquals("Hr. Thomas entfällt ersatzlos", parsed[0].details)
         assertEquals("2026-10-22", parsed[0].date)
 
-        assertEquals("3 - 4. Std", parsed[1].period)
+        assertEquals("3. Std", parsed[1].period)
         assertEquals("Deutsch", parsed[1].subject)
+        assertEquals("Fr. Affeldt entfällt ersatzlos", parsed[1].details)
+
+        assertEquals("4. Std", parsed[2].period)
+        assertEquals("Deutsch", parsed[2].subject)
+        assertEquals("Fr. Affeldt entfällt ersatzlos", parsed[2].details)
+    }
+
+    @Test
+    fun testTeacherDisplayNameAndFormatting() {
+        assertEquals("Fr. Affeldt", de.kjltowinkler.msapp.data.timetable.TimetableRepository.getTeacherDisplayName("Af"))
+        assertEquals("Hr. Thomas", de.kjltowinkler.msapp.data.timetable.TimetableRepository.getTeacherDisplayName("Tho"))
+        assertEquals("Hr. Weber", de.kjltowinkler.msapp.data.timetable.TimetableRepository.getTeacherDisplayName("Web"))
+        assertEquals("Hr. Weber", de.kjltowinkler.msapp.data.timetable.TimetableRepository.getTeacherDisplayName("Weber"))
+        assertEquals("Hr. Schneider", de.kjltowinkler.msapp.data.timetable.TimetableRepository.getTeacherDisplayName("Sn"))
+        assertEquals("Hr. Thomas / Fr. Zander", de.kjltowinkler.msapp.data.timetable.TimetableRepository.getTeacherDisplayName("Tho / Za"))
+
+        assertEquals("Fr. Affeldt entfällt ersatzlos", de.kjltowinkler.msapp.data.timetable.TimetableRepository.formatDetailsWithTeacherNames("Af entfällt ersatzlos"))
+        assertEquals("Hr. Schneider statt Fr. Affeldt", de.kjltowinkler.msapp.data.timetable.TimetableRepository.formatDetailsWithTeacherNames("Sn statt Af"))
+        assertEquals("Vertretung durch Hr. Weber", de.kjltowinkler.msapp.data.timetable.TimetableRepository.formatDetailsWithTeacherNames("Vertretung durch Web"))
     }
 
     @Test

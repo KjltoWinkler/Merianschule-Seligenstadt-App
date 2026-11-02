@@ -143,6 +143,47 @@ object TimetableRepository {
         )
     )
 
+    // Zuordnung von Lehrer-Kürzeln und Nachnamen zur gewünschten Anrede "Fr. / Hr. Nachname"
+    val teacherSalutations: Map<String, String> = mapOf(
+        "Rd" to "Fr. Riedel",
+        "Reu" to "Hr. Reuter",
+        "Tho" to "Hr. Thomas",
+        "Kne" to "Hr. Knebel",
+        "Car" to "Hr. Carvalho",
+        "Af" to "Fr. Affeldt",
+        "Za" to "Fr. Zander",
+        "Hol" to "Fr. Holstein",
+        "Hv" to "Hr. Horvath-Walther",
+        "Bü" to "Fr. Bürkle",
+        "Ky" to "Hr. Kaya",
+        "Des" to "Fr. Desch",
+        "Me" to "Fr. Meyer",
+        "Sn" to "Hr. Schneider",
+        "Web" to "Hr. Weber",
+        "Wb" to "Hr. Weber",
+        "Kr" to "Fr. Krause",
+        // Zusätzliche Nachnamen-Aliase
+        "Riedel" to "Fr. Riedel",
+        "Reuter" to "Hr. Reuter",
+        "Thomas" to "Hr. Thomas",
+        "Knebel" to "Hr. Knebel",
+        "Carvalho" to "Hr. Carvalho",
+        "Affeldt" to "Fr. Affeldt",
+        "Afrasiabi" to "Fr. Affeldt",
+        "Zander" to "Fr. Zander",
+        "Zania" to "Fr. Zander",
+        "Holstein" to "Fr. Holstein",
+        "Horvath-Walther" to "Hr. Horvath-Walther",
+        "Horvath" to "Hr. Horvath-Walther",
+        "Bürkle" to "Fr. Bürkle",
+        "Kaya" to "Hr. Kaya",
+        "Desch" to "Fr. Desch",
+        "Meyer" to "Fr. Meyer",
+        "Schneider" to "Hr. Schneider",
+        "Weber" to "Hr. Weber",
+        "Krause" to "Fr. Krause"
+    )
+
     // Standard-Stundenplan für Montag entsprechend FigmaDesigns/mobile/stundenplan#montag.png
     private val mondayLessons = listOf(
         TimetableLesson(
@@ -677,6 +718,105 @@ object TimetableRepository {
             subjects = listOf("Fachunterricht"),
             officeHours = "Nach Vereinbarung"
         )
+    }
+
+    /**
+     * Wandelt ein Lehrerkürzel oder einen Nachnamen in die gewünschte Anrede um (z. B. "Af" -> "Fr. Affeldt", "Web" -> "Hr. Weber").
+     */
+    fun getTeacherDisplayName(codeOrName: String): String {
+        val trimmed = codeOrName.trim()
+        if (trimmed.isBlank() || trimmed == "-" || trimmed == "–" ||
+            trimmed.equals("Vertretung", ignoreCase = true) ||
+            trimmed.equals("Unterricht entfällt", ignoreCase = true)
+        ) {
+            return trimmed
+        }
+
+        // Falls bereits Fr. / Hr. vorangestellt ist
+        if (trimmed.startsWith("Fr. ") || trimmed.startsWith("Hr. ")) {
+            return trimmed
+        }
+        if (trimmed.startsWith("Frau ")) {
+            return "Fr. " + trimmed.removePrefix("Frau ").trim()
+        }
+        if (trimmed.startsWith("Herr ")) {
+            return "Hr. " + trimmed.removePrefix("Herr ").trim()
+        }
+
+        // Wenn mehrere Lehrer mit '/' oder ',' getrennt sind
+        if (trimmed.contains("/")) {
+            return trimmed.split("/")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .joinToString(" / ") { getTeacherDisplayName(it) }
+        }
+        if (trimmed.contains(",")) {
+            return trimmed.split(",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .joinToString(", ") { getTeacherDisplayName(it) }
+        }
+
+        // Direkte Zuordnung über teacherSalutations (Kürzel oder Nachname)
+        val directSalutation = teacherSalutations[trimmed]
+            ?: teacherSalutations.entries.firstOrNull { it.key.equals(trimmed, ignoreCase = true) }?.value
+        if (directSalutation != null) {
+            return directSalutation
+        }
+
+        // Fallback: Prüfen im teacherDirectory
+        val info = teacherDirectory[trimmed]
+            ?: teacherDirectory.entries.firstOrNull { it.key.equals(trimmed, ignoreCase = true) }?.value
+        if (info != null) {
+            if (info.fullName.startsWith("Fr. ") || info.fullName.startsWith("Hr. ")) {
+                return info.fullName
+            }
+            val lastName = info.fullName.substringAfterLast(" ")
+            return lastName
+        }
+
+        return trimmed
+    }
+
+    /**
+     * Formatiert den Vertretungs-Detailtext so, dass alle Lehrerkürzel durch "Fr. / Hr. Nachname" ersetzt werden.
+     * Erkennt Muster wie "Sn statt Af", "Af entfällt ersatzlos", "Vertretung durch Sn" oder einzelne Kürzel.
+     */
+    fun formatDetailsWithTeacherNames(details: String): String {
+        val trimmed = details.trim()
+        if (trimmed.isBlank()) return trimmed
+
+        // Fall 1: "X statt Y"
+        if (trimmed.contains(" statt ")) {
+            val parts = trimmed.split(" statt ", limit = 2)
+            val v = getTeacherDisplayName(parts[0].trim())
+            val l = getTeacherDisplayName(parts[1].trim())
+            return "$v statt $l"
+        }
+
+        // Fall 2: "X entfällt ersatzlos"
+        if (trimmed.endsWith(" entfällt ersatzlos")) {
+            val raw = trimmed.removeSuffix(" entfällt ersatzlos").trim()
+            val l = getTeacherDisplayName(raw)
+            return "$l entfällt ersatzlos"
+        }
+
+        // Fall 3: "X entfällt"
+        if (trimmed.endsWith(" entfällt") && !trimmed.equals("Unterricht entfällt", ignoreCase = true)) {
+            val raw = trimmed.removeSuffix(" entfällt").trim()
+            val l = getTeacherDisplayName(raw)
+            return "$l entfällt"
+        }
+
+        // Fall 4: "Vertretung durch X"
+        if (trimmed.startsWith("Vertretung durch ")) {
+            val raw = trimmed.removePrefix("Vertretung durch ").trim()
+            val v = getTeacherDisplayName(raw)
+            return "Vertretung durch $v"
+        }
+
+        // Fall 5: Einfacher Lehrer-Code oder Name
+        return getTeacherDisplayName(trimmed)
     }
 
     /**
