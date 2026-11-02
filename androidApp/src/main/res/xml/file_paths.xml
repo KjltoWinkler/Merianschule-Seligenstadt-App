@@ -2,4 +2,7 @@
 <paths>
     <!-- Temporäre Freigabe von generierten Bildern aus context.cacheDir/images/ -->
     <cache-path name="shared_images" path="images/" />
+    <!-- APK Updates aus context.cacheDir/updates/ -->
+    <cache-path name="updates" path="updates/" />
+    <external-cache-path name="ext_updates" path="updates/" />
 </paths>

@@ -473,5 +473,26 @@ class ServerTest {
         assertNull(updated.initialPassword, "Initialpasswort muss gelöscht sein sobald der Nutzer sein eigenes PW setzt")
         assertNull(updated.toDto().initialPassword)
     }
+
+    @Test
+    fun testAppUpdateLifecycle() {
+        val original = de.kjltowinkler.msapp.server.routes.AppUpdateRepository.getUpdateInfo()
+        assertNotNull(original)
+
+        val newInfo = original.copy(
+            versionCode = 999,
+            versionName = "9.9.9",
+            releaseNotes = "• Test Update Release Notes"
+        )
+        de.kjltowinkler.msapp.server.routes.AppUpdateRepository.saveUpdateInfo(newInfo)
+
+        val fetched = de.kjltowinkler.msapp.server.routes.AppUpdateRepository.getUpdateInfo()
+        assertEquals(999, fetched.versionCode)
+        assertEquals("9.9.9", fetched.versionName)
+        assertEquals("• Test Update Release Notes", fetched.releaseNotes)
+
+        // Restore original
+        de.kjltowinkler.msapp.server.routes.AppUpdateRepository.saveUpdateInfo(original)
+    }
 }
 

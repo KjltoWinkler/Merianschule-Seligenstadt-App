@@ -170,5 +170,6 @@ data class HealthStatusResponse(
         timetableRoutes()
         adminRoutes()
         adminWebPanel()
+        appUpdateRoutes()
     }
 }

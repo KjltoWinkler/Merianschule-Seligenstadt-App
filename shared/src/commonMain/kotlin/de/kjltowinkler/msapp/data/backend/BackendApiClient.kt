@@ -492,4 +492,14 @@ object BackendApiClient {
             error("Admin-Stundenplan-Update fehlgeschlagen: $body")
         }
     }
+
+    suspend fun fetchAppUpdateInfo(): Result<de.kjltowinkler.msapp.data.update.AppUpdateInfo> = runCatching {
+        val response = client.get("$serverUrl/api/app/version")
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<de.kjltowinkler.msapp.data.update.AppUpdateInfo>(body)
+        } else {
+            error("App-Update-Informationen konnten nicht abgerufen werden (HTTP ${response.status.value}): $body")
+        }
+    }
 }

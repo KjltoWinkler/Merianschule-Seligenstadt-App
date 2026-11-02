@@ -713,6 +713,10 @@
         <md-icon slot="icon">assignment</md-icon>
         Schulaufgaben
       </md-primary-tab>
+      <md-primary-tab id="tabAppUpdates">
+        <md-icon slot="icon">system_update</md-icon>
+        App-Updates (APK)
+      </md-primary-tab>
     </md-tabs>
 
     <!-- Tab 1: Nutzerverwaltung -->
@@ -1183,6 +1187,96 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 6: App-Updates (APK) -->
+    <section id="panelAppUpdates" class="tab-content hidden">
+      <div class="grid-2" style="margin-bottom: 24px;">
+        <!-- Status Card -->
+        <div class="card">
+          <div class="card-header">
+            <md-icon>system_update</md-icon>
+            <h2>Aktuelle APK & Versionsstatus</h2>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+              <div>
+                <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Aktuelle Version</div>
+                <div id="apkStatusVersion" style="font-size: 18px; font-weight: 600; color: #fff;">v1.0.0 (Build 1)</div>
+              </div>
+              <div id="apkFileBadge">
+                <span style="background: rgba(255,183,77,0.2); color: #ffb74d; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">Wird geladen...</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="flex: 1;">
+                <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Download-URL (für Android-Clients)</div>
+                <code id="apkDownloadUrlText" style="font-size: 12px; color: #82b1ff; word-break: break-all;">/api/app/download/latest.apk</code>
+              </div>
+              <md-filled-tonal-button id="btnDownloadCurrentApk" onclick="window.open('/api/app/download/latest.apk', '_blank')" style="white-space: nowrap;">
+                <md-icon slot="icon">download</md-icon>
+                APK laden
+              </md-filled-tonal-button>
+            </div>
+
+            <form id="updateInfoForm" onsubmit="event.preventDefault(); submitUpdateInfo();" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+              <div class="grid-2">
+                <md-outlined-text-field id="appVersionName" label="Versionsname (z. B. 1.1.0)" required placeholder="1.1.0">
+                  <md-icon slot="leading-icon">sell</md-icon>
+                </md-outlined-text-field>
+                <md-outlined-text-field id="appVersionCode" label="Build-Code / Versionscode (z. B. 2)" type="number" required placeholder="2">
+                  <md-icon slot="leading-icon">numbers</md-icon>
+                </md-outlined-text-field>
+              </div>
+
+              <md-outlined-text-field id="appReleaseNotes" label="Änderungsprotokoll / Release Notes" type="textarea" rows="3" placeholder="z. B. • Neue Funktionen&#10;• Fehlerbehebungen">
+                <md-icon slot="leading-icon">notes</md-icon>
+              </md-outlined-text-field>
+
+              <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                <md-filled-button type="submit" id="btnSaveAppInfo">
+                  <md-icon slot="icon">save</md-icon>
+                  Versionsinfo speichern
+                </md-filled-button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="card">
+          <div class="card-header">
+            <md-icon>upload_file</md-icon>
+            <h2>Neue APK-Datei hochladen</h2>
+          </div>
+          <p style="color: var(--md-sys-color-on-surface-variant); font-size: 14px; margin: 8px 0 16px;">
+            Hier kannst du eine neu kompilierte Android-App (<code>.apk</code>) hochladen. Alle installierten Apps deiner Freunde erkennen das Update beim nächsten Öffnen oder über den Update-Button in den Einstellungen und können es automatisch installieren.
+          </p>
+
+          <div id="apkDropzone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="document.getElementById('apkFileInput').click()">
+            <input type="file" id="apkFileInput" accept=".apk" style="display: none;" onchange="handleApkFileSelected(event)">
+            <md-icon style="font-size: 40px; color: var(--md-sys-color-primary); margin-bottom: 8px;">android</md-icon>
+            <div id="apkDropzoneLabel" style="font-weight: 500; font-size: 15px;">Klicke hier oder ziehe eine .apk Datei hierher</div>
+            <div id="apkDropzoneSub" style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px;">Unterstützt direkt aus Android Studio kompilierte APK-Dateien</div>
+          </div>
+
+          <div id="apkUploadProgressContainer" class="hidden" style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+              <span id="apkUploadStatusText">Lade APK hoch...</span>
+              <span id="apkUploadPercentText">0%</span>
+            </div>
+            <md-linear-progress id="apkUploadProgressBar" value="0"></md-linear-progress>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+            <md-filled-button id="btnUploadApk" onclick="uploadSelectedApk()" disabled>
+              <md-icon slot="icon">cloud_upload</md-icon>
+              APK jetzt hochladen & freigeben
+            </md-filled-button>
+          </div>
         </div>
       </div>
     </section>
@@ -1674,6 +1768,7 @@
         document.getElementById('panelSchulportal').classList.toggle('hidden', index !== 2);
         document.getElementById('panelTimetable').classList.toggle('hidden', index !== 3);
         document.getElementById('panelSchoolTasks').classList.toggle('hidden', index !== 4);
+        document.getElementById('panelAppUpdates').classList.toggle('hidden', index !== 5);
 
         if (index === 0) loadUsers();
         if (index === 1) loadStats();
@@ -1687,6 +1782,9 @@
         }
         if (index === 4) {
           loadSchoolTasks();
+        }
+        if (index === 5) {
+          loadAppUpdateInfo();
         }
       });
 
@@ -3041,6 +3139,141 @@
       } catch (err) {
         showToast('Netzwerkfehler: ' + err.message, true);
       }
+    }
+
+    // ==========================================
+    // App-Updates (APK) Logik
+    // ==========================================
+    let selectedApkFile = null;
+
+    async function loadAppUpdateInfo() {
+      try {
+        const res = await apiFetch('/api/admin/app/info');
+        if (!res.ok) throw new Error('Update-Informationen konnten nicht geladen werden.');
+        const data = await res.json();
+
+        document.getElementById('apkStatusVersion').textContent = `v${data.versionName} (Build ${data.versionCode})`;
+        document.getElementById('apkDownloadUrlText').textContent = data.downloadUrl || '/api/app/download/latest.apk';
+        document.getElementById('appVersionName').value = data.versionName || '';
+        document.getElementById('appVersionCode').value = data.versionCode || 1;
+        document.getElementById('appReleaseNotes').value = data.releaseNotes || '';
+
+        const badge = document.getElementById('apkFileBadge');
+        const btnDownload = document.getElementById('btnDownloadCurrentApk');
+        if (data.apkExists) {
+          const mb = (data.fileSizeBytes / (1024 * 1024)).toFixed(1);
+          badge.innerHTML = `<span style="background: rgba(76, 175, 80, 0.2); color: #81c784; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">✓ APK bereit (${mb} MB)</span>`;
+          btnDownload.disabled = false;
+        } else {
+          badge.innerHTML = `<span style="background: rgba(244, 67, 54, 0.2); color: #e57373; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">⚠️ Keine APK auf Server</span>`;
+          btnDownload.disabled = true;
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function submitUpdateInfo() {
+      const versionName = document.getElementById('appVersionName').value.trim();
+      const versionCode = parseInt(document.getElementById('appVersionCode').value, 10);
+      const releaseNotes = document.getElementById('appReleaseNotes').value.trim();
+
+      if (!versionName || !versionCode || versionCode <= 0) {
+        showToast('Bitte gültigen Versionsnamen und Build-Code angeben.', true);
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/api/admin/app/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            versionName,
+            versionCode,
+            releaseNotes,
+            downloadUrl: '/api/app/download/latest.apk'
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Versionsinformationen erfolgreich gespeichert!');
+          loadAppUpdateInfo();
+        } else {
+          showToast(data.message || 'Fehler beim Speichern der Versionsinfo.', true);
+        }
+      } catch (err) {
+        showToast('Fehler: ' + err.message, true);
+      }
+    }
+
+    function handleApkFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.name.endsWith('.apk')) {
+        showToast('Bitte wähle eine gültige .apk Datei aus.', true);
+        return;
+      }
+
+      selectedApkFile = file;
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      document.getElementById('apkDropzoneLabel').textContent = file.name;
+      document.getElementById('apkDropzoneSub').textContent = `Größe: ${mb} MB – Bereit zum Hochladen`;
+      document.getElementById('btnUploadApk').disabled = false;
+    }
+
+    function uploadSelectedApk() {
+      if (!selectedApkFile) return;
+
+      const progressContainer = document.getElementById('apkUploadProgressContainer');
+      const progressBar = document.getElementById('apkUploadProgressBar');
+      const statusText = document.getElementById('apkUploadStatusText');
+      const percentText = document.getElementById('apkUploadPercentText');
+      const btnUpload = document.getElementById('btnUploadApk');
+
+      progressContainer.classList.remove('hidden');
+      btnUpload.disabled = true;
+
+      const formData = new FormData();
+      formData.append('apk', selectedApkFile, selectedApkFile.name);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/admin/app/upload-apk', true);
+
+      if (authToken) {
+        xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+      }
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressBar.value = percent / 100;
+          percentText.textContent = `${percent}%`;
+          statusText.textContent = `Lade APK hoch (${(e.loaded / 1024 / 1024).toFixed(1)} MB / ${(e.total / 1024 / 1024).toFixed(1)} MB)...`;
+        }
+      };
+
+      xhr.onload = () => {
+        progressContainer.classList.add('hidden');
+        btnUpload.disabled = false;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          showToast('APK erfolgreich hochgeladen und freigegeben!');
+          selectedApkFile = null;
+          document.getElementById('apkDropzoneLabel').textContent = 'Klicke hier oder ziehe eine .apk Datei hierher';
+          document.getElementById('apkDropzoneSub').textContent = 'Unterstützt direkt aus Android Studio kompilierte APK-Dateien';
+          loadAppUpdateInfo();
+        } else {
+          showToast(`Fehler beim Hochladen (HTTP ${xhr.status}): ${xhr.responseText}`, true);
+        }
+      };
+
+      xhr.onerror = () => {
+        progressContainer.classList.add('hidden');
+        btnUpload.disabled = false;
+        showToast('Netzwerkfehler beim Hochladen der APK.', true);
+      };
+
+      xhr.send(formData);
     }
   </script>
 </body>

@@ -26,3 +26,6 @@ kotlin-js-store/
 bin/
 **/bin/
 scripts/vplan_output.json
+*.apk
+server/data/updates/
+data/updates/

@@ -23,6 +23,10 @@ import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import de.kjltowinkler.msapp.data.task.TaskNotificationManager
+import de.kjltowinkler.msapp.data.update.AppUpdateManager
+import de.kjltowinkler.msapp.data.update.UpdateCheckStatus
+import de.kjltowinkler.msapp.data.update.UpdateDownloadStatus
+import de.kjltowinkler.msapp.util.PlatformAppUpdater
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.ui.components.handCursor
  
@@ -56,6 +60,16 @@ fun SettingsScreen(
     var showCustomPickTimeDialog by rememberSaveable { mutableStateOf(false) }
     var isTwoFactorOn by remember(isTwoFactorEnabled) { mutableStateOf(isTwoFactorEnabled) }
     var showDisable2FaDialog by remember { mutableStateOf(false) }
+
+    val checkStatus by AppUpdateManager.checkStatus
+    val downloadStatus by AppUpdateManager.downloadStatus
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (checkStatus is UpdateCheckStatus.Idle) {
+            AppUpdateManager.checkForUpdates()
+        }
+    }
 
     // Dynamische Material You Farbwerte aus dem aktiven MaterialTheme
     val screenBackground = MaterialTheme.colorScheme.background
@@ -392,6 +406,191 @@ fun SettingsScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- BEREICH 6: App & Updates ---
+            CategoryHeader(title = "App & Updates", color = categoryHeader)
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = cardBackground,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Item 1: Versionsinfo
+                    val availableUpdate = (checkStatus as? UpdateCheckStatus.UpdateAvailable)?.updateInfo
+
+                    SettingsItemRow(
+                        title = "Merianschule App",
+                        subtitle = "Version ${PlatformAppUpdater.currentVersionName} (Build ${PlatformAppUpdater.currentVersionCode})",
+                        titleColor = textPrimary,
+                        subtitleColor = textSecondary,
+                        trailing = {
+                            when {
+                                availableUpdate != null -> {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer
+                                    ) {
+                                        Text(
+                                            text = "Neu: v${availableUpdate.versionName}",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                checkStatus is UpdateCheckStatus.UpToDate -> {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(Res.drawable.ic_check_circle),
+                                            contentDescription = "Aktuell",
+                                            tint = Color(0xFF4CAF50),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = "Aktuell",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            color = Color(0xFF4CAF50)
+                                        )
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(thickness = 1.dp, color = dividerHorizontal)
+
+                    // Item 2: Update suchen & installieren
+                    val currentCheck = checkStatus
+                    val currentDownload = downloadStatus
+
+                    val (updateTitle, updateSubtitle) = when {
+                        currentDownload is UpdateDownloadStatus.Downloading -> {
+                            "Lade Update herunter..." to "${currentDownload.progressPercent}% abgeschlossen" +
+                                (if (currentDownload.totalBytes > 0) " (${currentDownload.bytesDownloaded / 1024 / 1024} MB / ${currentDownload.totalBytes / 1024 / 1024} MB)" else "")
+                        }
+                        currentDownload is UpdateDownloadStatus.ReadyToInstall -> {
+                            "Update bereit zur Installation" to "Die APK wurde heruntergeladen. Tippe hier, um das Update jetzt zu installieren."
+                        }
+                        currentDownload is UpdateDownloadStatus.Error -> {
+                            "Download fehlgeschlagen" to "${currentDownload.message} (Tippen zum Wiederholen)"
+                        }
+                        currentCheck is UpdateCheckStatus.Checking -> {
+                            "Suche nach Updates..." to "Serververbindung wird geprüft..."
+                        }
+                        currentCheck is UpdateCheckStatus.UpdateAvailable -> {
+                            val notes = currentCheck.updateInfo.releaseNotes.ifBlank { "Tippe hier, um die neueste Version zu installieren." }
+                            val sizeText = if (currentCheck.updateInfo.fileSizeBytes > 0) " (${currentCheck.updateInfo.fileSizeBytes / 1024 / 1024} MB)" else ""
+                            "Neues Update: v${currentCheck.updateInfo.versionName}$sizeText" to notes
+                        }
+                        currentCheck is UpdateCheckStatus.UpToDate -> {
+                            "Nach Updates suchen" to "Du hast bereits die neueste Version installiert."
+                        }
+                        currentCheck is UpdateCheckStatus.Error -> {
+                            "Prüfung fehlgeschlagen" to "${currentCheck.message} (Tippen zum Wiederholen)"
+                        }
+                        else -> {
+                            "Nach Updates suchen" to "Prüft auf neue Versionen und Updates auf dem Server."
+                        }
+                    }
+
+                    SettingsItemRow(
+                        title = updateTitle,
+                        subtitle = updateSubtitle,
+                        titleColor = if (currentCheck is UpdateCheckStatus.UpdateAvailable || currentDownload is UpdateDownloadStatus.ReadyToInstall) MaterialTheme.colorScheme.primary else textPrimary,
+                        subtitleColor = textSecondary,
+                        onClick = {
+                            when {
+                                currentDownload is UpdateDownloadStatus.Downloading -> {}
+                                currentDownload is UpdateDownloadStatus.ReadyToInstall -> {
+                                    if (!PlatformAppUpdater.canInstallUnknownApps()) {
+                                        showPermissionDialog = true
+                                    } else {
+                                        PlatformAppUpdater.installApk(currentDownload.localPath)
+                                    }
+                                }
+                                currentCheck is UpdateCheckStatus.UpdateAvailable -> {
+                                    if (!PlatformAppUpdater.canInstallUnknownApps()) {
+                                        showPermissionDialog = true
+                                    } else {
+                                        AppUpdateManager.startDownloadAndInstall(currentCheck.updateInfo)
+                                    }
+                                }
+                                currentCheck is UpdateCheckStatus.Checking -> {}
+                                else -> {
+                                    AppUpdateManager.checkForUpdates()
+                                }
+                            }
+                        },
+                        trailing = {
+                            when {
+                                currentDownload is UpdateDownloadStatus.Downloading -> {
+                                    CircularProgressIndicator(
+                                        progress = { currentDownload.progressPercent / 100f },
+                                        modifier = Modifier.size(32.dp),
+                                        strokeWidth = 3.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                currentDownload is UpdateDownloadStatus.ReadyToInstall -> {
+                                    Button(
+                                        onClick = {
+                                            if (!PlatformAppUpdater.canInstallUnknownApps()) {
+                                                showPermissionDialog = true
+                                            } else {
+                                                PlatformAppUpdater.installApk(currentDownload.localPath)
+                                            }
+                                        },
+                                        modifier = Modifier.handCursor()
+                                    ) {
+                                        Text("Installieren")
+                                    }
+                                }
+                                currentCheck is UpdateCheckStatus.Checking -> {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                currentCheck is UpdateCheckStatus.UpdateAvailable -> {
+                                    Button(
+                                        onClick = {
+                                            if (!PlatformAppUpdater.canInstallUnknownApps()) {
+                                                showPermissionDialog = true
+                                            } else {
+                                                AppUpdateManager.startDownloadAndInstall(currentCheck.updateInfo)
+                                            }
+                                        },
+                                        modifier = Modifier.handCursor()
+                                    ) {
+                                        Text("Aktualisieren")
+                                    }
+                                }
+                                else -> {
+                                    IconButton(
+                                        onClick = { AppUpdateManager.checkForUpdates() },
+                                        modifier = Modifier.handCursor()
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(Res.drawable.ic_refresh),
+                                            contentDescription = "Nach Updates suchen",
+                                            tint = textSecondary,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -476,6 +675,47 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDisable2FaDialog = false }) {
+                    Text(
+                        text = "Abbrechen",
+                        color = textPrimary
+                    )
+                }
+            }
+        )
+    }
+
+    // Dialog 4: Berechtigung für App-Updates anfordern
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = {
+                Text(
+                    text = "Installation erlauben",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = getQuicksandFontFamily(),
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "Damit die Merianschule App das Update direkt installieren kann, muss in den Android-Einstellungen die Berechtigung „Unbekannte Apps installieren“ für diese App aktiviert werden.\n\nMöchtest du die Einstellungen jetzt öffnen?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPermissionDialog = false
+                        PlatformAppUpdater.openUnknownAppSourcesSettings()
+                    }
+                ) {
+                    Text("Einstellungen öffnen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog = false }) {
                     Text(
                         text = "Abbrechen",
                         color = textPrimary
