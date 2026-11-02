@@ -17,8 +17,8 @@ object TimetableRepository {
     val teacherDirectory: Map<String, TeacherInfo> = mapOf(
         "Rd" to TeacherInfo(
             code = "Rd",
-            fullName = "Julia Riedel",
-            email = "Julia.Riedel@mssof.onmicrosoft.com",
+            fullName = "Julia Ridel",
+            email = "Julia.Ridel@mssof.onmicrosoft.com",
             subjects = listOf("Englisch"),
             officeHours = "Nach Vereinbarung"
         ),
@@ -145,13 +145,13 @@ object TimetableRepository {
 
     // Zuordnung von Lehrer-Kürzeln und Nachnamen zur gewünschten Anrede "Fr. / Hr. Nachname"
     val teacherSalutations: Map<String, String> = mapOf(
-        "Rd" to "Fr. Riedel",
+        "Rd" to "Fr. Ridel",
         "Reu" to "Hr. Reuter",
         "Tho" to "Hr. Thomas",
         "Kne" to "Hr. Knebel",
         "Car" to "Hr. Carvalho",
-        "Af" to "Fr. Affeldt",
-        "Za" to "Fr. Zander",
+        "Af" to "Fr. Afrasiabi",
+        "Za" to "Fr. Zania",
         "Hol" to "Fr. Holstein",
         "Hv" to "Hr. Horvath-Walther",
         "Bü" to "Fr. Bürkle",
@@ -163,15 +163,16 @@ object TimetableRepository {
         "Wb" to "Hr. Weber",
         "Kr" to "Fr. Krause",
         // Zusätzliche Nachnamen-Aliase
-        "Riedel" to "Fr. Riedel",
+        "Ridel" to "Fr. Ridel",
+        "Riedel" to "Fr. Ridel",
         "Reuter" to "Hr. Reuter",
         "Thomas" to "Hr. Thomas",
         "Knebel" to "Hr. Knebel",
         "Carvalho" to "Hr. Carvalho",
-        "Affeldt" to "Fr. Affeldt",
-        "Afrasiabi" to "Fr. Affeldt",
-        "Zander" to "Fr. Zander",
-        "Zania" to "Fr. Zander",
+        "Afrasiabi" to "Fr. Afrasiabi",
+        "Affeldt" to "Fr. Afrasiabi",
+        "Zania" to "Fr. Zania",
+        "Zander" to "Fr. Zania",
         "Holstein" to "Fr. Holstein",
         "Horvath-Walther" to "Hr. Horvath-Walther",
         "Horvath" to "Hr. Horvath-Walther",
@@ -193,7 +194,7 @@ object TimetableRepository {
             subject = "Deutsch",
             room = "Raum B208",
             teacherCode = "Af",
-            teacherName = "Fr. Affeldt",
+            teacherName = "Fr. Afrasiabi",
             teacherEmail = "affeldt@merianschule-seligenstadt.de",
             breakAfterMinutes = 5,
             breakLabel = "5 Min. Wechselpause"
@@ -217,7 +218,7 @@ object TimetableRepository {
             subject = "Geschichte",
             room = "Raum B208",
             teacherCode = "Tho / Za",
-            teacherName = "Hr. Thomas / Fr. Zander",
+            teacherName = "Hr. Thomas / Fr. Zania",
             teacherEmail = "thomas@merianschule-seligenstadt.de",
             breakAfterMinutes = 5,
             breakLabel = "5 Min. Wechselpause"
@@ -279,7 +280,7 @@ object TimetableRepository {
             subject = "Deutsch",
             room = "Raum B208",
             teacherCode = "Af",
-            teacherName = "Fr. Affeldt",
+            teacherName = "Fr. Afrasiabi",
             teacherEmail = "affeldt@merianschule-seligenstadt.de",
             breakAfterMinutes = 20,
             breakLabel = "20 Min. Wechselpause"
@@ -327,7 +328,7 @@ object TimetableRepository {
             subject = "PoWi",
             room = "Raum B208",
             teacherCode = "Tho / Za",
-            teacherName = "Hr. Thomas / Fr. Zander",
+            teacherName = "Hr. Thomas / Fr. Zania",
             teacherEmail = "thomas@merianschule-seligenstadt.de"
         )
     )
@@ -377,7 +378,7 @@ object TimetableRepository {
             subject = "Deutsch",
             room = "Raum B208",
             teacherCode = "Af",
-            teacherName = "Fr. Affeldt",
+            teacherName = "Fr. Afrasiabi",
             teacherEmail = "affeldt@merianschule-seligenstadt.de",
             breakAfterMinutes = 20,
             breakLabel = "20 Min. Wechselpause"
@@ -415,7 +416,7 @@ object TimetableRepository {
             subject = "Deutsch",
             room = "Raum B208",
             teacherCode = "Af",
-            teacherName = "Fr. Affeldt",
+            teacherName = "Fr. Afrasiabi",
             teacherEmail = "affeldt@merianschule-seligenstadt.de",
             breakAfterMinutes = 5,
             breakLabel = "5 Min. Wechselpause"
@@ -427,7 +428,7 @@ object TimetableRepository {
             subject = "Geschichte",
             room = "Raum B208",
             teacherCode = "Tho / Za",
-            teacherName = "Hr. Thomas / Fr. Zander",
+            teacherName = "Hr. Thomas / Fr. Zania",
             teacherEmail = "thomas@merianschule-seligenstadt.de",
             breakAfterMinutes = 20,
             breakLabel = "20 Min. Wechselpause"
@@ -513,7 +514,7 @@ object TimetableRepository {
             subject = "Deutsch",
             room = "Raum B208",
             teacherCode = "Af",
-            teacherName = "Fr. Affeldt",
+            teacherName = "Fr. Afrasiabi",
             teacherEmail = "affeldt@merianschule-seligenstadt.de",
             breakAfterMinutes = 5,
             breakLabel = "5 Min. Wechselpause"
@@ -721,7 +722,7 @@ object TimetableRepository {
     }
 
     /**
-     * Wandelt ein Lehrerkürzel oder einen Nachnamen in die gewünschte Anrede um (z. B. "Af" -> "Fr. Affeldt", "Web" -> "Hr. Weber").
+     * Wandelt ein Lehrerkürzel oder einen Nachnamen in die gewünschte Anrede um (z. B. "Af" -> "Fr. Afrasiabi", "Web" -> "Hr. Weber").
      */
     fun getTeacherDisplayName(codeOrName: String): String {
         val trimmed = codeOrName.trim()
