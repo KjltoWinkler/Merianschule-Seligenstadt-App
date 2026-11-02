@@ -669,12 +669,12 @@
       </div>
       <p>Melde dich mit deinem Administrator-Konto oder dem Admin-Secret-Key an.</p>
 
-      <form id="loginForm" class="form-group" onsubmit="handleLogin(event)">
-        <md-outlined-text-field id="loginIdentifier" label="Benutzername oder E-Mail" required value="admin">
+      <form id="loginForm" class="form-group" onsubmit="handleLogin(event)" autocomplete="on">
+        <md-outlined-text-field id="loginIdentifier" name="username" autocomplete="username" label="Benutzername oder E-Mail" required value="admin">
           <md-icon slot="leading-icon">person</md-icon>
         </md-outlined-text-field>
 
-        <md-outlined-text-field id="loginPassword" label="Passwort" type="password" required>
+        <md-outlined-text-field id="loginPassword" name="password" autocomplete="current-password" label="Passwort" type="password" required>
           <md-icon slot="leading-icon">key</md-icon>
         </md-outlined-text-field>
 
@@ -723,7 +723,19 @@
     <section id="panelUsers" class="tab-content">
       <div class="toolbar-row">
         <div class="search-field">
-          <md-outlined-text-field id="userSearch" placeholder="Nutzer durchsuchen (Name, E-Mail, Klasse)..." style="width: 100%;" oninput="filterUsers()">
+          <md-outlined-text-field 
+            id="userSearch" 
+            type="search" 
+            name="search_users_query" 
+            autocomplete="off" 
+            autocorrect="off" 
+            autocapitalize="off" 
+            spellcheck="false" 
+            data-lpignore="true" 
+            data-form-type="other" 
+            placeholder="Nutzer durchsuchen (Name, E-Mail, Klasse)..." 
+            style="width: 100%;" 
+            oninput="filterUsers()">
             <md-icon slot="leading-icon">search</md-icon>
           </md-outlined-text-field>
         </div>
@@ -905,7 +917,19 @@
 
         <div class="toolbar-row" style="margin-bottom: 16px;">
           <div class="search-field" style="max-width: 100%;">
-            <md-outlined-text-field id="subSearch" placeholder="Vertretungsplan durchsuchen (Klasse, Fach, Datum, Typ, Details, Raum)..." style="width: 100%;" oninput="filterSubstitutions()">
+            <md-outlined-text-field 
+              id="subSearch" 
+              type="search" 
+              name="search_substitutions_query" 
+              autocomplete="off" 
+              autocorrect="off" 
+              autocapitalize="off" 
+              spellcheck="false" 
+              data-lpignore="true" 
+              data-form-type="other" 
+              placeholder="Vertretungsplan durchsuchen (Klasse, Fach, Datum, Typ, Details, Raum)..." 
+              style="width: 100%;" 
+              oninput="filterSubstitutions()">
               <md-icon slot="leading-icon">search</md-icon>
             </md-outlined-text-field>
           </div>
@@ -975,8 +999,23 @@
 
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
           <div style="flex: 1; min-width: 280px;">
-            <md-outlined-text-field id="geminiApiKeyInput" label="Google Gemini API-Key" type="password" placeholder="AQ... oder AIza..." style="width: 100%;">
+            <md-outlined-text-field 
+              id="geminiApiKeyInput" 
+              label="Google Gemini API-Key" 
+              type="text" 
+              name="gemini_secret_api_key" 
+              autocomplete="off" 
+              autocorrect="off" 
+              autocapitalize="off" 
+              spellcheck="false" 
+              data-lpignore="true" 
+              data-form-type="other" 
+              placeholder="AQ... oder AIza..." 
+              style="width: 100%; -webkit-text-security: disc;">
               <md-icon slot="leading-icon">key</md-icon>
+              <md-icon-button slot="trailing-icon" type="button" onclick="toggleGeminiKeyVisibility()" title="Key anzeigen / verbergen">
+                <md-icon id="geminiKeyVisIcon">visibility</md-icon>
+              </md-icon-button>
             </md-outlined-text-field>
           </div>
           <md-filled-button onclick="saveGeminiApiKey()">
@@ -1144,7 +1183,19 @@
       <div class="m3-card">
         <div class="toolbar-row">
           <div class="search-field">
-            <md-outlined-text-field id="schoolTaskSearch" placeholder="Schulaufgaben durchsuchen (Titel, Fach, Klasse)..." style="width: 100%;" oninput="filterSchoolTasks()">
+            <md-outlined-text-field 
+              id="schoolTaskSearch" 
+              type="search" 
+              name="search_school_tasks_query" 
+              autocomplete="off" 
+              autocorrect="off" 
+              autocapitalize="off" 
+              spellcheck="false" 
+              data-lpignore="true" 
+              data-form-type="other" 
+              placeholder="Schulaufgaben durchsuchen (Titel, Fach, Klasse)..." 
+              style="width: 100%;" 
+              oninput="filterSchoolTasks()">
               <md-icon slot="leading-icon">search</md-icon>
             </md-outlined-text-field>
           </div>
@@ -1411,12 +1462,12 @@
           <md-outlined-text-field id="inputSpSchoolId" label="Schul-ID" value="4322" required>
             <md-icon slot="leading-icon">domain</md-icon>
           </md-outlined-text-field>
-          <md-outlined-text-field id="inputSpUsername" label="Benutzername" required placeholder="z. B. lehrer.max">
+          <md-outlined-text-field id="inputSpUsername" name="sp_lanis_username" autocomplete="off" data-lpignore="true" label="Benutzername" required placeholder="z. B. lehrer.max">
             <md-icon slot="leading-icon">account_circle</md-icon>
           </md-outlined-text-field>
         </div>
         <div class="grid-2">
-          <md-outlined-text-field id="inputSpPassword" label="Passwort" type="password" required placeholder="LANIS Passwort">
+          <md-outlined-text-field id="inputSpPassword" name="sp_lanis_password" autocomplete="new-password" data-lpignore="true" label="Passwort" type="password" required placeholder="LANIS Passwort">
             <md-icon slot="leading-icon">lock</md-icon>
           </md-outlined-text-field>
           <md-outlined-text-field id="inputSpInterval" label="Intervall (Minuten)" type="number" min="5" max="1440" value="15" required>
@@ -1757,6 +1808,53 @@
       return clean.substring(0, 2).toUpperCase();
     }
 
+    function hardenInputsAgainstAutofill() {
+      const fieldConfigs = [
+        { id: 'userSearch', type: 'search', mask: false },
+        { id: 'subSearch', type: 'search', mask: false },
+        { id: 'schoolTaskSearch', type: 'search', mask: false },
+        { id: 'geminiApiKeyInput', type: 'text', mask: true }
+      ];
+
+      fieldConfigs.forEach(({ id, type, mask }) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.setAttribute('autocomplete', 'off');
+        el.setAttribute('autocorrect', 'off');
+        el.setAttribute('autocapitalize', 'off');
+        el.setAttribute('spellcheck', 'false');
+        el.setAttribute('data-lpignore', 'true');
+        el.setAttribute('data-form-type', 'other');
+        if (mask) {
+          el.style.webkitTextSecurity = isGeminiKeyVisible ? 'none' : 'disc';
+        }
+
+        const applyToShadow = () => {
+          if (el.shadowRoot) {
+            const inner = el.shadowRoot.querySelector('input');
+            if (inner) {
+              inner.setAttribute('autocomplete', 'off');
+              inner.setAttribute('autocorrect', 'off');
+              inner.setAttribute('autocapitalize', 'off');
+              inner.setAttribute('spellcheck', 'false');
+              inner.setAttribute('data-lpignore', 'true');
+              inner.setAttribute('data-form-type', 'other');
+              if (type) inner.setAttribute('type', type);
+              if (mask) {
+                inner.style.webkitTextSecurity = isGeminiKeyVisible ? 'none' : 'disc';
+              }
+            }
+          }
+        };
+
+        if (el.updateComplete) {
+          el.updateComplete.then(applyToShadow);
+        } else {
+          setTimeout(applyToShadow, 50);
+        }
+      });
+    }
+
     // UI Initialisierung
     document.addEventListener('DOMContentLoaded', () => {
       // Tab switching
@@ -1796,6 +1894,17 @@
         authToken = '';
         updateAuthView();
       });
+
+      // Autofill-Prävention auf Suchfeldern & API-Keys
+      hardenInputsAgainstAutofill();
+      setTimeout(() => {
+        hardenInputsAgainstAutofill();
+        const searchInput = document.getElementById('userSearch');
+        if (searchInput && searchInput.value === 'admin' && document.activeElement !== searchInput) {
+          searchInput.value = '';
+          if (typeof filterUsers === 'function') filterUsers();
+        }
+      }, 250);
 
       // Auth prüfen
       updateAuthView();
@@ -1890,6 +1999,12 @@
 
     // Nutzer laden
     async function loadUsers() {
+      const searchInput = document.getElementById('userSearch');
+      if (searchInput && searchInput.value === 'admin' && document.activeElement !== searchInput) {
+        searchInput.value = '';
+      }
+      hardenInputsAgainstAutofill();
+
       const tbody = document.getElementById('userTableBody');
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px;"><md-circular-progress indeterminate></md-circular-progress></td></tr>`;
 
@@ -2578,7 +2693,27 @@
       document.getElementById('dropzone').classList.remove('hidden');
     }
 
+    let isGeminiKeyVisible = false;
+    function toggleGeminiKeyVisibility() {
+      isGeminiKeyVisible = !isGeminiKeyVisible;
+      const inputEl = document.getElementById('geminiApiKeyInput');
+      const icon = document.getElementById('geminiKeyVisIcon');
+      if (inputEl) {
+        inputEl.style.webkitTextSecurity = isGeminiKeyVisible ? 'none' : 'disc';
+        if (inputEl.shadowRoot) {
+          const inner = inputEl.shadowRoot.querySelector('input');
+          if (inner) {
+            inner.style.webkitTextSecurity = isGeminiKeyVisible ? 'none' : 'disc';
+          }
+        }
+      }
+      if (icon) {
+        icon.textContent = isGeminiKeyVisible ? 'visibility_off' : 'visibility';
+      }
+    }
+
     async function loadGeminiKeyStatus() {
+      hardenInputsAgainstAutofill();
       try {
         const res = await apiFetch('/api/admin/config/gemini-key');
         if (!res.ok) return;
@@ -2631,6 +2766,14 @@
         if (res.ok) {
           showToast(data.message || 'Gemini API-Key erfolgreich gespeichert.');
           keyInput.value = '';
+          isGeminiKeyVisible = false;
+          const icon = document.getElementById('geminiKeyVisIcon');
+          if (icon) icon.textContent = 'visibility';
+          keyInput.style.webkitTextSecurity = 'disc';
+          if (keyInput.shadowRoot) {
+            const inner = keyInput.shadowRoot.querySelector('input');
+            if (inner) inner.style.webkitTextSecurity = 'disc';
+          }
           loadGeminiKeyStatus();
         } else {
           showToast(data.message || 'Fehler beim Speichern des API-Keys.', true);
