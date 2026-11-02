@@ -111,8 +111,17 @@ fun TimetableScreen(
         Color(0xFF2C352E)
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+    val isInitialLoading by remember {
+        derivedStateOf {
+            !TimetableRepository.isLoaded && TimetableDay.entries.all { TimetableRepository.getLessonsForDay(it).isEmpty() }
+        }
+    }
+
+    if (isInitialLoading) {
+        de.kjltowinkler.msapp.ui.components.AppLoadingView(modifier = modifier.fillMaxSize())
+    } else {
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
             // --- 1. DASSELBE TAB-SYSTEM WIE IM VERTRETUNGSPLAN SCREEN (Connected Button Group) ---
             Row(
                 modifier = Modifier
@@ -280,7 +289,8 @@ fun TimetableScreen(
                 )
             }
         )
-    } // <-- SCHLIESST DAS Box(modifier = modifier.fillMaxSize())
+    }
+    }
 
     // --- 4. BOTTOM SHEETS ---
     selectedTeacherInfo?.let { teacher ->

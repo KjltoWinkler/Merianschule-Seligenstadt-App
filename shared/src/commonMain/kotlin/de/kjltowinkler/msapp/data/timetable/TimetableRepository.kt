@@ -1,6 +1,9 @@
 package de.kjltowinkler.msapp.data.timetable
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import de.kjltowinkler.msapp.data.storage.PlatformStorage
 import de.kjltowinkler.msapp.data.sync.ClassTimetableDto
@@ -551,17 +554,37 @@ object TimetableRepository {
         encodeDefaults = true
     }
 
+    var isLoaded: Boolean by mutableStateOf(false)
+        private set
+
     // Reaktiver Speicher für die Wochentage (ermöglicht Hinzufügen/Bearbeiten über den FAB)
-    private val timetableMap = mutableStateMapOf<TimetableDay, List<TimetableLesson>>().apply {
-        put(TimetableDay.MONTAG, mondayLessons)
-        put(TimetableDay.DIENSTAG, tuesdayLessons)
-        put(TimetableDay.MITTWOCH, wednesdayLessons)
-        put(TimetableDay.DONNERSTAG, thursdayLessons)
-        put(TimetableDay.FREITAG, fridayLessons)
-    }
+    private val timetableMap = mutableStateMapOf<TimetableDay, List<TimetableLesson>>()
 
     init {
         loadFromCache()
+    }
+
+    /**
+     * Liefert die statischen Fallback-Stunden (Designentwurf), falls kein Cache und kein Server verfügbar ist.
+     */
+    fun getDefaultLessonsForDay(day: TimetableDay): List<TimetableLesson> {
+        return when (day) {
+            TimetableDay.MONTAG -> mondayLessons
+            TimetableDay.DIENSTAG -> tuesdayLessons
+            TimetableDay.MITTWOCH -> wednesdayLessons
+            TimetableDay.DONNERSTAG -> thursdayLessons
+            TimetableDay.FREITAG -> fridayLessons
+        }
+    }
+
+    /**
+     * Wendet die statischen Fallback-Stunden an (nur als letzter Notfall-Fallback).
+     */
+    fun applyDefaultMockLessons() {
+        TimetableDay.entries.forEach { day ->
+            timetableMap[day] = getDefaultLessonsForDay(day)
+        }
+        isLoaded = true
     }
 
     // Zuordnung von Fach-Kürzeln zu den vollständigen Fachbezeichnungen
@@ -650,6 +673,20 @@ object TimetableRepository {
         return trimmed
     }
 
+    fun getEffectiveUserClass(fallback: String = "09AR"): String {
+        val rawUserClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.trim()
+        val isStaff = rawUserClass.equals("Schulleitung", ignoreCase = true) || 
+                      rawUserClass.equals("Lehrer", ignoreCase = true) || 
+                      rawUserClass.equals("Kollegium", ignoreCase = true) ||
+                      de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.role?.uppercase() in listOf("TEACHER", "ADMIN", "LEHRER")
+        return if (isStaff || rawUserClass.isNullOrBlank()) fallback else rawUserClass
+    }
+
+    private fun getCacheKeyForClass(className: String): String {
+        val clean = className.lowercase().replace(" ", "")
+        return "cached_timetable_dto_$clean"
+    }
+
     /**
      * Wendet ein geladenes Stundenplan-DTO auf den lokalen Speicher an.
      */
@@ -667,19 +704,32 @@ object TimetableRepository {
             }
             timetableMap[dayEnum] = normalizedLessons
         }
+        isLoaded = true
     }
 
     /**
      * Lädt den zuletzt gespeicherten Stundenplan aus dem lokalen Offline-Cache.
      */
-    fun loadFromCache() {
-        try {
-            val cachedJson = PlatformStorage.getString(KEY_TIMETABLE_CACHE)
+    fun loadFromCache(targetClass: String? = null): Boolean {
+        return try {
+            val userClass = targetClass ?: getEffectiveUserClass()
+            val classKey = getCacheKeyForClass(userClass)
+            var cachedJson = PlatformStorage.getString(classKey)
+            if (cachedJson.isNullOrBlank() && userClass.equals("09AR", ignoreCase = true)) {
+                cachedJson = PlatformStorage.getString(KEY_TIMETABLE_CACHE)
+            }
             if (!cachedJson.isNullOrBlank()) {
                 val dto = json.decodeFromString<ClassTimetableDto>(cachedJson)
-                applyTimetableDto(dto)
+                if (dto.days.isNotEmpty()) {
+                    applyTimetableDto(dto)
+                    isLoaded = true
+                    return true
+                }
             }
-        } catch (_: Exception) {}
+            false
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /**
@@ -824,14 +874,14 @@ object TimetableRepository {
      * Lädt den aktuellen Stundenplan vom Backend-Server ab.
      */
     suspend fun loadFromServer(className: String = "09AR"): Boolean {
-        return try {
-            val rawUserClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.trim()
-            val isStaff = rawUserClass.equals("Schulleitung", ignoreCase = true) || 
-                          rawUserClass.equals("Lehrer", ignoreCase = true) || 
-                          rawUserClass.equals("Kollegium", ignoreCase = true) ||
-                          de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.role?.uppercase() in listOf("TEACHER", "ADMIN", "LEHRER")
-            val userClass = if (isStaff || rawUserClass.isNullOrBlank()) className else rawUserClass
+        val userClass = getEffectiveUserClass(className)
 
+        // Falls noch nicht geladen oder Speicher leer, versuche den Cache für diese Klasse
+        if (!isLoaded || timetableMap.isEmpty()) {
+            loadFromCache(userClass)
+        }
+
+        return try {
             var res = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTimetable(userClass)
             var dto = res.getOrNull()
 
@@ -853,13 +903,22 @@ object TimetableRepository {
             if (dto != null && dto.days.isNotEmpty()) {
                 applyTimetableDto(dto)
                 try {
-                    PlatformStorage.setString(KEY_TIMETABLE_CACHE, json.encodeToString(dto))
+                    val classKey = getCacheKeyForClass(userClass)
+                    val jsonStr = json.encodeToString(dto)
+                    PlatformStorage.setString(classKey, jsonStr)
+                    PlatformStorage.setString(KEY_TIMETABLE_CACHE, jsonStr)
                 } catch (_: Exception) {}
                 true
             } else {
+                if (!isLoaded && timetableMap.isEmpty() && userClass.equals("09AR", ignoreCase = true)) {
+                    applyDefaultMockLessons()
+                }
                 false
             }
         } catch (_: Exception) {
+            if (!isLoaded && timetableMap.isEmpty() && userClass.equals("09AR", ignoreCase = true)) {
+                applyDefaultMockLessons()
+            }
             false
         }
     }

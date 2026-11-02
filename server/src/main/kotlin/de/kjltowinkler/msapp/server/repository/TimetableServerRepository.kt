@@ -28,10 +28,9 @@ object TimetableServerRepository {
         val count = getCount()
         if (count == 0) {
             // Seed Monday timetable for class 09AR from TimetableRepository
-            val defaultLessons = TimetableRepository.getLessonsForDay(TimetableDay.MONTAG)
             val daysMap = mutableMapOf<String, List<TimetableLesson>>()
             TimetableDay.entries.forEach { day ->
-                daysMap[day.id] = TimetableRepository.getLessonsForDay(day)
+                daysMap[day.id] = TimetableRepository.getDefaultLessonsForDay(day)
             }
             saveClassTimetable("09AR", daysMap, validFor = "Schuljahr 2026/2027")
         }
