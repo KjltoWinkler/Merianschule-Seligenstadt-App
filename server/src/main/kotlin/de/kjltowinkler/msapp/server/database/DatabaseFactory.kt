@@ -48,6 +48,7 @@ object DatabaseFactory {
                         student_id TEXT UNIQUE,
                         role TEXT NOT NULL DEFAULT 'USER',
                         has_custom_password INTEGER NOT NULL DEFAULT 1,
+                        initial_password TEXT,
                         is_two_factor_enabled INTEGER NOT NULL DEFAULT 0,
                         created_at INTEGER NOT NULL,
                         updated_at INTEGER NOT NULL
@@ -56,6 +57,10 @@ object DatabaseFactory {
 
                 try {
                     stmt.execute("ALTER TABLE users ADD COLUMN has_custom_password INTEGER NOT NULL DEFAULT 1;")
+                } catch (_: Exception) {}
+
+                try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN initial_password TEXT;")
                 } catch (_: Exception) {}
 
                 try {

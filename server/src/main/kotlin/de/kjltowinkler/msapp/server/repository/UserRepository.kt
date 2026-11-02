@@ -24,6 +24,7 @@ data class UserRecord(
     val avatarColorHex: Long,
     val role: String,
     val hasCustomPassword: Boolean = true,
+    val initialPassword: String? = null,
     val isTwoFactorEnabled: Boolean = false,
     val twoFactorSecret: String? = null,
     val twoFactorTempSecret: String? = null,
@@ -43,6 +44,7 @@ data class UserRecord(
         avatarColorHex = avatarColorHex,
         role = role,
         hasCustomPassword = hasCustomPassword,
+        initialPassword = if (!hasCustomPassword) initialPassword else null,
         isTwoFactorEnabled = isTwoFactorEnabled,
         createdAt = createdAt
     )
@@ -68,6 +70,15 @@ object UserRepository {
         val sId = runCatching { rs.getString("student_id") ?: "" }.getOrDefault("")
         val secret = runCatching { rs.getString("two_factor_secret")?.let { DataEncryptionService.decrypt(it) } }.getOrNull()
         val tempSecret = runCatching { rs.getString("two_factor_temp_secret")?.let { DataEncryptionService.decrypt(it) } }.getOrNull()
+        val initPw = if (!hasCustom) {
+            runCatching {
+                rs.getString("initial_password")?.let { raw ->
+                    if (raw.isNotBlank()) DataEncryptionService.decrypt(raw) else null
+                }
+            }.getOrNull()
+        } else {
+            null
+        }
         return UserRecord(
             id = rs.getString("id"),
             username = rs.getString("username"),
@@ -83,6 +94,7 @@ object UserRepository {
             avatarColorHex = rs.getLong("avatar_color_hex"),
             role = rs.getString("role"),
             hasCustomPassword = hasCustom,
+            initialPassword = initPw,
             isTwoFactorEnabled = is2fa,
             twoFactorSecret = secret,
             twoFactorTempSecret = tempSecret,
@@ -126,11 +138,16 @@ object UserRepository {
         val id = UUID.randomUUID().toString()
         val salt = PasswordHasher.generateSalt()
         val hash = PasswordHasher.hashPassword(request.password, salt)
+        val encryptedInitialPassword = if (!hasCustomPassword) {
+            DataEncryptionService.encrypt(request.password)
+        } else {
+            null
+        }
         val now = System.currentTimeMillis()
 
         val sql = """
-            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, has_custom_password, is_two_factor_enabled, student_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, has_custom_password, initial_password, is_two_factor_enabled, student_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """.trimIndent()
 
         conn.prepareStatement(sql).use { stmt ->
@@ -147,10 +164,11 @@ object UserRepository {
             stmt.setLong(11, request.avatarColorHex)
             stmt.setString(12, role)
             stmt.setInt(13, if (hasCustomPassword) 1 else 0)
-            stmt.setInt(14, if (isTwoFactorEnabled) 1 else 0)
-            stmt.setString(15, finalStudentId)
-            stmt.setLong(16, now)
+            stmt.setString(14, encryptedInitialPassword)
+            stmt.setInt(15, if (isTwoFactorEnabled) 1 else 0)
+            stmt.setString(16, finalStudentId)
             stmt.setLong(17, now)
+            stmt.setLong(18, now)
             stmt.executeUpdate()
         }
 
@@ -177,6 +195,7 @@ object UserRepository {
             avatarColorHex = request.avatarColorHex,
             role = role,
             hasCustomPassword = hasCustomPassword,
+            initialPassword = if (!hasCustomPassword) request.password else null,
             isTwoFactorEnabled = isTwoFactorEnabled,
             createdAt = now,
             updatedAt = now
@@ -184,11 +203,14 @@ object UserRepository {
     }
 
     suspend fun setHasCustomPassword(userId: String, hasCustom: Boolean): Boolean = DatabaseFactory.query { conn ->
-        val sql = "UPDATE users SET has_custom_password = ?, updated_at = ? WHERE id = ?;"
+        val sql = if (hasCustom) {
+            "UPDATE users SET has_custom_password = 1, initial_password = NULL, updated_at = ? WHERE id = ?;"
+        } else {
+            "UPDATE users SET has_custom_password = 0, updated_at = ? WHERE id = ?;"
+        }
         conn.prepareStatement(sql).use { stmt ->
-            stmt.setInt(1, if (hasCustom) 1 else 0)
-            stmt.setLong(2, System.currentTimeMillis())
-            stmt.setString(3, userId)
+            stmt.setLong(1, System.currentTimeMillis())
+            stmt.setString(2, userId)
             stmt.executeUpdate() > 0
         }
     }
@@ -296,7 +318,7 @@ object UserRepository {
     }
 
     suspend fun updatePassword(userId: String, newPasswordHash: String, newPasswordSalt: String): Boolean = DatabaseFactory.query { conn ->
-        val sql = "UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?;"
+        val sql = "UPDATE users SET password_hash = ?, password_salt = ?, has_custom_password = 1, initial_password = NULL, updated_at = ? WHERE id = ?;"
         conn.prepareStatement(sql).use { stmt ->
             stmt.setString(1, newPasswordHash)
             stmt.setString(2, newPasswordSalt)
@@ -336,10 +358,20 @@ object UserRepository {
         }
     }
 
-    suspend fun resetPassword(userId: String, newPasswordPlain: String): Boolean {
+    suspend fun resetPassword(userId: String, newPasswordPlain: String): Boolean = DatabaseFactory.query { conn ->
         val salt = PasswordHasher.generateSalt()
         val hash = PasswordHasher.hashPassword(newPasswordPlain, salt)
-        return updatePassword(userId, hash, salt)
+        val encryptedInitial = DataEncryptionService.encrypt(newPasswordPlain)
+        val now = System.currentTimeMillis()
+        val sql = "UPDATE users SET password_hash = ?, password_salt = ?, has_custom_password = 0, initial_password = ?, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, hash)
+            stmt.setString(2, salt)
+            stmt.setString(3, encryptedInitial)
+            stmt.setLong(4, now)
+            stmt.setString(5, userId)
+            stmt.executeUpdate() > 0
+        }
     }
 
     private fun findByIdSync(conn: java.sql.Connection, id: String): UserRecord? {

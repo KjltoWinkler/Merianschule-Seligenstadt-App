@@ -87,7 +87,8 @@ data class UserProfileDto(
     val role: String = "USER",
     val hasCustomPassword: Boolean = true,
     val isTwoFactorEnabled: Boolean = false,
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val initialPassword: String? = null
 )
 
 @Serializable

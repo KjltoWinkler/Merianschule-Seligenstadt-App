@@ -337,5 +337,91 @@ class ServerTest {
         val userRecord = UserRepository.findById(user.id)
         assertEquals(base32Secret, userRecord?.twoFactorTempSecret, "UserRepository muss 2FA-Secret transparent entschlüsseln")
     }
+
+    @Test
+    fun testInitialPasswordLifecycleAndEncryption() = runBlocking {
+        val suffix = System.currentTimeMillis()
+        val tempPassword = "InitialStartPassword123!"
+
+        // 1. User created by admin (hasCustomPassword = false)
+        val createdUser = UserRepository.createUser(
+            RegisterRequest("init_pw_$suffix", "init_pw_$suffix@school.de", tempPassword, "Initial PW Tester", "10BR"),
+            hasCustomPassword = false
+        )
+
+        assertEquals(tempPassword, createdUser.initialPassword)
+        assertFalse(createdUser.hasCustomPassword)
+
+        // Verify DTO exposed to admin panel contains initialPassword
+        val dto = createdUser.toDto()
+        assertEquals(tempPassword, dto.initialPassword)
+        assertFalse(dto.hasCustomPassword)
+
+        // Verify database storage is encrypted at rest (AES-256-GCM)
+        DatabaseFactory.query { conn ->
+            conn.prepareStatement("SELECT initial_password, has_custom_password FROM users WHERE id = ?").use { stmt ->
+                stmt.setString(1, createdUser.id)
+                val rs = stmt.executeQuery()
+                assertTrue(rs.next())
+                val rawDbPw = rs.getString("initial_password")
+                val hasCustomDb = rs.getInt("has_custom_password")
+                assertEquals(0, hasCustomDb)
+                assertTrue(rawDbPw.startsWith("enc:v1:"), "Initiales Passwort muss in SQLite mit enc:v1: verschlüsselt gespeichert sein. Ist: $rawDbPw")
+                assertFalse(rawDbPw.contains(tempPassword), "Rohdaten in DB dürfen keinesfalls das Klartext-Passwort enthalten")
+            }
+        }
+
+        // Verify findById & getAllUsers returns decrypted initial password
+        val foundUser = UserRepository.findById(createdUser.id)
+        assertNotNull(foundUser)
+        assertEquals(tempPassword, foundUser.initialPassword)
+
+        val allUsers = UserRepository.getAllUsers()
+        val foundDto = allUsers.first { it.id == createdUser.id }
+        assertEquals(tempPassword, foundDto.initialPassword)
+
+        // 2. User changes password (e.g. at onboarding or update-password)
+        UserRepository.updatePassword(createdUser.id, "newHash", "newSalt")
+
+        val userAfterChange = UserRepository.findById(createdUser.id)
+        assertNotNull(userAfterChange)
+        assertTrue(userAfterChange.hasCustomPassword)
+        assertNull(userAfterChange.initialPassword, "Initiales Passwort muss nach Passwortänderung null sein")
+        assertNull(userAfterChange.toDto().initialPassword, "DTO darf kein initiales Passwort mehr enthalten")
+
+        // Verify DB column is completely wiped (NULL)
+        DatabaseFactory.query { conn ->
+            conn.prepareStatement("SELECT initial_password, has_custom_password FROM users WHERE id = ?").use { stmt ->
+                stmt.setString(1, createdUser.id)
+                val rs = stmt.executeQuery()
+                assertTrue(rs.next())
+                assertNull(rs.getString("initial_password"), "Datenbankspalte initial_password muss NULL sein")
+                assertEquals(1, rs.getInt("has_custom_password"))
+            }
+        }
+
+        // 3. Admin resets password
+        val newResetPassword = "ResetTempPw456!"
+        val resetSuccess = UserRepository.resetPassword(createdUser.id, newResetPassword)
+        assertTrue(resetSuccess)
+
+        val userAfterReset = UserRepository.findById(createdUser.id)
+        assertNotNull(userAfterReset)
+        assertFalse(userAfterReset.hasCustomPassword)
+        assertEquals(newResetPassword, userAfterReset.initialPassword)
+        assertEquals(newResetPassword, userAfterReset.toDto().initialPassword)
+
+        // Verify reset password is encrypted in DB
+        DatabaseFactory.query { conn ->
+            conn.prepareStatement("SELECT initial_password, has_custom_password FROM users WHERE id = ?").use { stmt ->
+                stmt.setString(1, createdUser.id)
+                val rs = stmt.executeQuery()
+                assertTrue(rs.next())
+                val rawDbPw = rs.getString("initial_password")
+                assertEquals(0, rs.getInt("has_custom_password"))
+                assertTrue(rawDbPw.startsWith("enc:v1:"), "Zurückgesetztes Passwort muss verschlüsselt in DB liegen")
+            }
+        }
+    }
 }
 

@@ -762,12 +762,13 @@
               <th>Schulform</th>
               <th>Klassenlehrer</th>
               <th>Rolle</th>
+              <th>Initiales Passwort</th>
               <th style="text-align: right;">Aktionen</th>
             </tr>
           </thead>
           <tbody id="userTableBody">
             <tr>
-              <td colspan="7" style="text-align: center; padding: 32px;">
+              <td colspan="8" style="text-align: center; padding: 32px;">
                 <md-circular-progress indeterminate></md-circular-progress>
               </td>
             </tr>
@@ -1792,7 +1793,7 @@
     // Nutzer laden
     async function loadUsers() {
       const tbody = document.getElementById('userTableBody');
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px;"><md-circular-progress indeterminate></md-circular-progress></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px;"><md-circular-progress indeterminate></md-circular-progress></td></tr>`;
 
       try {
         const res = await apiFetch('/api/admin/users');
@@ -1800,8 +1801,31 @@
         allUsers = await res.json();
         renderUsers(allUsers);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--md-sys-color-error);">${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--md-sys-color-error);">${err.message}</td></tr>`;
       }
+    }
+
+    function copyInitialPassword(pw) {
+      if (!pw) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(pw).then(() => {
+          showToast('Initiales Passwort in die Zwischenablage kopiert!');
+        }).catch(() => {
+          fallbackCopyText(pw);
+        });
+      } else {
+        fallbackCopyText(pw);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      showToast('Initiales Passwort in die Zwischenablage kopiert!');
     }
 
     function renderUsers(users) {
@@ -1815,7 +1839,7 @@
       document.getElementById('totalStudentsCount').textContent = studentCount;
 
       if (users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--md-sys-color-on-surface-variant);">Keine Benutzer gefunden.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--md-sys-color-on-surface-variant);">Keine Benutzer gefunden.</td></tr>`;
         return;
       }
 
@@ -1847,6 +1871,24 @@
                 ${user.role}
               </span>
               ${user.isTwoFactorEnabled ? `<span class="badge-role" style="background: rgba(76, 175, 80, 0.2); color: #81c784; margin-left: 4px;" title="2FA aktiv">2FA</span>` : ''}
+            </td>
+            <td>
+              ${(!user.hasCustomPassword && user.initialPassword) ? `
+                <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 183, 77, 0.12); border: 1px solid rgba(255, 183, 77, 0.35); padding: 4px 8px; border-radius: 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 15px; color: #ffb74d;">key</span>
+                  <code style="font-family: monospace; font-size: 13px; color: #ffb74d; font-weight: 600; letter-spacing: 0.5px;">${escapeHtml(user.initialPassword)}</code>
+                  <button type="button" onclick="copyInitialPassword('${escapeHtml(user.initialPassword).replace(/'/g, "\\'")}')" title="Initiales Passwort kopieren" style="background: none; border: none; cursor: pointer; padding: 2px; display: inline-flex; align-items: center; color: var(--md-sys-color-on-surface-variant); border-radius: 4px; transition: color 0.15s ease;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--md-sys-color-on-surface-variant)'">
+                    <span class="material-symbols-outlined" style="font-size: 15px;">content_copy</span>
+                  </button>
+                </div>
+              ` : (user.hasCustomPassword ? `
+                <span style="display: inline-flex; align-items: center; gap: 4px; color: #81c784; font-size: 12px; font-weight: 500;">
+                  <span class="material-symbols-outlined" style="font-size: 16px;">check_circle</span>
+                  Eigenes PW aktiv
+                </span>
+              ` : `
+                <span style="color: var(--md-sys-color-on-surface-variant); font-size: 12px; opacity: 0.7;">-</span>
+              `)}
             </td>
             <td>
               <div class="actions-cell">
