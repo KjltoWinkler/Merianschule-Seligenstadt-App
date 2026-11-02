@@ -284,10 +284,22 @@
             console.warn('WebGL 2 is NOT supported or disabled.');
             showError();
         } else {
+            var loadTimeout = setTimeout(function() {
+                var root = document.getElementById('root');
+                if (!root || root.children.length === 0) {
+                    showError(
+                        'Ladezeit überschritten',
+                        'Das Laden der Webanwendung dauert ungewöhnlich lange. Möglicherweise ist deine Internetverbindung langsam oder es liegt ein Cache-Konflikt vor.',
+                        'Bitte drücke <strong>Strg + F5</strong> (oder auf Mac <strong>Cmd + Shift + R</strong>), um die neuesten Dateien frisch zu laden.'
+                    );
+                }
+            }, 25000);
+
             // Dismiss splash screen smoothly when Compose mounts into #root
             var observer = new MutationObserver(function() {
                 var root = document.getElementById('root');
                 if (root && root.children.length > 0) {
+                    clearTimeout(loadTimeout);
                     dismissSplash();
                     observer.disconnect();
                 }
@@ -295,12 +307,8 @@
             var rootEl = document.getElementById('root');
             if (rootEl) observer.observe(rootEl, { childList: true, subtree: true });
 
-            // Fallback timeout in case Compose attaches differently
-            window.addEventListener('load', function() {
-                setTimeout(dismissSplash, 1200);
-            });
-
             function dismissSplash() {
+                clearTimeout(loadTimeout);
                 var splash = document.getElementById('splash-screen');
                 if (splash && !splash.classList.contains('fade-out')) {
                     splash.classList.add('fade-out');
@@ -310,10 +318,18 @@
                 }
             }
 
-            // Load webApp.js dynamically only if WebGL 2 is available
+            // Load webApp.js dynamically with cache-busting timestamp to bypass stale CDN/browser caches
             var script = document.createElement('script');
             script.type = 'application/javascript';
-            script.src = 'webApp.js';
+            script.src = 'webApp.js?v=' + Date.now();
+            script.onerror = function() {
+                clearTimeout(loadTimeout);
+                showError(
+                    'Verbindungsfehler',
+                    'Die Hauptanwendungs-Dateien (webApp.js) konnten nicht geladen werden.',
+                    'Bitte lade die Seite neu (Strg + F5 / Cmd + Shift + R).'
+                );
+            };
             document.body.appendChild(script);
         }
     </script>

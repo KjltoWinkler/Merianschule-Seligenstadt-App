@@ -104,3 +104,12 @@ jobs:
           push: true
           tags: ${{ steps.meta-webapp.outputs.tags }}
           labels: ${{ steps.meta-webapp.outputs.labels }}
+
+      - name: Trigger Coolify Redeploy for WebApp
+        if: success()
+        run: |
+          curl -s -X POST "https://panel.getgoonifyed.de/api/v1/deploy" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN || '2|cnEcgd86NV1v0jNwdELdO92Yx8yb8Cjl9cA0ipZIc413b14c' }}" \
+            -H "Content-Type: application/json" \
+            -d '{"uuid": "2muibw94c2tqwqgzrfrhd1ci", "force": true}'
+
