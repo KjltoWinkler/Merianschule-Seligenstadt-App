@@ -120,8 +120,15 @@ object TimetableRepository {
             subjects = listOf("Physik", "Mathematik"),
             officeHours = "Fr. 12:15 - 13:00 Uhr"
         ),
+        "Web" to TeacherInfo(
+            code = "Web",
+            fullName = "Hr. Weber",
+            email = "weber@merianschule-seligenstadt.de",
+            subjects = listOf("Sport", "Erdkunde"),
+            officeHours = "Di. 13:10 - 13:50 Uhr"
+        ),
         "Wb" to TeacherInfo(
-            code = "Wb",
+            code = "Web",
             fullName = "Hr. Weber",
             email = "weber@merianschule-seligenstadt.de",
             subjects = listOf("Sport", "Erdkunde"),
@@ -254,7 +261,7 @@ object TimetableRepository {
             timeRange = "10:25 - 11:10",
             subject = "Sport",
             room = "Sporthalle B",
-            teacherCode = "Wb",
+            teacherCode = "Web",
             teacherName = "Hr. Weber",
             teacherEmail = "weber@merianschule-seligenstadt.de",
             breakAfterMinutes = 20,
@@ -266,7 +273,7 @@ object TimetableRepository {
             timeRange = "11:30 - 12:15",
             subject = "Sport",
             room = "Sporthalle B",
-            teacherCode = "Wb",
+            teacherCode = "Web",
             teacherName = "Hr. Weber",
             teacherEmail = "weber@merianschule-seligenstadt.de",
             breakAfterMinutes = 5,
@@ -488,7 +495,7 @@ object TimetableRepository {
             timeRange = "11:30 - 12:15",
             subject = "Erdkunde",
             room = "Raum B208",
-            teacherCode = "Wb",
+            teacherCode = "Web",
             teacherName = "Hr. Weber",
             teacherEmail = "weber@merianschule-seligenstadt.de"
         )
