@@ -2,7 +2,11 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
   <title>Merianschule - Admin Web-Panel</title>
 
   <!-- Google Fonts: Roboto & Material Symbols -->
@@ -630,6 +634,451 @@
       margin-top: 24px;
       flex-shrink: 0;
     }
+
+    /* ==================================================== */
+    /* Shared & Missing Classes                             */
+    /* ==================================================== */
+    .card {
+      background-color: var(--md-sys-color-surface-container);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .card-header h2 {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .card-header md-icon {
+      color: var(--md-sys-color-primary);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background-color: var(--md-sys-color-surface-container-high);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 14px;
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--md-sys-color-primary);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 4px;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .role-admin {
+      background-color: rgba(168, 199, 250, 0.2);
+      color: #a8c7fa;
+      border: 1px solid rgba(168, 199, 250, 0.4);
+    }
+
+    .role-user {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--md-sys-color-on-surface-variant);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Floating Scroll-to-Top Button */
+    .scroll-to-top-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      border: 1px solid var(--md-sys-color-primary);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 90;
+      transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1), transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+    }
+    .scroll-to-top-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Tabs Styling - Horizontal Smooth Touch Scrolling */
+    md-tabs {
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    md-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    md-primary-tab {
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ==================================================== */
+    /* Mobile Responsive Optimizations (<= 768px)          */
+    /* ==================================================== */
+    @media (max-width: 768px) {
+      /* Safe area insets & general viewport */
+      body {
+        padding-bottom: env(safe-area-inset-bottom, 0);
+      }
+
+      .top-app-bar {
+        height: 56px;
+        padding: 0 12px;
+        padding-top: env(safe-area-inset-top, 0);
+      }
+
+      .logo-badge {
+        width: 32px;
+        height: 32px;
+        font-size: 15px;
+        border-radius: 8px;
+      }
+
+      .app-title {
+        font-size: 15px;
+        line-height: 1.2;
+        max-width: 160px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .app-subtitle {
+        font-size: 10.5px;
+      }
+
+      #btnLogout {
+        --md-text-button-label-text-size: 12px;
+        padding: 0 6px;
+      }
+
+      .main-container {
+        padding: 12px 10px;
+        width: 100%;
+        overflow-x: hidden;
+      }
+
+      .m3-card, .card {
+        padding: 16px 12px;
+        border-radius: 14px;
+        margin-bottom: 14px;
+      }
+
+      .login-wrapper {
+        min-height: calc(100dvh - 72px);
+        padding: 12px;
+      }
+
+      .login-card {
+        padding: 22px 14px;
+        border-radius: 18px;
+        width: 100%;
+      }
+
+      .login-card h2 {
+        font-size: 20px;
+      }
+
+      /* Navigation Tabs */
+      md-tabs {
+        --md-primary-tab-container-height: 50px;
+      }
+      md-primary-tab {
+        font-size: 12px;
+        padding: 0 10px;
+        min-width: 85px;
+      }
+
+      /* Toolbar & Search Stacking */
+      .toolbar-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .search-field {
+        min-width: 100%;
+        width: 100%;
+      }
+
+      .toolbar-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .toolbar-actions > * {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 110px;
+      }
+
+      .toolbar-actions > md-outlined-select {
+        flex: 1 1 100%;
+      }
+
+      /* Stats Chips & Grid */
+      .stats-chips {
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .stat-chip {
+        padding: 8px 10px;
+        font-size: 12px;
+        flex: 1 1 calc(50% - 6px);
+        justify-content: center;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .stat-card {
+        padding: 12px 14px;
+      }
+
+      .stat-number {
+        font-size: 22px;
+      }
+
+      /* Schulportal Info Grid */
+      .sp-info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .sp-info-item[style*="grid-column"] {
+        grid-column: span 1 !important;
+      }
+
+      /* Dialogs as Bottom Sheets */
+      .m3-dialog-overlay {
+        padding: 8px;
+        align-items: flex-end;
+      }
+
+      .m3-dialog-surface {
+        border-radius: 24px 24px 16px 16px;
+        padding: 18px 14px;
+        max-height: 90dvh;
+        max-height: calc(100vh - 24px);
+        transform: translateY(20px);
+      }
+
+      .m3-dialog-overlay.is-open .m3-dialog-surface {
+        transform: translateY(0);
+      }
+
+      .m3-dialog-overlay.is-closing .m3-dialog-surface {
+        transform: translateY(20px);
+      }
+
+      .m3-dialog-headline {
+        font-size: 18px;
+        line-height: 24px;
+        margin-bottom: 12px;
+      }
+
+      .m3-dialog-actions {
+        margin-top: 16px;
+        flex-direction: column-reverse;
+        width: 100%;
+        gap: 8px;
+      }
+
+      .m3-dialog-actions md-text-button,
+      .m3-dialog-actions md-filled-button,
+      .m3-dialog-actions md-outlined-button {
+        width: 100%;
+      }
+
+      /* Toast Notification */
+      .toast {
+        bottom: 16px;
+        left: 12px;
+        right: 12px;
+        padding: 12px 16px;
+        font-size: 13px;
+        justify-content: center;
+        text-align: center;
+      }
+
+      /* Dropzones */
+      .dropzone-container {
+        padding: 22px 14px;
+        border-radius: 14px;
+      }
+
+      /* Timetable Editor & Grid */
+      .timetable-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .json-code-editor {
+        min-height: 180px;
+        font-size: 12px;
+        padding: 12px;
+      }
+
+      /* Floating Scroll Button */
+      .scroll-to-top-btn {
+        bottom: 16px;
+        right: 14px;
+        width: 42px;
+        height: 42px;
+      }
+
+      /* ================================================== */
+      /* Responsive Tables to Material 3 Mobile Cards       */
+      /* ================================================== */
+      .user-table-wrap {
+        border: none;
+        background: transparent;
+      }
+
+      /* When in Default Card Mode (on mobile) */
+      .user-table-wrap:not(.force-table-mode) table,
+      .user-table-wrap:not(.force-table-mode) tbody,
+      .user-table-wrap:not(.force-table-mode) tr {
+        display: block;
+        width: 100%;
+      }
+
+      .user-table-wrap:not(.force-table-mode) thead {
+        display: none;
+      }
+
+      .user-table-wrap:not(.force-table-mode) tr {
+        background-color: var(--md-sys-color-surface-container-high);
+        border: 1px solid var(--md-sys-color-outline-variant);
+        border-radius: 16px;
+        padding: 14px 14px 10px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        box-sizing: border-box;
+      }
+
+      .user-table-wrap:not(.force-table-mode) tr:hover td {
+        background-color: transparent;
+      }
+
+      .user-table-wrap:not(.force-table-mode) td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 13.5px;
+        word-break: break-word;
+        text-align: right;
+      }
+
+      /* Empty or single loading cells */
+      .user-table-wrap:not(.force-table-mode) td:only-child {
+        display: block;
+        text-align: center;
+        border: none;
+        padding: 24px 12px;
+      }
+      .user-table-wrap:not(.force-table-mode) td:only-child::before {
+        display: none !important;
+      }
+
+      /* Card Header Cell (First column) */
+      .user-table-wrap:not(.force-table-mode) td:first-child:not(:only-child) {
+        border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        padding-bottom: 10px;
+        margin-bottom: 6px;
+        text-align: left;
+      }
+
+      /* Card Actions Cell (Last column) */
+      .user-table-wrap:not(.force-table-mode) td:last-child:not(:only-child) {
+        border-bottom: none;
+        padding-top: 10px;
+        margin-top: 4px;
+        justify-content: flex-end;
+      }
+
+      .user-table-wrap:not(.force-table-mode) td::before {
+        content: attr(data-label);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--md-sys-color-on-surface-variant);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+        margin-right: 12px;
+        text-align: left;
+      }
+
+      .user-table-wrap:not(.force-table-mode) td:first-child::before,
+      .user-table-wrap:not(.force-table-mode) td:last-child::before,
+      .user-table-wrap:not(.force-table-mode) td:not([data-label])::before {
+        display: none;
+      }
+
+      /* Forced Wide Table Mode (horizontal scroll) */
+      .user-table-wrap.force-table-mode {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid var(--md-sys-color-outline-variant);
+        border-radius: 12px;
+      }
+      .user-table-wrap.force-table-mode table {
+        min-width: 720px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -739,7 +1188,11 @@
             <md-icon slot="leading-icon">search</md-icon>
           </md-outlined-text-field>
         </div>
-        <div style="display: flex; gap: 12px;">
+        <div class="toolbar-actions">
+          <md-outlined-button class="view-toggle-btn" data-target="userTableWrap" onclick="toggleViewMode('userTableWrap', this)" title="Ansicht umschalten (Karten / Tabelle)">
+            <md-icon slot="icon">view_agenda</md-icon>
+            <span class="toggle-text">Karten</span>
+          </md-outlined-button>
           <md-outlined-button onclick="loadUsers()">
             <md-icon slot="icon">refresh</md-icon>
             Aktualisieren
@@ -768,7 +1221,7 @@
       </div>
 
       <!-- User Table -->
-      <div class="user-table-wrap">
+      <div class="user-table-wrap" id="userTableWrap">
         <table>
           <thead>
             <tr>
@@ -899,7 +1352,11 @@
           <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px;">
             <md-icon>event_note</md-icon> Vertretungsplan-Einträge
           </h3>
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div class="toolbar-actions">
+            <md-outlined-button class="view-toggle-btn" data-target="subTableWrap" onclick="toggleViewMode('subTableWrap', this)" title="Ansicht umschalten (Karten / Tabelle)">
+              <md-icon slot="icon">view_agenda</md-icon>
+              <span class="toggle-text">Karten</span>
+            </md-outlined-button>
             <md-outlined-button onclick="loadSubstitutions()">
               <md-icon slot="icon">refresh</md-icon>
               Aktualisieren
@@ -952,7 +1409,7 @@
         </div>
 
         <!-- Substitutions Table -->
-        <div class="user-table-wrap">
+        <div class="user-table-wrap" id="subTableWrap">
           <table>
             <thead>
               <tr>
@@ -1130,13 +1587,19 @@
           <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px;">
             <md-icon>table_chart</md-icon> Gespeicherte Stundenpläne
           </h3>
-          <md-outlined-button onclick="loadTimetableClasses()">
-            <md-icon slot="icon">refresh</md-icon>
-            Aktualisieren
-          </md-outlined-button>
+          <div class="toolbar-actions">
+            <md-outlined-button class="view-toggle-btn" data-target="timetableClassesWrap" onclick="toggleViewMode('timetableClassesWrap', this)" title="Ansicht umschalten (Karten / Tabelle)">
+              <md-icon slot="icon">view_agenda</md-icon>
+              <span class="toggle-text">Karten</span>
+            </md-outlined-button>
+            <md-outlined-button onclick="loadTimetableClasses()">
+              <md-icon slot="icon">refresh</md-icon>
+              Aktualisieren
+            </md-outlined-button>
+          </div>
         </div>
 
-        <div class="user-table-wrap">
+        <div class="user-table-wrap" id="timetableClassesWrap">
           <table>
             <thead>
               <tr>
@@ -1199,14 +1662,18 @@
               <md-icon slot="leading-icon">search</md-icon>
             </md-outlined-text-field>
           </div>
-          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <md-outlined-select id="schoolTaskClassFilter" label="Klassenfilter" onchange="filterSchoolTasks()" style="min-width: 150px;">
+          <div class="toolbar-actions">
+            <md-outlined-select id="schoolTaskClassFilter" label="Klassenfilter" onchange="filterSchoolTasks()" style="min-width: 130px;">
               <md-select-option value="" selected><div slot="headline">Alle Klassen</div></md-select-option>
               <md-select-option value="09AR"><div slot="headline">09AR</div></md-select-option>
               <md-select-option value="09BR"><div slot="headline">09BR</div></md-select-option>
               <md-select-option value="09CR"><div slot="headline">09CR</div></md-select-option>
               <md-select-option value="ALL"><div slot="headline">Alle (ALL)</div></md-select-option>
             </md-outlined-select>
+            <md-outlined-button class="view-toggle-btn" data-target="schoolTasksTableWrap" onclick="toggleViewMode('schoolTasksTableWrap', this)" title="Ansicht umschalten (Karten / Tabelle)">
+              <md-icon slot="icon">view_agenda</md-icon>
+              <span class="toggle-text">Karten</span>
+            </md-outlined-button>
             <md-outlined-button onclick="loadSchoolTasks()">
               <md-icon slot="icon">refresh</md-icon>
               Aktualisieren
@@ -1218,7 +1685,7 @@
           </div>
         </div>
 
-        <div class="user-table-wrap">
+        <div class="user-table-wrap" id="schoolTasksTableWrap">
           <table>
             <thead>
               <tr>
@@ -1262,8 +1729,8 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <div style="flex: 1;">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 180px;">
                 <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">Download-URL (für Android-Clients)</div>
                 <code id="apkDownloadUrlText" style="font-size: 12px; color: #82b1ff; word-break: break-all;">/api/app/download/latest.apk</code>
               </div>
@@ -1307,7 +1774,7 @@
             Hier kannst du eine neu kompilierte Android-App (<code>.apk</code>) hochladen. Alle installierten Apps deiner Freunde erkennen das Update beim nächsten Öffnen oder über den Update-Button in den Einstellungen und können es automatisch installieren.
           </p>
 
-          <div id="apkDropzone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="document.getElementById('apkFileInput').click()">
+          <div id="apkDropzone" class="dropzone-container" onclick="document.getElementById('apkFileInput').click()">
             <input type="file" id="apkFileInput" accept=".apk" style="display: none;" onchange="handleApkFileSelected(event)">
             <md-icon style="font-size: 40px; color: var(--md-sys-color-primary); margin-bottom: 8px;">android</md-icon>
             <div id="apkDropzoneLabel" style="font-weight: 500; font-size: 15px;">Klicke hier oder ziehe eine .apk Datei hierher</div>
@@ -1724,6 +2191,11 @@
     <span id="toastMessage">Aktion erfolgreich</span>
   </div>
 
+  <!-- Floating Scroll To Top Button -->
+  <button id="scrollToTopBtn" class="scroll-to-top-btn hidden" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="Nach oben scrollen" title="Nach oben scrollen">
+    <span class="material-symbols-outlined">arrow_upward</span>
+  </button>
+
   <script>
     // ----------------------------------------------------
     // Custom Material 3 Dialog Controller (Rock-Solid Centering & Animations)
@@ -1868,6 +2340,11 @@
         document.getElementById('panelSchoolTasks').classList.toggle('hidden', index !== 4);
         document.getElementById('panelAppUpdates').classList.toggle('hidden', index !== 5);
 
+        const activeTab = tabs.children[index];
+        if (activeTab && typeof activeTab.scrollIntoView === 'function') {
+          activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
         if (index === 0) loadUsers();
         if (index === 1) loadStats();
         if (index === 2) {
@@ -1887,6 +2364,19 @@
       });
 
       initTimetableDropzone();
+      initApkDropzone();
+
+      // Scroll-to-Top Button Handler
+      window.addEventListener('scroll', () => {
+        const btn = document.getElementById('scrollToTopBtn');
+        if (btn) {
+          if (window.scrollY > 280) {
+            btn.classList.remove('hidden');
+          } else {
+            btn.classList.add('hidden');
+          }
+        }
+      }, { passive: true });
 
       // Logout handler
       document.getElementById('btnLogout').addEventListener('click', () => {
@@ -1913,6 +2403,27 @@
       }
       hideInitialLoader();
     });
+
+    // Ansicht umschalten (Kartenansicht <-> Tabellenansicht)
+    function toggleViewMode(wrapId, btn) {
+      const wrap = document.getElementById(wrapId);
+      if (!wrap) return;
+      const isForcedTable = wrap.classList.toggle('force-table-mode');
+      const targetBtn = btn || document.querySelector(`.view-toggle-btn[data-target="${wrapId}"]`);
+      if (targetBtn) {
+        const icon = targetBtn.querySelector('md-icon');
+        const text = targetBtn.querySelector('.toggle-text');
+        if (isForcedTable) {
+          if (icon) icon.textContent = 'table_chart';
+          if (text) text.textContent = 'Tabelle';
+          targetBtn.setAttribute('title', 'Zurück zur Kartenansicht');
+        } else {
+          if (icon) icon.textContent = 'view_agenda';
+          if (text) text.textContent = 'Karten';
+          targetBtn.setAttribute('title', 'Zur Tabellenansicht wechseln');
+        }
+      }
+    }
 
     function hideInitialLoader() {
       const loader = document.getElementById('initialLoadingOverlay');
@@ -2063,7 +2574,7 @@
 
         return `
           <tr>
-            <td>
+            <td data-label="Benutzer">
               <div class="user-name-cell">
                 <div class="avatar-circle" style="background-color: ${color};">${initials}</div>
                 <div>
@@ -2075,17 +2586,17 @@
                 </div>
               </div>
             </td>
-            <td>${escapeHtml(user.email)}</td>
-            <td><span class="badge-class">${escapeHtml(user.className || '-')}</span></td>
-            <td>${escapeHtml(user.schoolType || '-')}</td>
-            <td>${escapeHtml(user.classTeacher || '-')}</td>
-            <td>
+            <td data-label="E-Mail">${escapeHtml(user.email)}</td>
+            <td data-label="Klasse"><span class="badge-class">${escapeHtml(user.className || '-')}</span></td>
+            <td data-label="Schulform">${escapeHtml(user.schoolType || '-')}</td>
+            <td data-label="Klassenlehrer">${escapeHtml(user.classTeacher || '-')}</td>
+            <td data-label="Rolle">
               <span class="badge-role ${isAdmin ? 'badge-admin' : 'badge-user'}">
                 ${user.role}
               </span>
               ${user.isTwoFactorEnabled ? `<span class="badge-role" style="background: rgba(76, 175, 80, 0.2); color: #81c784; margin-left: 4px;" title="2FA aktiv">2FA</span>` : ''}
             </td>
-            <td>
+            <td data-label="Initiales Passwort">
               ${(!user.hasCustomPassword && user.initialPassword) ? `
                 <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 183, 77, 0.12); border: 1px solid rgba(255, 183, 77, 0.35); padding: 4px 8px; border-radius: 8px;">
                   <span class="material-symbols-outlined" style="font-size: 15px; color: #ffb74d;">key</span>
@@ -2103,7 +2614,7 @@
                 <span style="color: var(--md-sys-color-on-surface-variant); font-size: 12px; opacity: 0.7;">-</span>
               `)}
             </td>
-            <td>
+            <td data-label="Aktionen">
               <div class="actions-cell">
                 ${user.isTwoFactorEnabled ? `
                 <md-icon-button title="2FA zurücksetzen" onclick="resetUser2Fa('${user.id}', '${escapeHtml(user.fullName || user.username)}')">
@@ -2462,19 +2973,19 @@
 
         return `
           <tr>
-            <td>
+            <td data-label="Datum / Tag">
               <div style="font-weight: 500;">${dateFormatted}</div>
               ${sub.time ? `<div style="font-size: 11px; color: var(--md-sys-color-on-surface-variant);">${escapeHtml(sub.time)}</div>` : ''}
             </td>
-            <td><span class="badge-period">${escapeHtml(sub.period || '-')}</span></td>
-            <td><span class="badge-class">${escapeHtml(sub.className || '-')}</span></td>
-            <td style="font-weight: 500;">${escapeHtml(sub.subject || '-')}</td>
-            <td><span class="badge-type ${badgeClass}">${escapeHtml(sub.type || '-')}</span></td>
-            <td>
+            <td data-label="Stunde"><span class="badge-period">${escapeHtml(sub.period || '-')}</span></td>
+            <td data-label="Klasse"><span class="badge-class">${escapeHtml(sub.className || '-')}</span></td>
+            <td data-label="Fach" style="font-weight: 500;">${escapeHtml(sub.subject || '-')}</td>
+            <td data-label="Art"><span class="badge-type ${badgeClass}">${escapeHtml(sub.type || '-')}</span></td>
+            <td data-label="Details">
               <div style="font-weight: 500;">${escapeHtml(sub.details || '-')}</div>
             </td>
-            <td>${escapeHtml(sub.roomInfo || '-')}</td>
-            <td>
+            <td data-label="Raum">${escapeHtml(sub.roomInfo || '-')}</td>
+            <td data-label="Aktionen">
               <div class="actions-cell">
                 <md-icon-button title="Eintrag löschen" onclick="openDeleteSubDialog('${sub.id}', '${escapeHtml(sub.className)}: ${escapeHtml(sub.subject)} (${escapeHtml(sub.date)})')">
                   <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
@@ -2985,18 +3496,18 @@
         const updatedDate = c.lastUpdated > 0 ? new Date(c.lastUpdated).toLocaleString('de-DE') : '-';
         return `
           <tr>
-            <td style="font-weight: 700; color: var(--md-sys-color-primary);">
+            <td data-label="Klasse" style="font-weight: 700; color: var(--md-sys-color-primary);">
               <span class="material-symbols-outlined" style="vertical-align: middle; font-size: 18px; margin-right: 6px;">class</span>
               ${escapeHtml(c.className)}
             </td>
-            <td>${escapeHtml(c.validFor || 'Keine Angabe')}</td>
-            <td>
+            <td data-label="Gültig für">${escapeHtml(c.validFor || 'Keine Angabe')}</td>
+            <td data-label="Wochentage">
               <span class="badge-role" style="background: rgba(168, 199, 250, 0.15); color: #a8c7fa; border: 1px solid rgba(168, 199, 250, 0.3);">
                 ${c.daysCount} Wochentage
               </span>
             </td>
-            <td style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">${updatedDate}</td>
-            <td style="text-align: right;">
+            <td data-label="Aktualisiert" style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">${updatedDate}</td>
+            <td data-label="Aktionen" style="text-align: right;">
               <div class="actions-cell">
                 <md-icon-button onclick="viewTimetable('${escapeHtml(c.className)}')">
                   <md-icon>visibility</md-icon>
@@ -3110,29 +3621,31 @@
 
         return `
           <tr>
-            <td>
+            <td data-label="Fach">
               <span class="role-badge role-user" style="font-weight: 600; font-size: 13px;">${subject}</span>
             </td>
-            <td>
+            <td data-label="Titel">
               <div style="font-weight: 500; font-size: 14px;">${title}</div>
               ${desc}
             </td>
-            <td>
+            <td data-label="Klasse">
               <span class="role-badge ${targetClass === 'ALL' ? 'role-admin' : 'role-user'}">${targetClass}</span>
             </td>
-            <td>
+            <td data-label="Fälligkeit">
               <div style="font-size: 13px; font-weight: 500;">${deadline}${dueTime}</div>
             </td>
-            <td>
+            <td data-label="Erstellt">
               <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant);">${created}${creator}</div>
             </td>
-            <td style="text-align: right; white-space: nowrap;">
-              <md-icon-button title="Schulaufgabe bearbeiten" onclick="openEditSchoolTaskDialog('${escapeHtml(task.id)}')">
-                <md-icon>edit</md-icon>
-              </md-icon-button>
-              <md-icon-button title="Schulaufgabe löschen" onclick="openDeleteSchoolTaskDialog('${escapeHtml(task.id)}', '${escapeHtml(task.title)}')">
-                <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
-              </md-icon-button>
+            <td data-label="Aktionen" style="text-align: right; white-space: nowrap;">
+              <div class="actions-cell">
+                <md-icon-button title="Schulaufgabe bearbeiten" onclick="openEditSchoolTaskDialog('${escapeHtml(task.id)}')">
+                  <md-icon>edit</md-icon>
+                </md-icon-button>
+                <md-icon-button title="Schulaufgabe löschen" onclick="openDeleteSchoolTaskDialog('${escapeHtml(task.id)}', '${escapeHtml(task.title)}')">
+                  <md-icon style="color: var(--md-sys-color-error);">delete</md-icon>
+                </md-icon-button>
+              </div>
             </td>
           </tr>
         `;
@@ -3349,11 +3862,10 @@
       }
     }
 
-    function handleApkFileSelected(event) {
-      const file = event.target.files && event.target.files[0];
+    function processApkFile(file) {
       if (!file) return;
 
-      if (!file.name.endsWith('.apk')) {
+      if (!file.name.toLowerCase().endsWith('.apk')) {
         showToast('Bitte wähle eine gültige .apk Datei aus.', true);
         return;
       }
@@ -3363,6 +3875,42 @@
       document.getElementById('apkDropzoneLabel').textContent = file.name;
       document.getElementById('apkDropzoneSub').textContent = `Größe: ${mb} MB – Bereit zum Hochladen`;
       document.getElementById('btnUploadApk').disabled = false;
+    }
+
+    function handleApkFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (file) {
+        processApkFile(file);
+      }
+    }
+
+    function initApkDropzone() {
+      const dropzone = document.getElementById('apkDropzone');
+      if (!dropzone) return;
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add('dragover');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove('dragover');
+        }, false);
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt && dt.files;
+        if (files && files.length > 0) {
+          processApkFile(files[0]);
+        }
+      }, false);
     }
 
     function uploadSelectedApk() {
@@ -3400,7 +3948,12 @@
         progressContainer.classList.add('hidden');
         btnUpload.disabled = false;
         if (xhr.status >= 200 && xhr.status < 300) {
-          showToast('APK erfolgreich hochgeladen und freigegeben!');
+          let msg = 'APK erfolgreich hochgeladen und freigegeben!';
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (data && data.message) msg = data.message;
+          } catch (_) {}
+          showToast(msg);
           selectedApkFile = null;
           document.getElementById('apkDropzoneLabel').textContent = 'Klicke hier oder ziehe eine .apk Datei hierher';
           document.getElementById('apkDropzoneSub').textContent = 'Unterstützt direkt aus Android Studio kompilierte APK-Dateien';

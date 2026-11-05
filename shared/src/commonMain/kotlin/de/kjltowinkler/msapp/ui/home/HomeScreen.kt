@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
@@ -269,7 +270,7 @@ fun MobileHomeScreen(
                         inputField = inputField,
                         modifier = Modifier.fillMaxWidth(),
                         colors = SearchBarDefaults.colors(
-                            containerColor = FigmaMenuBackgroundDark
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                         )
                     )
                 }
@@ -302,6 +303,9 @@ fun MobileHomeScreen(
                                                 de.kjltowinkler.msapp.data.task.TasksRepository.reloadAndSync()
                                                 de.kjltowinkler.msapp.data.timetable.TimetableRepository.loadFromServer()
                                             }
+                                            try {
+                                                de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
+                                            } catch (_: Throwable) {}
                                             minTimeJob.await()
                                         } finally {
                                             isStartseiteRefreshing = false
@@ -320,17 +324,79 @@ fun MobileHomeScreen(
                                     )
                                 }
                             ) {
-                                Box(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .verticalScroll(rememberScrollState()),
-                                    contentAlignment = Alignment.Center
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        text = "Willkommen auf der Startseite",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        fontSize = 16.sp
-                                    )
+                                    val updateStatus by de.kjltowinkler.msapp.data.update.AppUpdateManager.checkStatus
+                                    if (updateStatus is de.kjltowinkler.msapp.data.update.UpdateCheckStatus.UpdateAvailable) {
+                                        val info = (updateStatus as de.kjltowinkler.msapp.data.update.UpdateCheckStatus.UpdateAvailable).updateInfo
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 16.dp),
+                                            shape = RoundedCornerShape(16.dp),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                            )
+                                        ) {
+                                            Column(modifier = Modifier.padding(16.dp)) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(Res.drawable.ic_refresh),
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    Text(
+                                                        text = "Neues Update verfügbar: v${info.versionName}",
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                        fontSize = 16.sp
+                                                    )
+                                                }
+                                                if (info.releaseNotes.isNotBlank()) {
+                                                    Spacer(modifier = Modifier.height(6.dp))
+                                                    Text(
+                                                        text = info.releaseNotes,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
+                                                        fontSize = 14.sp
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(12.dp))
+                                                Button(
+                                                    onClick = {
+                                                        de.kjltowinkler.msapp.util.NavigationEvents.emitRoute("settings")
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.primary,
+                                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                                    )
+                                                ) {
+                                                    Text("Jetzt aktualisieren")
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 40.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "Willkommen auf der Startseite",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                            fontSize = 16.sp
+                                        )
+                                    }
                                 }
                             }
                         }

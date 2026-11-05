@@ -256,13 +256,28 @@ fun Route.appUpdateRoutes() {
             }
 
             val current = AppUpdateRepository.getUpdateInfo()
-            val updated = current.copy(
-                fileSizeBytes = uploadedBytes,
-                publishedAt = System.currentTimeMillis()
-            )
+            val parsedManifest = de.kjltowinkler.msapp.server.util.ApkManifestParser.parse(apkFile)
+            val updated = if (parsedManifest != null) {
+                current.copy(
+                    versionCode = parsedManifest.versionCode,
+                    versionName = parsedManifest.versionName,
+                    fileSizeBytes = uploadedBytes,
+                    publishedAt = System.currentTimeMillis()
+                )
+            } else {
+                current.copy(
+                    fileSizeBytes = uploadedBytes,
+                    publishedAt = System.currentTimeMillis()
+                )
+            }
             AppUpdateRepository.saveUpdateInfo(updated)
 
-            call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "APK erfolgreich hochgeladen (${uploadedBytes / 1024 / 1024} MB)."))
+            val msg = if (parsedManifest != null) {
+                "APK erfolgreich hochgeladen: Version ${parsedManifest.versionName} (Build ${parsedManifest.versionCode}) erkannt und aktiviert."
+            } else {
+                "APK erfolgreich hochgeladen (${uploadedBytes / 1024 / 1024} MB)."
+            }
+            call.respond(HttpStatusCode.OK, SimpleApiResponse(true, msg))
         }
     }
 }

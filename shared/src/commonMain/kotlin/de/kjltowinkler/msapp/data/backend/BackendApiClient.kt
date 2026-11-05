@@ -494,7 +494,7 @@ object BackendApiClient {
     }
 
     suspend fun fetchAppUpdateInfo(): Result<de.kjltowinkler.msapp.data.update.AppUpdateInfo> = runCatching {
-        val response = client.get("$serverUrl/api/app/version?t=${System.currentTimeMillis()}")
+        val response = client.get("$serverUrl/api/app/version?t=${de.kjltowinkler.msapp.data.task.getCurrentEpochMillis()}")
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             json.decodeFromString<de.kjltowinkler.msapp.data.update.AppUpdateInfo>(body)

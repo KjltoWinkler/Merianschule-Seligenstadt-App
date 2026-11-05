@@ -20,7 +20,7 @@ object SubstitutionWorkScheduler {
 
     /**
      * Registriert die periodische Hintergrund-Synchronisation (alle 15 Minuten bei Internetverbindung).
-     * Durch [ExistingPeriodicWorkPolicy.KEEP] bleibt ein bereits geplanter Zyklus unverändert erhalten.
+     * Durch [ExistingPeriodicWorkPolicy.UPDATE] werden aktualisierte Worker-Konfigurationen direkt übernommen.
      */
     fun schedulePeriodicSync(context: Context) {
         val constraints = Constraints.Builder()
@@ -37,7 +37,7 @@ object SubstitutionWorkScheduler {
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             PERIODIC_WORK_TAG,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             periodicRequest
         )
     }

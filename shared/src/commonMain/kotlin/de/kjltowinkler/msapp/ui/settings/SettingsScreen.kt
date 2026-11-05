@@ -66,9 +66,7 @@ fun SettingsScreen(
     var showPermissionDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (checkStatus is UpdateCheckStatus.Idle) {
-            AppUpdateManager.checkForUpdates()
-        }
+        AppUpdateManager.checkForUpdates()
     }
 
     // Dynamische Material You Farbwerte aus dem aktiven MaterialTheme
@@ -433,7 +431,7 @@ fun SettingsScreen(
                                         color = MaterialTheme.colorScheme.primaryContainer
                                     ) {
                                         Text(
-                                            text = "Neu: v${availableUpdate.versionName}",
+                                            text = "Neu: v${availableUpdate.versionName} (Build ${availableUpdate.versionCode})",
                                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -511,7 +509,7 @@ fun SettingsScreen(
                                     if (!PlatformAppUpdater.canInstallUnknownApps()) {
                                         showPermissionDialog = true
                                     } else {
-                                        PlatformAppUpdater.installApk(currentDownload.localPath)
+                                        AppUpdateManager.installApk(currentDownload.localPath)
                                     }
                                 }
                                 currentCheck is UpdateCheckStatus.UpdateAvailable -> {
@@ -543,7 +541,7 @@ fun SettingsScreen(
                                             if (!PlatformAppUpdater.canInstallUnknownApps()) {
                                                 showPermissionDialog = true
                                             } else {
-                                                PlatformAppUpdater.installApk(currentDownload.localPath)
+                                                AppUpdateManager.installApk(currentDownload.localPath)
                                             }
                                         },
                                         modifier = Modifier.handCursor()

@@ -52,7 +52,13 @@ object AppUpdateManager {
                 _checkStatus.value = UpdateCheckStatus.UpdateAvailable(info)
 
                 val lastNotified = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("last_notified_update_version_code")?.toIntOrNull() ?: 0
-                if (forceNotify || info.versionCode > lastNotified) {
+                val lastNotifiedTime = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("last_notified_update_time")?.toLongOrNull() ?: 0L
+                val now = de.kjltowinkler.msapp.data.task.getCurrentEpochMillis()
+                val cooldownPassed = (now - lastNotifiedTime) > (12 * 60 * 60 * 1000L) // Erinnerung frühestens alle 12 Stunden
+
+                val shouldNotify = forceNotify || (info.versionCode > lastNotified) || (info.versionCode == lastNotified && cooldownPassed)
+
+                if (shouldNotify) {
                     val title = "Neues App-Update verfügbar! 🚀"
                     val summary = "Version ${info.versionName} steht zum Download bereit."
                     val details = mutableListOf<String>().apply {
@@ -62,9 +68,15 @@ object AppUpdateManager {
                         }
                         add("Tippe hier zum Herunterladen & Installieren.")
                     }
-                    de.kjltowinkler.msapp.util.PlatformNotifier.sendUpdateNotification(title, summary, details)
-                    de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("last_notified_update_version_code", info.versionCode.toString())
-                    true
+                    val sent = de.kjltowinkler.msapp.util.PlatformNotifier.sendUpdateNotification(title, summary, details)
+                    if (sent) {
+                        de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("last_notified_update_version_code", info.versionCode.toString())
+                        de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("last_notified_update_time", now.toString())
+                        true
+                    } else {
+                        // Noch nicht zugestellt (z. B. Berechtigung noch nicht erteilt) -> nicht als zugestellt markieren!
+                        false
+                    }
                 } else {
                     false
                 }
@@ -92,8 +104,17 @@ object AppUpdateManager {
         }
     }
 
+    fun onApkInstallationLaunched() {
+        _downloadStatus.value = UpdateDownloadStatus.Idle
+        checkForUpdates()
+    }
+
     fun installApk(localPath: String): Result<Unit> {
-        return PlatformAppUpdater.installApk(localPath)
+        val res = PlatformAppUpdater.installApk(localPath)
+        if (res.isSuccess) {
+            onApkInstallationLaunched()
+        }
+        return res
     }
 
     fun resetStatus() {

@@ -9,8 +9,9 @@ actual object PlatformNotifier {
         println("[iOS Task Notification] $title: $summary (${details.joinToString("; ")})")
     }
 
-    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>): Boolean {
         println("[iOS Update Notification] $title: $summary (${details.joinToString("; ")})")
+        return true
     }
 }
 

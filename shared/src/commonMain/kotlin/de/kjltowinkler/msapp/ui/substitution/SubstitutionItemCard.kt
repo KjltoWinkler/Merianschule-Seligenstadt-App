@@ -43,7 +43,7 @@ fun SubstitutionItemCard(
             .clickable { onClick() },
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF000000)
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {

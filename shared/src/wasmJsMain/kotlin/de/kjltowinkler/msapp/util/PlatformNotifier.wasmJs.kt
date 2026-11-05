@@ -9,8 +9,9 @@ actual object PlatformNotifier {
         println("[Web-Aufgaben-Benachrichtigung] $title: $summary (${details.joinToString("; ")})")
     }
 
-    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>): Boolean {
         println("[Web-Update-Benachrichtigung] $title: $summary (${details.joinToString("; ")})")
+        return true
     }
 }
 

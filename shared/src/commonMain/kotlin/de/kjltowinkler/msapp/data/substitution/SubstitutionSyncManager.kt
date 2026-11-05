@@ -133,6 +133,11 @@ object SubstitutionSyncManager {
                 } catch (e: Throwable) {
                     println("SubstitutionSyncManager: Fehler beim initialen Sync: ${e.message}")
                 }
+                try {
+                    de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
+                } catch (e: Throwable) {
+                    println("SubstitutionSyncManager: Fehler beim App-Update-Check: ${e.message}")
+                }
             }
             while (isActive) {
                 delay(intervalMinutes * 60 * 1000L)
@@ -140,6 +145,11 @@ object SubstitutionSyncManager {
                     checkForUpdates(forceRefresh = true, notifyIfChanged = true)
                 } catch (e: Throwable) {
                     println("SubstitutionSyncManager: Fehler beim periodischen Sync: ${e.message}")
+                }
+                try {
+                    de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
+                } catch (e: Throwable) {
+                    println("SubstitutionSyncManager: Fehler beim App-Update-Check: ${e.message}")
                 }
             }
         }

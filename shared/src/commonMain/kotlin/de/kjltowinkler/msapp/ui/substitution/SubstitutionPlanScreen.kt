@@ -602,7 +602,7 @@ fun SubstitutionPlanScreen(
                                         .fillMaxWidth()
                                         .wrapContentHeight(),
                                     shape = RoundedCornerShape(28.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF000000)),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
                                     Column(
@@ -764,7 +764,7 @@ fun SubstitutionPlanScreen(
                                         .fillMaxWidth()
                                         .wrapContentHeight(),
                                     shape = RoundedCornerShape(28.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF000000)),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
                                     Column(
@@ -856,7 +856,7 @@ fun SubstitutionPlanScreen(
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 4.dp, vertical = 4.dp),
                                             shape = RoundedCornerShape(18.dp),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                         ) {
                                             Row(

@@ -20,7 +20,8 @@ expect object PlatformNotifier {
 
     /**
      * Sendet eine Push-Benachrichtigung, wenn ein neues App-Update verfügbar ist.
+     * @return true wenn die Benachrichtigung erfolgreich an das System übergeben wurde, sonst false.
      */
-    fun sendUpdateNotification(title: String, summary: String, details: List<String> = emptyList())
+    fun sendUpdateNotification(title: String, summary: String, details: List<String> = emptyList()): Boolean
 }
 

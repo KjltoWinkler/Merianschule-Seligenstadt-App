@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,10 +42,33 @@ class MainActivity : ComponentActivity() {
         handleNavigationIntent(intent)
     }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101) {
+            if (grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            de.kjltowinkler.msapp.data.update.AppUpdateManager.checkForUpdates()
+        }
+    }
+
     private fun handleNavigationIntent(intent: android.content.Intent?) {
         val nav = intent?.getStringExtra("navigate_to")
         if (nav != null) {
             de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_navigate_to", nav)
+            de.kjltowinkler.msapp.util.NavigationEvents.emitRoute(nav)
         }
     }
 }

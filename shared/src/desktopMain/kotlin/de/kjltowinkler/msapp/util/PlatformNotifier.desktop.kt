@@ -31,8 +31,9 @@ actual object PlatformNotifier {
         sendNotification(title, summary, details)
     }
 
-    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>): Boolean {
         sendNotification(title, summary, details)
+        return true
     }
 }
 

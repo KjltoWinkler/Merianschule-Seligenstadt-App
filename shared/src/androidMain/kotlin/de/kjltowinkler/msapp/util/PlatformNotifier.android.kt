@@ -19,7 +19,7 @@ actual object PlatformNotifier {
     private const val TASK_CHANNEL_NAME = "Aufgaben & Fristen"
     private const val TASK_CHANNEL_DESC = "Erinnerungen an fällige und überfällige Aufgaben"
 
-    private const val UPDATE_CHANNEL_ID = "merian_app_updates_v1"
+    private const val UPDATE_CHANNEL_ID = "merian_app_updates_v2"
     private const val UPDATE_CHANNEL_NAME = "App-Updates"
     private const val UPDATE_CHANNEL_DESC = "Benachrichtigungen über neue Versionen und Updates der App"
 
@@ -210,10 +210,27 @@ actual object PlatformNotifier {
         }
     }
 
-    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>) {
-        try {
+    actual fun sendUpdateNotification(title: String, summary: String, details: List<String>): Boolean {
+        return try {
             val context = AppContextProvider.context
             ensureChannels(context)
+
+            val manager = NotificationManagerCompat.from(context)
+            if (!manager.areNotificationsEnabled()) {
+                println("PlatformNotifier.android: Benachrichtigungen sind systemweit für diese App deaktiviert.")
+                return false
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    println("PlatformNotifier.android: POST_NOTIFICATIONS Berechtigung ist noch nicht erteilt.")
+                    return false
+                }
+            }
 
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -235,7 +252,7 @@ actual object PlatformNotifier {
                 .setColor(0xFF2E6B39.toInt())
                 .setContentTitle(title)
                 .setContentText(summary)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -265,10 +282,11 @@ actual object PlatformNotifier {
                 builder.setStyle(bigTextStyle)
             }
 
-            val manager = NotificationManagerCompat.from(context)
             manager.notify(UPDATE_NOTIFICATION_ID, builder.build())
+            true
         } catch (e: Throwable) {
             println("PlatformNotifier.android: Fehler beim Senden von Update-Notif: ${e.message}")
+            false
         }
     }
 }

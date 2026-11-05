@@ -255,6 +255,19 @@ fun App() {
                         navController.navigate(AppRoutes.SETTINGS)
                     }
                 }
+            }
+
+            LaunchedEffect(navController) {
+                de.kjltowinkler.msapp.util.NavigationEvents.routeFlow.collect { route ->
+                    if (route == "settings" && BackendApiClient.isLoggedIn) {
+                        try {
+                            navController.navigate(AppRoutes.SETTINGS)
+                        } catch (_: Throwable) {}
+                    }
+                }
+            }
+
+            LaunchedEffect(Unit) {
 
                 if (BackendApiClient.isLoggedIn) {
                     de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()

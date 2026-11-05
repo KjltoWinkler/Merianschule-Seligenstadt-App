@@ -78,6 +78,8 @@ val FigmaDarkColorScheme = darkColorScheme(
     onSurface = FigmaOnBackgroundDark,
     surfaceVariant = FigmaMenuBackgroundDark,
     onSurfaceVariant = FigmaOnBackgroundDark.copy(alpha = 0.7f),
+    surfaceContainerLowest = Color(0xFF0E1310),
+    surfaceContainerLow = Color(0xFF1A211B),
     surfaceContainer = FigmaMenuBackgroundDark,
     surfaceContainerHigh = FigmaButtonSecondaryDark,
     surfaceContainerHighest = Color(0xFF2C382D),
@@ -98,8 +100,15 @@ val FigmaLightColorScheme = lightColorScheme(
     onBackground = Color(0xFF141A16),
     surface = Color(0xFFF7FBF4),
     onSurface = Color(0xFF141A16),
+    surfaceVariant = Color(0xFFDEE5DC),
+    onSurfaceVariant = Color(0xFF434842),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFEFF5ED),
     surfaceContainer = Color(0xFFE8EFE5),
-    surfaceContainerHighest = Color(0xFFE2ECE0)
+    surfaceContainerHigh = Color(0xFFE2ECE0),
+    surfaceContainerHighest = Color(0xFFDCE6DA),
+    outline = Color(0xFF737971),
+    outlineVariant = Color(0xFFC3C8C0)
 )
 
 // Material You Color Schemes (entsprechend Android 12+ M3 Dynamic Colors aus dem Screenshot)
@@ -118,11 +127,11 @@ val MaterialYouDarkColorScheme = darkColorScheme(
     onSurface = Color(0xFFE0E6EE),
     surfaceVariant = Color(0xFF262D33),
     onSurfaceVariant = Color(0xFFA4ACB3),
-    surfaceContainer = Color(0xFF262D33),
-    surfaceContainerHigh = Color(0xFF20262C),
-    surfaceContainerHighest = Color(0xFF363D44),
-    surfaceContainerLow = Color(0xFF1D2227),
     surfaceContainerLowest = Color(0xFF101418),
+    surfaceContainerLow = Color(0xFF1D2227),
+    surfaceContainer = Color(0xFF262D33),
+    surfaceContainerHigh = Color(0xFF2E353C),
+    surfaceContainerHighest = Color(0xFF363D44),
     outline = Color(0xFF535A60),
     outlineVariant = Color(0xFF3F464C)
 )
@@ -142,6 +151,8 @@ val MaterialYouLightColorScheme = lightColorScheme(
     onSurface = Color(0xFF171C20),
     surfaceVariant = Color(0xFFDEE3EB),
     onSurfaceVariant = Color(0xFF42474E),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF1F4F8),
     surfaceContainer = Color(0xFFEEF1F5),
     surfaceContainerHigh = Color(0xFFE8EBEF),
     surfaceContainerHighest = Color(0xFFE2E5E9),

@@ -21,38 +21,47 @@ class SubstitutionSyncWorker(
             AppContextProvider.init(applicationContext)
             val forceNotify = inputData.getBoolean("force_notify", false)
 
-            val diff = SubstitutionSyncManager.checkForUpdates(
-                forceRefresh = true,
-                notifyIfChanged = true
-            )
-
-            if (forceNotify && !diff.hasChanges) {
-                de.kjltowinkler.msapp.util.PlatformNotifier.sendNotification(
-                    title = "WorkManager Test erfolgreich",
-                    summary = "Hintergrund-Abfrage wurde fehlerfrei ausgeführt!",
-                    details = listOf(
-                        "Status: Hintergrund-Worker ist aktiv",
-                        "Server-Verbindung: Erfolgreich geprüft",
-                        "Hintergrunddienst läuft zuverlässig."
-                    )
+            // 1. Vertretungsplan im Hintergrund prüfen
+            try {
+                val diff = SubstitutionSyncManager.checkForUpdates(
+                    forceRefresh = true,
+                    notifyIfChanged = true
                 )
+
+                if (forceNotify && !diff.hasChanges) {
+                    de.kjltowinkler.msapp.util.PlatformNotifier.sendNotification(
+                        title = "WorkManager Test erfolgreich",
+                        summary = "Hintergrund-Abfrage wurde fehlerfrei ausgeführt!",
+                        details = listOf(
+                            "Status: Hintergrund-Worker ist aktiv",
+                            "Server-Verbindung: Erfolgreich geprüft",
+                            "Hintergrunddienst läuft zuverlässig."
+                        )
+                    )
+                }
+                println("SubstitutionSyncWorker: VPlan-Check abgeschlossen (hasChanges=${diff.hasChanges})")
+            } catch (e: Throwable) {
+                println("SubstitutionSyncWorker: Fehler beim Vertretungsplan-Check: ${e.message}")
             }
 
-            // Aufgaben-Erinnerungen und Überfälligkeits-Check im Hintergrund
-            de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
+            // 2. Aufgaben-Erinnerungen und Überfälligkeits-Check im Hintergrund
+            try {
+                de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
+            } catch (e: Throwable) {
+                println("SubstitutionSyncWorker: Fehler beim Aufgaben-Check: ${e.message}")
+            }
 
-            // App-Updates im Hintergrund prüfen und Push-Benachrichtigung senden
-            de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate(forceNotify = forceNotify)
+            // 3. App-Updates im Hintergrund prüfen und Push-Benachrichtigung senden
+            try {
+                de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate(forceNotify = forceNotify)
+            } catch (e: Throwable) {
+                println("SubstitutionSyncWorker: Fehler beim App-Update-Check: ${e.message}")
+            }
 
-            println("SubstitutionSyncWorker: Background-Check abgeschlossen (hasChanges=${diff.hasChanges}, neu=${diff.addedEntries.size}, geändert=${diff.modifiedEntries.size})")
             Result.success()
         } catch (e: Throwable) {
-            println("SubstitutionSyncWorker: Fehler beim Hintergrund-Check: ${e.message}")
-            if (runAttemptCount < 3) {
-                Result.retry()
-            } else {
-                Result.failure()
-            }
+            println("SubstitutionSyncWorker: Schwerer Fehler im Hintergrund-Worker: ${e.message}")
+            Result.success()
         }
     }
 }
