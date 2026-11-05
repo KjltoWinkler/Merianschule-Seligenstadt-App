@@ -62,6 +62,8 @@ fun TaskEditBottomSheet(
     var deadlineDate by remember(task.id) { mutableStateOf(task.deadlineDate) }
     var dueDate by remember(task.id) { mutableStateOf(task.dueDate) }
     var dueTime by remember(task.id) { mutableStateOf(task.dueTime) }
+    var subject by remember(task.id) { mutableStateOf(task.subject) }
+    var showSubjectPicker by remember { mutableStateOf(false) }
     var isCompleted by remember(task.id) { mutableStateOf(task.isCompleted) }
     var completedDate by remember(task.id) { mutableStateOf(task.completedDate) }
     var isStarred by remember(task.id) { mutableStateOf(task.isStarred) }
@@ -132,7 +134,8 @@ fun TaskEditBottomSheet(
         newDueTime: String = dueTime,
         newIsCompleted: Boolean = isCompleted,
         newCompletedDate: String = completedDate,
-        newIsStarred: Boolean = isStarred
+        newIsStarred: Boolean = isStarred,
+        newSubject: String = subject
     ) {
         val updated = task.copy(
             title = if (isOfficialSchoolTask) task.title else newTitle.ifBlank { task.title },
@@ -143,7 +146,8 @@ fun TaskEditBottomSheet(
             isCompleted = newIsCompleted,
             completedDate = newCompletedDate,
             createdDate = createdDate,
-            isStarred = newIsStarred
+            isStarred = newIsStarred,
+            subject = if (isOfficialSchoolTask) task.subject else newSubject
         )
         onUpdateTask(updated)
     }
@@ -404,11 +408,11 @@ fun TaskEditBottomSheet(
                             }
                         }
 
-                        // Box 3: Zeit hinzufügen (unterer Brick)
+                        // Box 3: Zeit hinzufügen (mittlerer Brick)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(bottomBrickShape)
+                                .clip(middleBrickShape)
                                 .background(brickBackgroundColor)
                                 .clickable { showTimePicker = true }
                                 .handCursor()
@@ -451,6 +455,58 @@ fun TaskEditBottomSheet(
                                     Icon(
                                         painter = painterResource(Res.drawable.ic_close),
                                         contentDescription = "Zeit entfernen",
+                                        tint = colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Box 4: Fach hinzufügen / bearbeiten (unterer Brick)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(bottomBrickShape)
+                                .background(brickBackgroundColor)
+                                .clickable { showSubjectPicker = true }
+                                .handCursor()
+                                .defaultMinSize(minHeight = 54.dp)
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_apps),
+                                    contentDescription = null,
+                                    tint = actionIconTint,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = if (subject.isNotBlank()) "Fach: $subject" else "Fach hinzufügen",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSurface
+                                )
+                            }
+
+                            if (subject.isNotBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        subject = ""
+                                        saveChanges(newSubject = "")
+                                    },
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .handCursor()
+                                ) {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_close),
+                                        contentDescription = "Fach entfernen",
                                         tint = colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
@@ -716,6 +772,17 @@ fun TaskEditBottomSheet(
                 saveChanges(newDueTime = timeStr, newDeadline = combinedDeadline)
             },
             onDismissRequest = { showTimePicker = false }
+        )
+    }
+
+    if (showSubjectPicker && !isOfficialSchoolTask) {
+        TaskSubjectPickerDialog(
+            selectedSubject = subject,
+            onSubjectSelected = {
+                subject = it
+                saveChanges(newSubject = it)
+            },
+            onDismissRequest = { showSubjectPicker = false }
         )
     }
 }

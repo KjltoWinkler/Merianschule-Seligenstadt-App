@@ -491,6 +491,13 @@ class ServerTest {
         assertEquals("9.9.9", fetched.versionName)
         assertEquals("• Test Update Release Notes", fetched.releaseNotes)
 
+        // Test update push timestamp update
+        val pushedTimestamp = System.currentTimeMillis()
+        val pushedInfo = fetched.copy(publishedAt = pushedTimestamp)
+        de.kjltowinkler.msapp.server.routes.AppUpdateRepository.saveUpdateInfo(pushedInfo)
+        val afterPush = de.kjltowinkler.msapp.server.routes.AppUpdateRepository.getUpdateInfo()
+        assertEquals(pushedTimestamp, afterPush.publishedAt)
+
         // Restore original
         de.kjltowinkler.msapp.server.routes.AppUpdateRepository.saveUpdateInfo(original)
     }

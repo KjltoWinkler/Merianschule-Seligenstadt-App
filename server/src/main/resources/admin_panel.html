@@ -1711,6 +1711,30 @@
 
     <!-- Tab 6: App-Updates (APK) -->
     <section id="panelAppUpdates" class="tab-content hidden">
+      <!-- Prominentes Update Pushen Banner -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; background: linear-gradient(135deg, rgba(46, 125, 50, 0.25), rgba(21, 101, 192, 0.18)); border: 1.5px solid rgba(76, 175, 80, 0.45); border-radius: 16px; margin-bottom: 22px; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);">
+        <div style="display: flex; align-items: center; gap: 16px; min-width: 260px;">
+          <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(76, 175, 80, 0.22); border: 1.5px solid rgba(76, 175, 80, 0.45); display: flex; align-items: center; justify-content: center; color: #81c784; flex-shrink: 0;">
+            <md-icon style="font-size: 30px;">rocket_launch</md-icon>
+          </div>
+          <div>
+            <div style="font-weight: 600; font-size: 18px; color: #ffffff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span>App-Update freigeben & pushen</span>
+              <span id="bannerActiveVersionBadge" style="font-size: 12px; padding: 3px 9px; border-radius: 8px; background: rgba(255, 255, 255, 0.12); color: #a8c7fa; font-weight: 600;">v1.0.3 (Build 4)</span>
+            </div>
+            <div style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 3px;" id="apkPublishedAtText">
+              Zuletzt freigegeben: -
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <md-filled-button id="btnHeaderPushUpdate" onclick="openPushUpdateConfirmation()" style="--md-filled-button-container-color: #2e7d32; --md-filled-button-label-text-color: #ffffff; font-weight: 600; padding: 0 22px; height: 46px; font-size: 14.5px; box-shadow: 0 3px 12px rgba(46, 125, 50, 0.35);">
+            <md-icon slot="icon">rocket_launch</md-icon>
+            Update jetzt an alle Geräte pushen
+          </md-filled-button>
+        </div>
+      </div>
+
       <div class="grid-2" style="margin-bottom: 24px;">
         <!-- Status Card -->
         <div class="card">
@@ -1754,10 +1778,14 @@
                 <md-icon slot="leading-icon">notes</md-icon>
               </md-outlined-text-field>
 
-              <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
-                <md-filled-button type="submit" id="btnSaveAppInfo">
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+                <md-filled-tonal-button type="submit" id="btnSaveAppInfo">
                   <md-icon slot="icon">save</md-icon>
-                  Versionsinfo speichern
+                  Als Entwurf speichern
+                </md-filled-tonal-button>
+                <md-filled-button type="button" id="btnPushUpdate" onclick="openPushUpdateConfirmation()" style="--md-filled-button-container-color: #2e7d32; --md-filled-button-label-text-color: #ffffff; font-weight: 600;">
+                  <md-icon slot="icon">rocket_launch</md-icon>
+                  Update jetzt pushen
                 </md-filled-button>
               </div>
             </form>
@@ -2157,6 +2185,51 @@
         <md-text-button onclick="document.getElementById('deleteSchoolTaskDialog').close()">Abbrechen</md-text-button>
         <md-filled-button style="--md-filled-button-container-color: var(--md-sys-color-error); --md-filled-button-label-text-color: var(--md-sys-color-on-error);" onclick="submitDeleteSchoolTask()">
           Löschen
+        </md-filled-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dialog: App-Update pushen bestätigen -->
+  <div class="m3-dialog-overlay" id="pushUpdateDialog">
+    <div class="m3-dialog-scrim"></div>
+    <div class="m3-dialog-surface" style="max-width: 520px;">
+      <div class="m3-dialog-headline" style="color: #81c784;">
+        <md-icon style="color: #81c784;">rocket_launch</md-icon>
+        <span>App-Update jetzt pushen?</span>
+      </div>
+      <div class="m3-dialog-content">
+        <p style="font-size: 14px; color: var(--md-sys-color-on-surface-variant); line-height: 1.5; margin: 0 0 12px;">
+          Bist du sicher, dass du dieses Update freigeben und an alle Android-Geräte ausrollen möchtest?
+        </p>
+
+        <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">Version & Build:</span>
+            <span id="pushDialogVersionBadge" style="font-weight: 600; font-size: 14px; color: #a8c7fa;">v1.0.3 (Build 4)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">APK-Datei auf Server:</span>
+            <span id="pushDialogApkBadge" style="font-weight: 600; font-size: 13px; color: #81c784;">✓ Bereit</span>
+          </div>
+          <div>
+            <span style="font-size: 13px; color: var(--md-sys-color-on-surface-variant); display: block; margin-bottom: 4px;">Änderungen / Release Notes:</span>
+            <div id="pushDialogReleaseNotes" style="font-size: 13px; color: #e2e2e8; white-space: pre-wrap; background: rgba(0, 0, 0, 0.25); padding: 10px 12px; border-radius: 8px; max-height: 140px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.05);">-</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: rgba(255, 183, 77, 0.1); border-left: 3px solid #ffb74d; border-radius: 6px; margin-top: 8px;">
+          <md-icon style="color: #ffb74d; font-size: 20px; flex-shrink: 0; margin-top: 1px;">notifications_active</md-icon>
+          <span style="font-size: 12.5px; color: #ffe0b2; line-height: 1.45;">
+            <strong>Auswirkung:</strong> Alle installierten Android-Apps erkennen beim nächsten Start oder Hintergrundabgleich automatisch das Update und fordern die Nutzer zur Aktualisierung auf.
+          </span>
+        </div>
+      </div>
+      <div class="m3-dialog-actions">
+        <md-text-button onclick="document.getElementById('pushUpdateDialog').close()">Abbrechen</md-text-button>
+        <md-filled-button id="btnConfirmPushUpdate" onclick="executePushUpdate()" style="--md-filled-button-container-color: #2e7d32; --md-filled-button-label-text-color: #ffffff; font-weight: 600;">
+          <md-icon slot="icon">rocket_launch</md-icon>
+          Ja, Update jetzt pushen
         </md-filled-button>
       </div>
     </div>
@@ -3801,14 +3874,31 @@
     // App-Updates (APK) Logik
     // ==========================================
     let selectedApkFile = null;
+    let currentAppUpdateStatus = null;
 
     async function loadAppUpdateInfo() {
       try {
         const res = await apiFetch('/api/admin/app/info');
         if (!res.ok) throw new Error('Update-Informationen konnten nicht geladen werden.');
         const data = await res.json();
+        currentAppUpdateStatus = data;
 
         document.getElementById('apkStatusVersion').textContent = `v${data.versionName} (Build ${data.versionCode})`;
+        const bannerBadge = document.getElementById('bannerActiveVersionBadge');
+        if (bannerBadge) {
+          bannerBadge.textContent = `v${data.versionName} (Build ${data.versionCode})`;
+        }
+
+        const pubText = document.getElementById('apkPublishedAtText');
+        if (pubText) {
+          if (data.publishedAt && data.publishedAt > 0) {
+            const dt = new Date(data.publishedAt);
+            pubText.textContent = `Zuletzt freigegeben: ${dt.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} um ${dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
+          } else {
+            pubText.textContent = 'Noch kein Update veröffentlicht';
+          }
+        }
+
         document.getElementById('apkDownloadUrlText').textContent = data.downloadUrl || '/api/app/download/latest.apk';
         document.getElementById('appVersionName').value = data.versionName || '';
         document.getElementById('appVersionCode').value = data.versionCode || 1;
@@ -3826,6 +3916,72 @@
         }
       } catch (err) {
         showToast(err.message, true);
+      }
+    }
+
+    function openPushUpdateConfirmation() {
+      const versionName = document.getElementById('appVersionName').value.trim();
+      const versionCode = parseInt(document.getElementById('appVersionCode').value, 10);
+      const releaseNotes = document.getElementById('appReleaseNotes').value.trim();
+
+      if (!versionName || !versionCode || versionCode <= 0) {
+        showToast('Bitte zuerst Versionsname und Build-Code in den Feldern angeben.', true);
+        return;
+      }
+
+      document.getElementById('pushDialogVersionBadge').textContent = `v${versionName} (Build ${versionCode})`;
+      document.getElementById('pushDialogReleaseNotes').textContent = releaseNotes || 'Keine Release Notes angegeben.';
+
+      const apkBadge = document.getElementById('pushDialogApkBadge');
+      if (currentAppUpdateStatus && currentAppUpdateStatus.apkExists) {
+        const mb = (currentAppUpdateStatus.fileSizeBytes / (1024 * 1024)).toFixed(1);
+        apkBadge.textContent = `✓ Bereit (${mb} MB)`;
+        apkBadge.style.color = '#81c784';
+      } else {
+        apkBadge.textContent = '⚠️ Achtung: Keine APK-Datei auf dem Server!';
+        apkBadge.style.color = '#ffb4ab';
+      }
+
+      document.getElementById('pushUpdateDialog').show();
+    }
+
+    async function executePushUpdate() {
+      const versionName = document.getElementById('appVersionName').value.trim();
+      const versionCode = parseInt(document.getElementById('appVersionCode').value, 10);
+      const releaseNotes = document.getElementById('appReleaseNotes').value.trim();
+      const btnConfirm = document.getElementById('btnConfirmPushUpdate');
+
+      if (!versionName || !versionCode || versionCode <= 0) {
+        showToast('Bitte gültigen Versionsnamen und Build-Code angeben.', true);
+        return;
+      }
+
+      btnConfirm.disabled = true;
+
+      try {
+        const res = await apiFetch('/api/admin/app/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            versionName,
+            versionCode,
+            releaseNotes,
+            downloadUrl: '/api/app/download/latest.apk'
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          document.getElementById('pushUpdateDialog').close();
+          showToast(data.message || `🚀 Update v${versionName} (Build ${versionCode}) erfolgreich an alle Geräte freigegeben!`);
+          loadAppUpdateInfo();
+        } else {
+          showToast(data.message || 'Fehler beim Freigeben des Updates.', true);
+        }
+      } catch (err) {
+        showToast('Fehler beim Pushen: ' + err.message, true);
+      } finally {
+        btnConfirm.disabled = false;
       }
     }
 
@@ -3852,7 +4008,7 @@
         });
         const data = await res.json();
         if (res.ok) {
-          showToast('Versionsinformationen erfolgreich gespeichert!');
+          showToast('Versionsinformationen erfolgreich als Entwurf gespeichert!');
           loadAppUpdateInfo();
         } else {
           showToast(data.message || 'Fehler beim Speichern der Versionsinfo.', true);

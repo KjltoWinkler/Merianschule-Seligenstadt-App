@@ -220,6 +220,43 @@ fun Route.appUpdateRoutes() {
             call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "App-Update-Informationen erfolgreich aktualisiert."))
         }
 
+        post("/push") {
+            if (!verifyAdminAccess(call)) {
+                call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                return@post
+            }
+
+            val req = runCatching { call.receive<AdminUpdateAppInfoRequest>() }.getOrElse {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Versionsdaten."))
+                return@post
+            }
+
+            if (req.versionName.isBlank() || req.versionCode <= 0) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Versionsnummer oder Build-Code."))
+                return@post
+            }
+
+            val current = AppUpdateRepository.getUpdateInfo()
+            val apk = AppUpdateRepository.getApkFile()
+
+            if (!apk.exists()) {
+                call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Keine APK-Datei auf dem Server vorhanden. Bitte lade zuerst eine APK hoch."))
+                return@post
+            }
+
+            val updated = current.copy(
+                versionCode = req.versionCode,
+                versionName = req.versionName.trim(),
+                downloadUrl = req.downloadUrl.ifBlank { "/api/app/download/latest.apk" },
+                releaseNotes = req.releaseNotes.trim(),
+                fileSizeBytes = apk.length(),
+                publishedAt = System.currentTimeMillis()
+            )
+
+            AppUpdateRepository.saveUpdateInfo(updated)
+            call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Update v${updated.versionName} (Build ${updated.versionCode}) wurde erfolgreich für alle Geräte freigegeben!"))
+        }
+
         post("/upload-apk") {
             if (!verifyAdminAccess(call)) {
                 call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))

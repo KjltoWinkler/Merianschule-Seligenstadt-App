@@ -204,6 +204,7 @@ fun MobileHomeScreen(
     var isNewTaskStarred by remember { mutableStateOf(false) }
     var newTaskTargetListId by remember { mutableStateOf("my_tasks") }
     var isNewTaskSchoolTask by remember { mutableStateOf(false) }
+    var newTaskSubject by remember { mutableStateOf("") }
     var showNewListScreen by remember { mutableStateOf(false) }
 
     // Hinweis: Die Zurück-Gesten für Unter-Tabs und Suchleiste werden
@@ -408,6 +409,7 @@ fun MobileHomeScreen(
                                     selectedTab = 3
                                     isNewTaskStarred = false
                                     isNewTaskSchoolTask = true
+                                    newTaskSubject = subjectName
                                     newTaskTargetListId = "my_tasks"
                                     showNewTaskBottomSheet = true
                                 }
@@ -507,10 +509,15 @@ fun MobileHomeScreen(
             de.kjltowinkler.msapp.ui.tasks.NewTaskBottomSheet(
                 initialIsStarred = isNewTaskStarred,
                 initialIsSchoolTask = isNewTaskSchoolTask,
+                initialSubject = newTaskSubject,
                 targetListId = newTaskTargetListId,
-                onDismissRequest = { showNewTaskBottomSheet = false },
+                onDismissRequest = {
+                    showNewTaskBottomSheet = false
+                    newTaskSubject = ""
+                },
                 onSaveTask = { newTask ->
                     de.kjltowinkler.msapp.data.task.TasksRepository.addTask(newTask)
+                    newTaskSubject = ""
                 }
             )
         }

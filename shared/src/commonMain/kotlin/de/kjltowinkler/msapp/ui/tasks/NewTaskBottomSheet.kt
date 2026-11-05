@@ -51,12 +51,14 @@ import de.kjltowinkler.msapp.data.task.TasksRepository
 fun NewTaskBottomSheet(
     initialIsStarred: Boolean = false,
     initialIsSchoolTask: Boolean = false,
+    initialSubject: String = "",
     targetListId: String = "my_tasks",
     onDismissRequest: () -> Unit,
     onSaveTask: (TaskItem) -> Unit
 ) {
     var taskTitle by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
+    var selectedSubject by remember(initialSubject) { mutableStateOf(initialSubject) }
     var isStarred by remember(initialIsStarred) { mutableStateOf(initialIsStarred) }
 
     var selectedDate by remember { mutableStateOf<SimpleDate?>(null) }
@@ -65,6 +67,7 @@ fun NewTaskBottomSheet(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showSubjectPicker by remember { mutableStateOf(false) }
 
     var showDescription by remember { mutableStateOf(false) }
 
@@ -86,7 +89,7 @@ fun NewTaskBottomSheet(
     val colorScheme = MaterialTheme.colorScheme
 
     PredictiveBackContainer(
-        enabled = !showDatePicker && !showTimePicker,
+        enabled = !showDatePicker && !showTimePicker && !showSubjectPicker,
         onBack = {
             keyboardController?.hide()
             onDismissRequest()
@@ -207,14 +210,53 @@ fun NewTaskBottomSheet(
                     }
                 }
 
-                // Anzeige von gewähltem Datum / Uhrzeit Chips (falls gesetzt)
-                if (selectedDate != null || (selectedHour != null && selectedMinute != null)) {
+                // Anzeige von gewähltem Fach / Datum / Uhrzeit Chips (falls gesetzt)
+                if (selectedSubject.isNotBlank() || selectedDate != null || (selectedHour != null && selectedMinute != null)) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                     ) {
+                        if (selectedSubject.isNotBlank()) {
+                            InputChip(
+                                selected = true,
+                                onClick = { showSubjectPicker = true },
+                                modifier = Modifier.handCursor(),
+                                label = { Text(selectedSubject) },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_apps),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        painter = painterResource(Res.drawable.ic_close),
+                                        contentDescription = "Fach entfernen",
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) {
+                                                selectedSubject = ""
+                                            }
+                                            .handCursor()
+                                    )
+                                },
+                                colors = InputChipDefaults.inputChipColors(
+                                    containerColor = colorScheme.secondaryContainer,
+                                    labelColor = colorScheme.onSecondaryContainer,
+                                    trailingIconColor = colorScheme.onSecondaryContainer,
+                                    selectedContainerColor = colorScheme.secondaryContainer,
+                                    selectedLabelColor = colorScheme.onSecondaryContainer,
+                                    selectedTrailingIconColor = colorScheme.onSecondaryContainer
+                                ),
+                                border = null
+                            )
+                        }
 
                     selectedDate?.let { date ->
                         InputChip(
@@ -348,7 +390,22 @@ fun NewTaskBottomSheet(
                             )
                         }
 
-                        // Icon 4: Stern / Markieren
+                        // Icon 4: Fach auswählen (9 Punkte / 3x3 Grid / Apps)
+                        IconButton(
+                            onClick = { showSubjectPicker = true },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .handCursor()
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_apps),
+                                contentDescription = "Fach auswählen",
+                                tint = if (selectedSubject.isNotBlank()) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        // Icon 5: Stern / Markieren
                         IconButton(
                             onClick = { isStarred = !isStarred },
                             modifier = Modifier
@@ -382,6 +439,7 @@ fun NewTaskBottomSheet(
                                     id = getCurrentEpochMillis().toString(),
                                     title = trimmedTitle,
                                     description = taskDescription.trim(),
+                                    subject = selectedSubject,
                                     dueDate = dueDateString,
                                     dueTime = dueTimeString,
                                     isStarred = isStarred,
@@ -407,6 +465,15 @@ fun NewTaskBottomSheet(
             }
         }
     }
+    }
+
+    // --- SUBJECT PICKER DIALOG (tasks#neu+fach.png) ---
+    if (showSubjectPicker) {
+        TaskSubjectPickerDialog(
+            selectedSubject = selectedSubject,
+            onSubjectSelected = { selectedSubject = it },
+            onDismissRequest = { showSubjectPicker = false }
+        )
     }
 
     // --- DATE PICKER DIALOG ---

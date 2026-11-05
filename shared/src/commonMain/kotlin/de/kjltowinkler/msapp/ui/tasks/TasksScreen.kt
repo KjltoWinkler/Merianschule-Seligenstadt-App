@@ -1245,6 +1245,21 @@ private fun ActiveTaskRowItem(
                     fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isOverdue) colorScheme.error else colorScheme.onSurface
                 )
+                if (task.subject.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colorScheme.secondaryContainer,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    ) {
+                        Text(
+                            text = task.subject,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 if (task.description.isNotBlank()) {
                     Text(
                         text = task.description,
