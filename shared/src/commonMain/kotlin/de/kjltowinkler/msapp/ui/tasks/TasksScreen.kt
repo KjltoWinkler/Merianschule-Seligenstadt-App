@@ -370,7 +370,7 @@ fun TasksScreen(
                                 )
                             ),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        colors = CardDefaults.cardColors(containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(
@@ -598,7 +598,7 @@ fun TasksScreen(
                                     )
                                 ),
                                 shape = RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                colors = CardDefaults.cardColors(containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {

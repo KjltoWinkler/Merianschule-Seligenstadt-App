@@ -614,7 +614,7 @@ fun SubstitutionPlanScreen(
                                         .fillMaxWidth()
                                         .wrapContentHeight(),
                                     shape = RoundedCornerShape(28.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                    colors = CardDefaults.cardColors(containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
                                     Column(
@@ -776,7 +776,7 @@ fun SubstitutionPlanScreen(
                                         .fillMaxWidth()
                                         .wrapContentHeight(),
                                     shape = RoundedCornerShape(28.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                    colors = CardDefaults.cardColors(containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                 ) {
                                     Column(
@@ -868,7 +868,7 @@ fun SubstitutionPlanScreen(
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 4.dp, vertical = 4.dp),
                                             shape = RoundedCornerShape(18.dp),
-                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                            colors = CardDefaults.cardColors(containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()),
                                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                                         ) {
                                             Row(

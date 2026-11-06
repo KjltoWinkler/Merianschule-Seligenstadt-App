@@ -53,7 +53,13 @@ fun TimetableScreen(
     val initialDay = remember { getInitialTimetableDay() }
     val initialPageIndex = remember(initialDay) { days.indexOf(initialDay).coerceAtLeast(0) }
     val pagerState = rememberPagerState(initialPage = initialPageIndex, pageCount = { days.size })
-    val tabScrollState = rememberScrollState()
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val estimatedScrollPx = remember(initialPageIndex) {
+        with(density) { (92.dp * initialPageIndex).roundToPx() }
+    }
+    val tabScrollState = rememberScrollState(initial = estimatedScrollPx)
+    var isFirstLaunch by remember { mutableStateOf(true) }
 
     val listStates = List(days.size) { index ->
         key(index) {
@@ -80,10 +86,27 @@ fun TimetableScreen(
 
     // Automatisch zum ausgewählten Button scrollen, wenn die Seite gewechselt wird
     LaunchedEffect(pagerState.currentPage) {
-        val buttonWidthEstimate = 100 // Ungefähre Breite pro Button in dp
-        tabScrollState.animateScrollTo(
-            (pagerState.currentPage * buttonWidthEstimate).coerceAtLeast(0)
-        )
+        if (isFirstLaunch) {
+            isFirstLaunch = false
+            // Beim allerersten Rendern sofort ohne Animation an die exakte Position setzen, falls das Layout schon da ist
+            if (tabScrollState.maxValue > 0) {
+                val fraction = pagerState.currentPage.toFloat() / (days.size - 1).coerceAtLeast(1)
+                val targetScroll = (fraction * tabScrollState.maxValue).toInt()
+                tabScrollState.scrollTo(targetScroll)
+            }
+        } else {
+            // Bei manuellem Wechsel durch Nutzer sanft animieren
+            if (tabScrollState.maxValue > 0) {
+                val fraction = pagerState.currentPage.toFloat() / (days.size - 1).coerceAtLeast(1)
+                val targetScroll = (fraction * tabScrollState.maxValue).toInt()
+                tabScrollState.animateScrollTo(targetScroll)
+            } else {
+                val buttonWidthEstimate = with(density) { 92.dp.roundToPx() }
+                tabScrollState.animateScrollTo(
+                    (pagerState.currentPage * buttonWidthEstimate).coerceAtLeast(0)
+                )
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -167,6 +190,11 @@ fun TimetableScreen(
                     coroutineScope.launch {
                         try {
                             val minTimeJob = async { delay(400) }
+                            val targetDay = getInitialTimetableDay()
+                            val targetIndex = days.indexOf(targetDay).coerceAtLeast(0)
+                            if (pagerState.currentPage != targetIndex) {
+                                pagerState.animateScrollToPage(targetIndex)
+                            }
                             TimetableRepository.loadFromServer()
                             minTimeJob.await()
                         } finally {
@@ -208,7 +236,7 @@ fun TimetableScreen(
                                     .fillMaxWidth()
                                     .wrapContentHeight(),
                                 shape = RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                                colors = CardDefaults.cardColors(containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
                                 Box(
@@ -345,7 +373,7 @@ fun TimetableLessonCard(
             .clickable(onClick = onCardClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {

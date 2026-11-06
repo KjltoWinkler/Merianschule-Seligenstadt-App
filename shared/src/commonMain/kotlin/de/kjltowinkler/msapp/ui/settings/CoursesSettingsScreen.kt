@@ -38,7 +38,7 @@ fun CoursesSettingsScreen(
     var editingCourse by remember { mutableStateOf<UserCourse?>(null) }
 
     val screenBackground = MaterialTheme.colorScheme.background
-    val cardBackground = MaterialTheme.colorScheme.surfaceContainer
+    val cardBackground = de.kjltowinkler.msapp.theme.screenCardContainerColor()
     val backButtonBg = MaterialTheme.colorScheme.surfaceContainerHigh
     val textPrimary = MaterialTheme.colorScheme.onSurface
     val textSecondary = MaterialTheme.colorScheme.onSurfaceVariant

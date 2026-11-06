@@ -19,17 +19,7 @@ actual fun AppTheme(
     val colorScheme = when {
         !isInspection && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             try {
-                if (darkTheme) {
-                    val dynamicDark = dynamicDarkColorScheme(context)
-                    // Dunklere Material You Cards (surfaceContainer / surfaceContainerLow)
-                    // auf den tiefdunklen Tone 4 (surfaceContainerLowest) setzen
-                    dynamicDark.copy(
-                        surfaceContainer = dynamicDark.surfaceContainerLowest,
-                        surfaceContainerLow = dynamicDark.surfaceContainerLowest
-                    )
-                } else {
-                    dynamicLightColorScheme(context)
-                }
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
             } catch (_: Throwable) {
                 if (darkTheme) MaterialYouDarkColorScheme else MaterialYouLightColorScheme
             }
