@@ -89,9 +89,10 @@ object SubstitutionChangeDetector {
         userClass: String = "09AR",
         filterActiveAndRelevantOnly: Boolean = false,
         today: de.kjltowinkler.msapp.data.task.SimpleDate = de.kjltowinkler.msapp.data.task.getTodayDate(),
-        currentTime: de.kjltowinkler.msapp.data.task.SimpleTime = de.kjltowinkler.msapp.data.task.getCurrentTime()
+        currentTime: de.kjltowinkler.msapp.data.task.SimpleTime = de.kjltowinkler.msapp.data.task.getCurrentTime(),
+        allowEmptyBaseline: Boolean = false
     ): SubstitutionDiffResult {
-        if (previousEntries.isEmpty()) {
+        if (previousEntries.isEmpty() && !allowEmptyBaseline) {
             // Wenn keine vorherigen Einträge vorlagen (z.B. erster Start), keine Benachrichtigung auslösen
             return SubstitutionDiffResult(hasChanges = false)
         }
