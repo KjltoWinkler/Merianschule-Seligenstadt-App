@@ -1,6 +1,9 @@
 FROM nginx:alpine
 
-# Copy custom Nginx configuration with wasm mime-type & SPA fallback
+# Ensure application/wasm mime type exists
+RUN grep -q "application/wasm" /etc/nginx/mime.types || sed -i '/types {/a \    application/wasm wasm;' /etc/nginx/mime.types
+
+# Copy custom Nginx configuration with SPA fallback
 COPY webApp/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy precompiled Wasm distribution files from the GitHub Actions builder
