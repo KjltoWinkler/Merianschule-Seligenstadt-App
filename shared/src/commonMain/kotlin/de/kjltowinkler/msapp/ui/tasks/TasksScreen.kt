@@ -35,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
+import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -150,6 +152,9 @@ fun TasksScreen(
     val onRefresh: () -> Unit = {
         isRefreshing = true
         coroutineScope.launch {
+            if (!PlatformNetworkMonitor.isOnline.value) {
+                AppSnackbarManager.showOfflineActionMessage("Aufgaben-Synchronisation")
+            }
             try {
                 val minTimeJob = async { delay(400) }
                 TasksRepository.reloadAndSync()

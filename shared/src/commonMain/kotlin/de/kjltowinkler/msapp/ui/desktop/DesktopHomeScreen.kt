@@ -20,7 +20,10 @@ import de.kjltowinkler.msapp.theme.DesktopBackground
 import de.kjltowinkler.msapp.theme.DesktopTheme
 import de.kjltowinkler.msapp.ui.substitution.SubstitutionPlanScreen
 import de.kjltowinkler.msapp.ui.tasks.TasksScreen
-import de.kjltowinkler.msapp.ui.components.OfflineBanner
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
 import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -52,6 +55,23 @@ fun DesktopHomeScreen(
 
     val searchFocusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        AppSnackbarManager.bindToNetworkMonitor(this)
+        AppSnackbarManager.messages.collect { msg ->
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = msg.message,
+                actionLabel = msg.actionLabel,
+                withDismissAction = msg.withDismissAction,
+                duration = msg.duration
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                msg.onActionPerformed?.invoke()
+            }
+        }
+    }
 
     // Live Badge-Zähler
     val tasksCount = TasksRepository.tasks.count { !it.isCompleted }
@@ -128,6 +148,9 @@ fun DesktopHomeScreen(
                         onRefreshClicked = {
                             isRefreshing = true
                             coroutineScope.launch {
+                                if (!PlatformNetworkMonitor.isOnline.value) {
+                                    AppSnackbarManager.showOfflineActionMessage("Aktualisierung")
+                                }
                                 delay(900)
                                 isRefreshing = false
                             }
@@ -135,14 +158,6 @@ fun DesktopHomeScreen(
                         onPrimaryActionClicked = {
                             showNewTaskDialog = true
                         }
-                    )
-
-                    val isNetworkOnline by PlatformNetworkMonitor.isOnline.collectAsState()
-                    OfflineBanner(
-                        visible = !isNetworkOnline,
-                        message = "Offline-Modus • Lokale Daten aktiv",
-                        lastUpdated = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.lastUpdatedText.ifBlank { null },
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
                     )
 
                     // Hauptbereich für den aktiven Tab mit weichem Animationsübergang
@@ -231,6 +246,11 @@ fun DesktopHomeScreen(
                     }
                 )
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+            )
         }
     }
 }

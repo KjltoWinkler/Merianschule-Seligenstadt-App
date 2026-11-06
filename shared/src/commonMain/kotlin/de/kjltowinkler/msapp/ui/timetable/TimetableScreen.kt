@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import de.kjltowinkler.msapp.ui.components.handCursor
+import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
+import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -194,6 +196,9 @@ fun TimetableScreen(
                 onRefresh = {
                     isRefreshing = true
                     coroutineScope.launch {
+                        if (!PlatformNetworkMonitor.isOnline.value) {
+                            AppSnackbarManager.showOfflineActionMessage("Stundenplan-Aktualisierung")
+                        }
                         try {
                             val minTimeJob = async { delay(400) }
                             val targetDay = getInitialTimetableDay()

@@ -38,7 +38,7 @@ import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.getTodayDate
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.ui.components.AppSwitch
-import de.kjltowinkler.msapp.ui.components.OfflineBanner
+import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
 import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -340,6 +340,9 @@ fun SubstitutionPlanScreen(
     val onRefresh: () -> Unit = {
         isRefreshing = true
         coroutineScope.launch {
+            if (!PlatformNetworkMonitor.isOnline.value) {
+                AppSnackbarManager.showOfflineActionMessage("Aktualisierung des Vertretungsplans")
+            }
             try {
                 val minTimeJob = async { delay(400) }
                 val loaded = SubstitutionRepository.loadSubstitutions(forceRefresh = true)
@@ -500,16 +503,6 @@ fun SubstitutionPlanScreen(
                 .fillMaxSize()
                 .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            val isNetworkOnline by PlatformNetworkMonitor.isOnline.collectAsState()
-            val showOfflineBanner = !isNetworkOnline || SubstitutionRepository.isUsingCachedData || SubstitutionRepository.isOffline
-            OfflineBanner(
-                visible = showOfflineBanner,
-                message = if (SubstitutionRepository.isUsingCachedData) "Offline-Modus • Gespeicherte Vertretungen aktiv" else "Offline-Modus • Keine Verbindung",
-                lastUpdated = SubstitutionRepository.lastUpdatedText.ifBlank { null },
-                isRetrying = isRefreshing,
-                onRetry = onRefresh
-            )
-
             // --- 1. BUTTON GROUP IN EINER REIHE (Oben fixiert) ---
             Row(
                 modifier = Modifier

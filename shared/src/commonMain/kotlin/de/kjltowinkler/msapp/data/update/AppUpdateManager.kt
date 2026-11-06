@@ -4,6 +4,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.util.PlatformAppUpdater
+import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
+import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +21,9 @@ object AppUpdateManager {
     val downloadStatus: State<UpdateDownloadStatus> = _downloadStatus
 
     fun checkForUpdates(onComplete: ((UpdateCheckStatus) -> Unit)? = null) {
+        if (!PlatformNetworkMonitor.isOnline.value) {
+            AppSnackbarManager.showOfflineActionMessage("Update-Prüfung")
+        }
         _checkStatus.value = UpdateCheckStatus.Checking
         scope.launch {
             val result = BackendApiClient.fetchAppUpdateInfo()

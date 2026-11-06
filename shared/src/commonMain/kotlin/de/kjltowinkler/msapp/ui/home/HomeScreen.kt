@@ -28,11 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
-import de.kjltowinkler.msapp.ui.components.OfflineBanner
+import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
 import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import de.kjltowinkler.msapp.theme.AppTheme
-import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -212,15 +214,38 @@ fun MobileHomeScreen(
     // Hinweis: Die Zurück-Gesten für Unter-Tabs und Suchleiste werden
     // über PredictiveBackContainer mit vorausschauender Animation gesteuert.
 
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        AppSnackbarManager.bindToNetworkMonitor(this)
+        AppSnackbarManager.messages.collect { msg ->
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = msg.message,
+                actionLabel = msg.actionLabel,
+                withDismissAction = msg.withDismissAction,
+                duration = msg.duration
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                msg.onActionPerformed?.invoke()
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            ShortNavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ) {
+            containerColor = MaterialTheme.colorScheme.background,
+            snackbarHost = {
+                SnackbarHost(
+                    hostState = snackbarHostState
+                )
+            },
+            bottomBar = {
+                ShortNavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ) {
                 navItems.forEachIndexed { index, (label, icons) ->
                     val isSelected = selectedTab == index
                     ShortNavigationBarItem(
@@ -278,13 +303,6 @@ fun MobileHomeScreen(
                     )
                 }
 
-                val isNetworkOnline by PlatformNetworkMonitor.isOnline.collectAsState()
-                OfflineBanner(
-                    visible = !isNetworkOnline,
-                    message = "Offline-Modus • Lokale Daten aktiv",
-                    lastUpdated = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.lastUpdatedText.ifBlank { null }
-                )
-
                 // Content für den ausgewählten Tab mit intelligenter Predictive-Back-Geste zurück zur Startseite (Tab 0)
                 PredictiveBackContainer(
                     enabled = selectedTab != 0 &&
@@ -306,6 +324,9 @@ fun MobileHomeScreen(
                                 onRefresh = {
                                     isStartseiteRefreshing = true
                                     scope.launch {
+                                        if (!PlatformNetworkMonitor.isOnline.value) {
+                                            AppSnackbarManager.showOfflineActionMessage("Aktualisierung der Startseite")
+                                        }
                                         try {
                                             val minTimeJob = async { delay(400) }
                                             de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.loadSubstitutions(forceRefresh = true)
