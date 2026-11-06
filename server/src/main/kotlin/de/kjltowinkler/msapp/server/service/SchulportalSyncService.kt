@@ -158,6 +158,16 @@ object SchulportalSyncService {
                 lastStatusMessage = "Erfolgreich synchronisiert: $savedCount Einträge übernommen ($updatedTime)."
                 println(">>> $lastStatusMessage")
 
+                // Echtzeit-Broadcast an alle verbundenen Apps (WebSocket)
+                try {
+                    de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager.broadcastSubstitutionUpdate(
+                        reason = "schulportal_sync",
+                        count = savedCount
+                    )
+                } catch (e: Exception) {
+                    println("Warnung beim Senden des Substitution-Broadcasts: ${e.message}")
+                }
+
                 // Save metadata
                 DatabaseFactory.query { conn ->
                     val sql = "INSERT INTO server_metadata (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;"

@@ -269,6 +269,7 @@ fun Route.adminRoutes() {
             }
             val success = SubstitutionServerRepository.addOrUpdateEntry(entryToSave)
             if (success) {
+                TaskWebSocketManager.broadcastSubstitutionUpdate(reason = "entry_saved")
                 call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Eintrag erfolgreich gespeichert."))
             } else {
                 call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Fehler beim Speichern des Eintrags."))
@@ -287,6 +288,7 @@ fun Route.adminRoutes() {
             }
             val success = SubstitutionServerRepository.deleteById(id)
             if (success) {
+                TaskWebSocketManager.broadcastSubstitutionUpdate(reason = "entry_deleted")
                 call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Eintrag erfolgreich gelöscht."))
             } else {
                 call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Eintrag nicht gefunden."))
@@ -309,6 +311,7 @@ fun Route.adminRoutes() {
             try {
                 val entries = jsonParser.decodeFromString<List<SubstitutionEntry>>(rawText)
                 val count = SubstitutionServerRepository.replaceEntries(entries, rawText)
+                TaskWebSocketManager.broadcastSubstitutionUpdate(reason = "substitutions_uploaded", count = count)
                 call.respond(HttpStatusCode.OK, AdminStatusResponse(
                     success = true,
                     message = "Vertretungsplan erfolgreich aktualisiert ($count Einträge gespeichert).",
@@ -334,6 +337,7 @@ fun Route.adminRoutes() {
                 SubstitutionServerRepository.clearAll()
             }
 
+            TaskWebSocketManager.broadcastSubstitutionUpdate(reason = "substitutions_cleared", count = deleted)
             call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "$deleted Einträge gelöscht."))
         }
 

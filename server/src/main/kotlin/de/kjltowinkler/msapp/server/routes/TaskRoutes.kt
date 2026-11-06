@@ -27,14 +27,11 @@ fun Route.taskRoutes() {
             ?: call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()
 
         val userId = if (!token.isNullOrBlank()) JwtService.verifyToken(token) else null
-        if (userId.isNullOrBlank()) {
-            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Ungültiges oder fehlendes Token"))
-            return@webSocket
-        }
+        val effectiveUserId = userId ?: "anon_${java.util.UUID.randomUUID()}"
 
-        TaskWebSocketManager.register(userId, this)
+        TaskWebSocketManager.register(effectiveUserId, this)
         try {
-            send(Frame.Text("""{"event":"connected","userId":"$userId"}"""))
+            send(Frame.Text("""{"event":"connected","userId":"$effectiveUserId"}"""))
             for (frame in incoming) {
                 if (frame is Frame.Text) {
                     val text = frame.readText()
@@ -44,7 +41,7 @@ fun Route.taskRoutes() {
                 }
             }
         } finally {
-            TaskWebSocketManager.unregister(userId, this)
+            TaskWebSocketManager.unregister(effectiveUserId, this)
         }
     }
 

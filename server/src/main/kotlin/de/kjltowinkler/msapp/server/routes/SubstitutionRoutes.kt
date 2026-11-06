@@ -8,6 +8,11 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
+import de.kjltowinkler.msapp.server.security.JwtService
+import de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -20,6 +25,27 @@ data class SubstitutionMetaResponse(
 
 fun Route.substitutionRoutes() {
     route("/api/substitutions") {
+        webSocket("/ws") {
+            val token = call.request.queryParameters["token"]
+                ?: call.request.headers["Authorization"]?.removePrefix("Bearer ")?.trim()
+            val userId = if (!token.isNullOrBlank()) JwtService.verifyToken(token) else null
+            val effectiveUserId = userId ?: "anon_${java.util.UUID.randomUUID()}"
+
+            TaskWebSocketManager.register(effectiveUserId, this)
+            try {
+                send(Frame.Text("""{"event":"connected","userId":"$effectiveUserId"}"""))
+                for (frame in incoming) {
+                    if (frame is Frame.Text) {
+                        val text = frame.readText()
+                        if (text.contains("ping", ignoreCase = true)) {
+                            send(Frame.Text("""{"event":"pong"}"""))
+                        }
+                    }
+                }
+            } finally {
+                TaskWebSocketManager.unregister(effectiveUserId, this)
+            }
+        }
         get {
             val forceRefresh = call.request.queryParameters["forceRefresh"] == "true"
             val classFilter = call.request.queryParameters["class"]
