@@ -19,6 +19,8 @@
 
   <style>
     :root {
+      color-scheme: dark;
+
       /* Material 3 Dark Color System Tokens */
       --md-sys-color-primary: #a8c7fa;
       --md-sys-color-on-primary: #062e6f;
@@ -44,12 +46,157 @@
       --md-sys-typescale-body-large-font: 'Roboto', sans-serif;
       --md-sys-typescale-title-large-font: 'Roboto', sans-serif;
       --md-sys-typescale-headline-small-font: 'Roboto', sans-serif;
+
+      /* Button Global Tokens (Großzügigere Buttons, mehr Abstand zu Rändern & Icons) */
+      --md-filled-button-container-height: 46px;
+      --md-filled-button-label-text-size: 14.5px;
+      --md-filled-button-label-text-weight: 500;
+      --md-filled-button-icon-size: 20px;
+      --md-filled-button-leading-space: 26px;
+      --md-filled-button-trailing-space: 26px;
+      --md-filled-button-with-leading-icon-leading-space: 22px;
+      --md-filled-button-with-leading-icon-trailing-space: 26px;
+
+      --md-outlined-button-container-height: 46px;
+      --md-outlined-button-label-text-size: 14.5px;
+      --md-outlined-button-label-text-weight: 500;
+      --md-outlined-button-icon-size: 20px;
+      --md-outlined-button-leading-space: 26px;
+      --md-outlined-button-trailing-space: 26px;
+      --md-outlined-button-with-leading-icon-leading-space: 22px;
+      --md-outlined-button-with-leading-icon-trailing-space: 26px;
+
+      --md-filled-tonal-button-container-height: 46px;
+      --md-filled-tonal-button-label-text-size: 14.5px;
+      --md-filled-tonal-button-label-text-weight: 500;
+      --md-filled-tonal-button-icon-size: 20px;
+      --md-filled-tonal-button-leading-space: 26px;
+      --md-filled-tonal-button-trailing-space: 26px;
+      --md-filled-tonal-button-with-leading-icon-leading-space: 22px;
+      --md-filled-tonal-button-with-leading-icon-trailing-space: 26px;
+
+      --md-elevated-button-container-height: 46px;
+      --md-elevated-button-label-text-size: 14.5px;
+      --md-elevated-button-label-text-weight: 500;
+      --md-elevated-button-icon-size: 20px;
+      --md-elevated-button-leading-space: 26px;
+      --md-elevated-button-trailing-space: 26px;
+      --md-elevated-button-with-leading-icon-leading-space: 22px;
+      --md-elevated-button-with-leading-icon-trailing-space: 26px;
+
+      --md-text-button-container-height: 44px;
+      --md-text-button-label-text-size: 14.5px;
+      --md-text-button-label-text-weight: 500;
+      --md-text-button-icon-size: 20px;
+      --md-text-button-leading-space: 20px;
+      --md-text-button-trailing-space: 20px;
+      --md-text-button-with-leading-icon-leading-space: 18px;
+      --md-text-button-with-leading-icon-trailing-space: 20px;
+    }
+
+    /* ==================================================== */
+    /* Dark Theme Custom Scrollbars                         */
+    /* ==================================================== */
+    html {
+      color-scheme: dark;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) #14171d;
+    }
+
+    ::-webkit-scrollbar {
+      width: 9px;
+      height: 9px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #14171d;
+      border-radius: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      border: 2px solid #14171d;
+      background-clip: padding-box;
+      transition: background 0.2s ease;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.38);
+      border: 2px solid #14171d;
+      background-clip: padding-box;
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: #14171d;
+    }
+
+    /* Button Sizing & Padding Rules */
+    md-filled-button,
+    md-outlined-button,
+    md-filled-tonal-button,
+    md-elevated-button,
+    md-text-button {
+      --md-filled-button-container-height: 46px;
+      --md-filled-button-label-text-size: 14.5px;
+      --md-filled-button-icon-size: 20px;
+      --md-filled-button-leading-space: 26px;
+      --md-filled-button-trailing-space: 26px;
+      --md-filled-button-with-leading-icon-leading-space: 22px;
+      --md-filled-button-with-leading-icon-trailing-space: 26px;
+
+      --md-outlined-button-container-height: 46px;
+      --md-outlined-button-label-text-size: 14.5px;
+      --md-outlined-button-icon-size: 20px;
+      --md-outlined-button-leading-space: 26px;
+      --md-outlined-button-trailing-space: 26px;
+      --md-outlined-button-with-leading-icon-leading-space: 22px;
+      --md-outlined-button-with-leading-icon-trailing-space: 26px;
+
+      --md-filled-tonal-button-container-height: 46px;
+      --md-filled-tonal-button-label-text-size: 14.5px;
+      --md-filled-tonal-button-icon-size: 20px;
+      --md-filled-tonal-button-leading-space: 26px;
+      --md-filled-tonal-button-trailing-space: 26px;
+      --md-filled-tonal-button-with-leading-icon-leading-space: 22px;
+      --md-filled-tonal-button-with-leading-icon-trailing-space: 26px;
+
+      --md-elevated-button-container-height: 46px;
+      --md-elevated-button-label-text-size: 14.5px;
+      --md-elevated-button-icon-size: 20px;
+      --md-elevated-button-leading-space: 26px;
+      --md-elevated-button-trailing-space: 26px;
+      --md-elevated-button-with-leading-icon-leading-space: 22px;
+      --md-elevated-button-with-leading-icon-trailing-space: 26px;
+
+      --md-text-button-container-height: 44px;
+      --md-text-button-label-text-size: 14.5px;
+      --md-text-button-icon-size: 20px;
+      --md-text-button-leading-space: 20px;
+      --md-text-button-trailing-space: 20px;
+      --md-text-button-with-leading-icon-leading-space: 18px;
+      --md-text-button-with-leading-icon-trailing-space: 20px;
+
+      white-space: nowrap;
+      min-height: 44px;
+      flex-shrink: 0;
+    }
+
+    md-filled-button [slot="icon"],
+    md-outlined-button [slot="icon"],
+    md-filled-tonal-button [slot="icon"],
+    md-elevated-button [slot="icon"],
+    md-text-button [slot="icon"] {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      margin-right: 4px;
     }
 
     body {
@@ -211,6 +358,28 @@
       overflow-x: auto;
       border-radius: 12px;
       border: 1px solid var(--md-sys-color-outline-variant);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) #14171d;
+    }
+
+    .user-table-wrap::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .user-table-wrap::-webkit-scrollbar-track {
+      background: #14171d;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .user-table-wrap::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      border: 2px solid #14171d;
+      background-clip: padding-box;
+    }
+
+    .user-table-wrap::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.38);
     }
 
     table {
@@ -851,12 +1020,13 @@
         width: 100%;
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
+        align-items: center;
       }
 
       .toolbar-actions > * {
-        flex: 1 1 calc(50% - 6px);
-        min-width: 110px;
+        flex: 1 1 auto;
+        min-width: fit-content;
       }
 
       .toolbar-actions > md-outlined-select {

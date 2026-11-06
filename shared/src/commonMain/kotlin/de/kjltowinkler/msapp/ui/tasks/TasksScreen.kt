@@ -1245,21 +1245,6 @@ private fun ActiveTaskRowItem(
                     fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isOverdue) colorScheme.error else colorScheme.onSurface
                 )
-                if (task.subject.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = colorScheme.secondaryContainer,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
-                    ) {
-                        Text(
-                            text = task.subject,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
                 if (task.description.isNotBlank()) {
                     Text(
                         text = task.description,
@@ -1268,20 +1253,47 @@ private fun ActiveTaskRowItem(
                         color = colorScheme.onSurfaceVariant
                     )
                 }
-                if (task.dueDate.isNotBlank() || task.dueTime.isNotBlank()) {
-                    val dateLabel = buildString {
-                        if (task.dueDate.isNotBlank()) append(task.dueDate)
-                        if (task.dueTime.isNotBlank()) {
-                            if (isNotEmpty()) append(" • ")
-                            append("${task.dueTime} Uhr")
+
+                val hasDateOrTime = task.dueDate.isNotBlank() || task.dueTime.isNotBlank()
+                val hasSubject = task.subject.isNotBlank()
+
+                if (hasSubject || hasDateOrTime) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        if (hasSubject) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = colorScheme.secondaryContainer,
+                            ) {
+                                Text(
+                                    text = task.subject,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (hasDateOrTime) {
+                            val dateLabel = buildString {
+                                if (task.dueDate.isNotBlank()) append(task.dueDate)
+                                if (task.dueTime.isNotBlank()) {
+                                    if (isNotEmpty()) append(" • ")
+                                    append("${task.dueTime} Uhr")
+                                }
+                            }
+                            Text(
+                                text = dateLabel,
+                                fontSize = 12.sp,
+                                fontWeight = if (isOverdue) FontWeight.SemiBold else FontWeight.Medium,
+                                color = if (isOverdue) colorScheme.error else colorScheme.primary
+                            )
                         }
                     }
-                    Text(
-                        text = dateLabel,
-                        fontSize = 12.sp,
-                        fontWeight = if (isOverdue) FontWeight.SemiBold else FontWeight.Medium,
-                        color = if (isOverdue) colorScheme.error else colorScheme.primary
-                    )
                 }
             }
         }
@@ -1359,12 +1371,32 @@ private fun CompletedTaskRowItem(
                 textDecoration = TextDecoration.LineThrough,
                 color = colorScheme.onSurface.copy(alpha = 0.85f)
             )
-            Text(
-                text = "Erledigt: $displayDate",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal,
-                color = colorScheme.onSurfaceVariant
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 2.dp)
+            ) {
+                if (task.subject.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                    ) {
+                        Text(
+                            text = task.subject,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = "Erledigt: $displayDate",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
