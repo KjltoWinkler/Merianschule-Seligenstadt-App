@@ -1,18 +1,38 @@
 package de.kjltowinkler.msapp.data.courses
 
 import androidx.compose.runtime.mutableStateListOf
+import de.kjltowinkler.msapp.data.storage.PlatformStorage
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 object CourseRepository {
+
+    private const val KEY_CACHED_COURSES = "cached_user_courses"
+    private val json = Json { ignoreUnknownKeys = true }
 
     // Liste der konfigurierten Kurse des Schülers
     val courses = mutableStateListOf<UserCourse>()
 
     init {
+        loadPersistedCourses()
+    }
+
+    private fun loadPersistedCourses() {
+        val cached = PlatformStorage.getString(KEY_CACHED_COURSES)
+        if (!cached.isNullOrBlank()) {
+            try {
+                val list = json.decodeFromString<List<UserCourse>>(cached)
+                courses.clear()
+                courses.addAll(list)
+                return
+            } catch (_: Throwable) {}
+        }
         // Standard-Initialisierung mit typischen Beispiel-Kursen der Merianschule
+        courses.clear()
         courses.addAll(
             listOf(
                 UserCourse(
@@ -37,9 +57,17 @@ object CourseRepository {
         )
     }
 
+    private fun persistCourses() {
+        try {
+            val jsonStr = json.encodeToString(courses.toList())
+            PlatformStorage.setString(KEY_CACHED_COURSES, jsonStr)
+        } catch (_: Throwable) {}
+    }
+
     fun addCourse(course: UserCourse) {
         courses.removeAll { it.id == course.id || (it.subject.equals(course.subject, ignoreCase = true) && !course.isCustom) }
         courses.add(course)
+        persistCourses()
         syncWithBackendIfPossible()
     }
 
@@ -47,6 +75,7 @@ object CourseRepository {
         val index = courses.indexOfFirst { it.id == course.id }
         if (index != -1) {
             courses[index] = course
+            persistCourses()
             syncWithBackendIfPossible()
         } else {
             addCourse(course)
@@ -55,12 +84,14 @@ object CourseRepository {
 
     fun removeCourse(id: String) {
         courses.removeAll { it.id == id }
+        persistCourses()
         syncWithBackendIfPossible()
     }
 
     fun setCourses(newCourses: List<UserCourse>) {
         courses.clear()
         courses.addAll(newCourses)
+        persistCourses()
     }
 
     /**

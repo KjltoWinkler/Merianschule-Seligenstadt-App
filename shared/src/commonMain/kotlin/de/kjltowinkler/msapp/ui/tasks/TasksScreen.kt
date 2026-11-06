@@ -1260,22 +1260,24 @@ private fun ActiveTaskRowItem(
                 if (hasSubject || hasDateOrTime) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.padding(top = 2.dp)
                     ) {
                         if (hasSubject) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = colorScheme.secondaryContainer,
-                            ) {
-                                Text(
-                                    text = task.subject,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                            Text(
+                                text = task.subject,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colorScheme.primary
+                            )
+                        }
+
+                        if (hasSubject && hasDateOrTime) {
+                            Text(
+                                text = "•",
+                                fontSize = 12.sp,
+                                color = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
                         }
 
                         if (hasDateOrTime) {
@@ -1373,22 +1375,21 @@ private fun CompletedTaskRowItem(
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.padding(top = 2.dp)
             ) {
                 if (task.subject.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = colorScheme.secondaryContainer.copy(alpha = 0.5f),
-                    ) {
-                        Text(
-                            text = task.subject,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+                    Text(
+                        text = task.subject,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
+                    Text(
+                        text = "•",
+                        fontSize = 12.sp,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
                 }
                 Text(
                     text = "Erledigt: $displayDate",

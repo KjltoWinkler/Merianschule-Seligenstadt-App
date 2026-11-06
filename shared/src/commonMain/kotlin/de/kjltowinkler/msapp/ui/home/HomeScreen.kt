@@ -29,6 +29,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
+import de.kjltowinkler.msapp.ui.components.OfflineBanner
+import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.theme.FigmaMenuBackgroundDark
 import kotlinx.coroutines.async
@@ -275,6 +277,13 @@ fun MobileHomeScreen(
                         )
                     )
                 }
+
+                val isNetworkOnline by PlatformNetworkMonitor.isOnline.collectAsState()
+                OfflineBanner(
+                    visible = !isNetworkOnline,
+                    message = "Offline-Modus • Lokale Daten aktiv",
+                    lastUpdated = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.lastUpdatedText.ifBlank { null }
+                )
 
                 // Content für den ausgewählten Tab mit intelligenter Predictive-Back-Geste zurück zur Startseite (Tab 0)
                 PredictiveBackContainer(

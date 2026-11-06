@@ -20,6 +20,8 @@ import de.kjltowinkler.msapp.theme.DesktopBackground
 import de.kjltowinkler.msapp.theme.DesktopTheme
 import de.kjltowinkler.msapp.ui.substitution.SubstitutionPlanScreen
 import de.kjltowinkler.msapp.ui.tasks.TasksScreen
+import de.kjltowinkler.msapp.ui.components.OfflineBanner
+import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -133,6 +135,14 @@ fun DesktopHomeScreen(
                         onPrimaryActionClicked = {
                             showNewTaskDialog = true
                         }
+                    )
+
+                    val isNetworkOnline by PlatformNetworkMonitor.isOnline.collectAsState()
+                    OfflineBanner(
+                        visible = !isNetworkOnline,
+                        message = "Offline-Modus • Lokale Daten aktiv",
+                        lastUpdated = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.lastUpdatedText.ifBlank { null },
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
                     )
 
                     // Hauptbereich für den aktiven Tab mit weichem Animationsübergang

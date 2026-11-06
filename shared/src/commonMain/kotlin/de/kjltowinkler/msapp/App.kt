@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
+import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -319,6 +321,32 @@ fun App() {
                 while (true) {
                     de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
                     kotlinx.coroutines.delay(60_000L)
+                }
+            }
+
+            // Automatische Synchronisation bei Wiederherstellung der Netzwerkverbindung
+            val isNetworkOnline by PlatformNetworkMonitor.isOnline.collectAsState()
+            var wasNetworkOffline by remember { mutableStateOf(false) }
+
+            LaunchedEffect(isNetworkOnline) {
+                if (!isNetworkOnline) {
+                    wasNetworkOffline = true
+                } else if (wasNetworkOffline) {
+                    wasNetworkOffline = false
+                    // Re-Sync nach Offline-Phase
+                    if (BackendApiClient.isLoggedIn) {
+                        de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
+                        BackendApiClient.fetchUserCourses().onSuccess { courses ->
+                            de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
+                        }
+                    }
+                    de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.checkForUpdates(
+                        forceRefresh = true,
+                        notifyIfChanged = false
+                    )
+                    de.kjltowinkler.msapp.data.timetable.TimetableRepository.loadFromServer(
+                        de.kjltowinkler.msapp.data.timetable.TimetableRepository.getEffectiveUserClass()
+                    )
                 }
             }
 

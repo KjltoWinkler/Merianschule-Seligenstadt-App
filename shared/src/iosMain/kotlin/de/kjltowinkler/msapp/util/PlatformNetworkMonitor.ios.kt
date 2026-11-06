@@ -1,0 +1,10 @@
+package de.kjltowinkler.msapp.util
+
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+actual object PlatformNetworkMonitor {
+    private val _isOnline = MutableStateFlow(true)
+    actual val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+}

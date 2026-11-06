@@ -3,6 +3,9 @@ package de.kjltowinkler.msapp.data.substitution
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import de.kjltowinkler.msapp.data.storage.PlatformStorage
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import merianschuleseligenstadtapp.shared.generated.resources.Res
 
 /**
@@ -213,13 +216,66 @@ object SubstitutionRepository {
         )
     )
 
+    private const val KEY_CACHED_SUBSTITUTIONS = "cached_live_substitutions"
+    private val json = Json { ignoreUnknownKeys = true }
+
     private var cachedLiveEntries: List<SubstitutionEntry>? = null
+
+    /**
+     * Zeigt an, ob aktuell gecachte Offline-Daten verwendet werden.
+     */
+    var isUsingCachedData: Boolean by mutableStateOf(false)
+        internal set
+
+    /**
+     * Zeigt an, ob das Repository sich im Offline-Modus befindet.
+     */
+    var isOffline: Boolean by mutableStateOf(false)
+        internal set
+
+    private var _isLiveDataSource by mutableStateOf(false)
+    var isLiveDataSource: Boolean
+        get() = _isLiveDataSource
+        internal set(value) {
+            _isLiveDataSource = value
+        }
+
+    /**
+     * Lädt die zuletzt gespeicherten Vertretungen aus dem persistenten Offline-Speicher.
+     */
+    fun getCachedSubstitutionsFromStorage(): List<SubstitutionEntry>? {
+        return try {
+            val jsonStr = PlatformStorage.getString(KEY_CACHED_SUBSTITUTIONS)
+            if (!jsonStr.isNullOrBlank()) {
+                json.decodeFromString<List<SubstitutionEntry>>(jsonStr)
+            } else {
+                null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun persistSubstitutions(entries: List<SubstitutionEntry>) {
+        try {
+            val jsonStr = json.encodeToString(entries)
+            PlatformStorage.setString(KEY_CACHED_SUBSTITUTIONS, jsonStr)
+        } catch (_: Throwable) {}
+    }
 
     /**
      * Liefert sofort verfügbare Einträge aus dem Speicher (nur noch echter Cache, keine veralteten Mock-Daten),
      * ohne eine Netzwerk- oder I/O-Verzögerung.
      */
     fun getInitialOrCachedEntries(): List<SubstitutionEntry> {
+        if (cachedLiveEntries == null) {
+            val fromStorage = getCachedSubstitutionsFromStorage()
+            if (!fromStorage.isNullOrEmpty()) {
+                cachedLiveEntries = fromStorage
+                isLiveDataSource = true
+                isUsingCachedData = true
+            }
+        }
         val list = cachedLiveEntries ?: emptyList()
         val today = de.kjltowinkler.msapp.data.task.getTodayDate()
         return list.filter { today.isDateInCurrentWeek(it.date) }
@@ -267,9 +323,6 @@ object SubstitutionRepository {
             .removePrefix("Stand:")
             .trim()
     }
-
-    var isLiveDataSource: Boolean = false
-        private set
 
     /**
      * Spaltet Einträge mit mehreren Stunden (z. B. "3 - 4. Std" oder "3-4") in einzelne Stunden-Einträge auf
@@ -334,6 +387,9 @@ object SubstitutionRepository {
                     val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
                     cachedLiveEntries = currentWeek
                     isLiveDataSource = true
+                    isUsingCachedData = false
+                    isOffline = false
+                    persistSubstitutions(currentWeek)
                     de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
                         updateLastUpdatedText(it)
                     }
@@ -358,13 +414,32 @@ object SubstitutionRepository {
                     val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
                     cachedLiveEntries = currentWeek
                     isLiveDataSource = true
+                    isUsingCachedData = false
+                    isOffline = false
+                    persistSubstitutions(currentWeek)
                     return currentWeek
                 }
             }
         }
 
-        // 3. Fallback auf lokale substitutions.json Assets (keine Live-Daten)
+        // 3. Fallback auf persistenten Offline-Cache der letzten Live-Aktualisierung
+        val fromStorage = getCachedSubstitutionsFromStorage()
+        if (!fromStorage.isNullOrEmpty()) {
+            val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+            val currentWeek = fromStorage.filter { today.isDateInCurrentWeek(it.date) }
+            if (currentWeek.isNotEmpty()) {
+                cachedLiveEntries = currentWeek
+                isLiveDataSource = true
+                isUsingCachedData = true
+                isOffline = true
+                return currentWeek
+            }
+        }
+
+        // 4. Fallback auf lokale substitutions.json Assets (falls noch nie ein Sync stattgefunden hat)
         isLiveDataSource = false
+        isUsingCachedData = false
+        isOffline = true
         val fallback = try {
             val bytes = Res.readBytes("files/substitutions.json")
             val jsonString = bytes.decodeToString()
