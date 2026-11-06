@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
 import de.kjltowinkler.msapp.ui.components.handCursor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -59,7 +60,22 @@ fun TimetableScreen(
         with(density) { (92.dp * initialPageIndex).roundToPx() }
     }
     val tabScrollState = rememberScrollState(initial = estimatedScrollPx)
-    var isFirstLaunch by remember { mutableStateOf(true) }
+    var rowViewportWidth by remember { mutableIntStateOf(0) }
+    val buttonWidths = remember { mutableStateMapOf<Int, Int>() }
+    var hasInitialCentered by remember { mutableStateOf(false) }
+
+    fun calculateTargetScroll(targetIndex: Int): Int {
+        if (rowViewportWidth <= 0 || buttonWidths.isEmpty()) return 0
+        val spacePx = with(density) { ButtonGroupDefaults.ConnectedSpaceBetween.roundToPx() }
+        var offset = 0
+        for (i in 0 until targetIndex) {
+            offset += (buttonWidths[i] ?: 0) + spacePx
+        }
+        val currentWidth = buttonWidths[targetIndex] ?: 0
+        val buttonCenter = offset + currentWidth / 2
+        val targetScroll = buttonCenter - (rowViewportWidth / 2)
+        return targetScroll.coerceIn(0, tabScrollState.maxValue)
+    }
 
     val listStates = List(days.size) { index ->
         key(index) {
@@ -84,27 +100,15 @@ fun TimetableScreen(
     var selectedLessonForDetail by remember { mutableStateOf<TimetableLesson?>(null) }
     var showNewEntrySheet by remember { mutableStateOf(false) }
 
-    // Automatisch zum ausgewählten Button scrollen, wenn die Seite gewechselt wird
-    LaunchedEffect(pagerState.currentPage) {
-        if (isFirstLaunch) {
-            isFirstLaunch = false
-            // Beim allerersten Rendern sofort ohne Animation an die exakte Position setzen, falls das Layout schon da ist
-            if (tabScrollState.maxValue > 0) {
-                val fraction = pagerState.currentPage.toFloat() / (days.size - 1).coerceAtLeast(1)
-                val targetScroll = (fraction * tabScrollState.maxValue).toInt()
+    // Automatisch zum ausgewählten Button scrollen und diesen mittig zentrieren
+    LaunchedEffect(pagerState.currentPage, buttonWidths.size, rowViewportWidth, tabScrollState.maxValue) {
+        if (buttonWidths.size >= days.size && rowViewportWidth > 0 && tabScrollState.maxValue > 0) {
+            val targetScroll = calculateTargetScroll(pagerState.currentPage)
+            if (!hasInitialCentered) {
+                hasInitialCentered = true
                 tabScrollState.scrollTo(targetScroll)
-            }
-        } else {
-            // Bei manuellem Wechsel durch Nutzer sanft animieren
-            if (tabScrollState.maxValue > 0) {
-                val fraction = pagerState.currentPage.toFloat() / (days.size - 1).coerceAtLeast(1)
-                val targetScroll = (fraction * tabScrollState.maxValue).toInt()
-                tabScrollState.animateScrollTo(targetScroll)
             } else {
-                val buttonWidthEstimate = with(density) { 92.dp.roundToPx() }
-                tabScrollState.animateScrollTo(
-                    (pagerState.currentPage * buttonWidthEstimate).coerceAtLeast(0)
-                )
+                tabScrollState.animateScrollTo(targetScroll)
             }
         }
     }
@@ -152,6 +156,7 @@ fun TimetableScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onSizeChanged { rowViewportWidth = it.width }
                     .horizontalScroll(tabScrollState)
                     .padding(start = 10.dp, end = 10.dp, top = 12.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
@@ -171,6 +176,7 @@ fun TimetableScreen(
                             else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                         },
                         modifier = Modifier
+                            .onSizeChanged { buttonWidths[index] = it.width }
                             .handCursor()
                             .semantics { role = Role.RadioButton },
                     ) {
@@ -194,6 +200,9 @@ fun TimetableScreen(
                             val targetIndex = days.indexOf(targetDay).coerceAtLeast(0)
                             if (pagerState.currentPage != targetIndex) {
                                 pagerState.animateScrollToPage(targetIndex)
+                            } else {
+                                val targetScroll = calculateTargetScroll(targetIndex)
+                                tabScrollState.animateScrollTo(targetScroll)
                             }
                             TimetableRepository.loadFromServer()
                             minTimeJob.await()
