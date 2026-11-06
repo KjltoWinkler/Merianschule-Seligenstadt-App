@@ -344,11 +344,11 @@ fun SubstitutionPlanScreen(
                 val minTimeJob = async { delay(400) }
                 val loaded = SubstitutionRepository.loadSubstitutions(forceRefresh = true)
                 de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.checkForUpdates(
-                    forceRefresh = true,
+                    forceRefresh = false,
                     notifyIfChanged = false
                 )
                 SubstitutionStateManager.initMarked(loaded)
-                allEntries = loaded.filter { today.isDateInCurrentWeek(it.date) }.map { entry ->
+                allEntries = loaded.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }.map { entry ->
                     entry.copy(
                         isNew = SubstitutionStateManager.isNew(entry.id),
                         isMarked = SubstitutionStateManager.isMarked(entry.id)
@@ -369,7 +369,7 @@ fun SubstitutionPlanScreen(
         val loaded = SubstitutionRepository.loadSubstitutions()
         de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.initializeBaseline(loaded)
         SubstitutionStateManager.initMarked(loaded)
-        allEntries = loaded.filter { today.isDateInCurrentWeek(it.date) }.map { entry ->
+        allEntries = loaded.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }.map { entry ->
             entry.copy(
                 isNew = SubstitutionStateManager.isNew(entry.id),
                 isMarked = SubstitutionStateManager.isMarked(entry.id)
@@ -380,7 +380,7 @@ fun SubstitutionPlanScreen(
         de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.changeEvents.collect { diff ->
             val updated = SubstitutionRepository.getInitialOrCachedEntries()
             SubstitutionStateManager.initMarked(updated)
-            allEntries = updated.filter { today.isDateInCurrentWeek(it.date) }.map { entry ->
+            allEntries = updated.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }.map { entry ->
                 entry.copy(
                     isNew = SubstitutionStateManager.isNew(entry.id),
                     isMarked = SubstitutionStateManager.isMarked(entry.id)
@@ -578,7 +578,7 @@ fun SubstitutionPlanScreen(
                     val pageFilter = options[page]
                     val userClass = remember { de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className ?: "09AR" }
                     val entriesForTab = remember(allEntries, pageFilter, de.kjltowinkler.msapp.data.courses.CourseRepository.courses.size) {
-                        val currentWeekOnly = allEntries.filter { today.isDateInCurrentWeek(it.date) }
+                        val currentWeekOnly = allEntries.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
                         val courseFiltered = currentWeekOnly.filter {
                             de.kjltowinkler.msapp.data.courses.CourseRepository.isEntryRelevant(it, userClass)
                         }
@@ -712,7 +712,7 @@ fun SubstitutionPlanScreen(
                             }
 
                             val focusEntries = remember(entriesForTab, targetDate, isUpcoming) {
-                                entriesForTab.filter { (it.date == targetDate || (it.date.isBlank() && !isUpcoming)) && today.isDateInCurrentWeek(it.date) }
+                                entriesForTab.filter { (it.date == targetDate || (it.date.isBlank() && !isUpcoming)) && (it.date.isBlank() || today.isDateInCurrentWeek(it.date)) }
                             }
 
                             // Einträge für weitere kommende Schultage (z. B. nach morgen)

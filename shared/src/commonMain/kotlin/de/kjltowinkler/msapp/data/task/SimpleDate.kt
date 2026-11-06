@@ -95,30 +95,22 @@ data class SimpleDate(
     }
 
     /**
-     * Prüft, ob das gegebene ISO-Datum (YYYY-MM-DD) zur aktuellen Schulwoche gehört.
-     * An Schultagen (Mo-Fr) werden nur Einträge der aktuellen Kalenderwoche akzeptiert.
-     * Am Wochenende (Sa/So) werden sowohl die gerade endende als auch die kommende Woche akzeptiert,
-     * aber niemals ältere Wochen (z. B. letzte Woche).
+     * Prüft, ob das gegebene ISO-Datum (YYYY-MM-DD) zur aktuellen Schulwoche oder zu kommenden Schultagen gehört.
+     * Ältere Wochen (z. B. vergangene Woche oder weiter zurückliegende Monate) werden herausgefiltert.
+     * An Schultagen (Mo-Fr) sind alle Daten ab dem Montag der aktuellen Woche gültig.
+     * Am Wochenende (Sa/So) sind alle Daten ab dem Montag der gerade beendeten Woche gültig.
      */
     fun isDateInCurrentWeek(dateIso: String): Boolean {
         val trimmed = dateIso.trim()
         if (trimmed.length < 10) return false
-        val (monday, sunday) = getWeekRange()
-        val mondayIso = monday.toIsoString()
-        val sundayIso = sunday.toIsoString()
-
-        if (trimmed in mondayIso..sundayIso) return true
-
-        // Am Wochenende (Sa/So) darf zusätzlich auch noch der Freitag der gerade beendeten Woche eingesehen werden
-        if (dayOfWeek in listOf(0, 6)) {
+        val (monday, _) = getWeekRange()
+        val earliestAllowedMonday = if (dayOfWeek in listOf(0, 6)) {
             val daysSinceMonday = if (dayOfWeek == 0) 6 else 5
-            val lastMonday = minusDays(daysSinceMonday)
-            val lastSunday = lastMonday.plusDays(6)
-            if (trimmed in lastMonday.toIsoString()..lastSunday.toIsoString()) {
-                return true
-            }
+            minusDays(daysSinceMonday)
+        } else {
+            monday
         }
-        return false
+        return trimmed >= earliestAllowedMonday.toIsoString()
     }
 }
 

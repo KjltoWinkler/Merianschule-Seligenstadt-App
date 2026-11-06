@@ -278,7 +278,7 @@ object SubstitutionRepository {
         }
         val list = cachedLiveEntries ?: emptyList()
         val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-        return list.filter { today.isDateInCurrentWeek(it.date) }
+        return list.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
     }
 
     /**
@@ -376,14 +376,41 @@ object SubstitutionRepository {
             return cachedLiveEntries!!
         }
 
-        // 1. Versuche Abruf vom selbst gehosteten Backend-Server
+        // 1. Wenn forceRefresh verlangt wird und Zugangsdaten zum Schulportal lokal vorliegen:
+        // Frage direkt beim Schulportal an für den schnellstmöglichen Live-Abgleich
+        if (forceRefresh && de.kjltowinkler.msapp.data.schulportal.SchulportalClient.hasCredentials) {
+            try {
+                val liveResult = de.kjltowinkler.msapp.data.schulportal.SchulportalClient.fetchSubstitutionPlan()
+                if (liveResult.isSuccess) {
+                    val liveEntries = liveResult.getOrNull()
+                    if (!liveEntries.isNullOrEmpty()) {
+                        de.kjltowinkler.msapp.data.schulportal.SchulportalClient.lastUpdated?.let {
+                            updateLastUpdatedText(it)
+                        }
+                        val normalized = expandAndNormalizeEntries(liveEntries)
+                        val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+                        val currentWeek = normalized.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
+                        cachedLiveEntries = currentWeek
+                        isLiveDataSource = true
+                        isUsingCachedData = false
+                        isOffline = false
+                        persistSubstitutions(currentWeek)
+                        return currentWeek
+                    }
+                }
+            } catch (_: Exception) {
+                // Bei Fehler mit Backend weitermachen
+            }
+        }
+
+        // 2. Versuche Abruf vom selbst gehosteten Backend-Server (gleicht sich ebenfalls mit Schulportal ab)
         try {
             val backendResult = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchSubstitutions(forceRefresh = forceRefresh)
             if (backendResult.isSuccess) {
                 val serverEntries = backendResult.getOrNull() ?: emptyList()
                 val normalized = expandAndNormalizeEntries(serverEntries)
                 val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-                val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
+                val currentWeek = normalized.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
                 cachedLiveEntries = currentWeek
                 isLiveDataSource = true
                 isUsingCachedData = false
@@ -398,7 +425,7 @@ object SubstitutionRepository {
             // Backend offline oder nicht erreichbar -> Fallback
         }
 
-        // 2. Versucht Live-Abruf über Schulportal Hessen, falls Zugangsdaten vorliegen
+        // 3. Versucht Live-Abruf über Schulportal Hessen, falls Zugangsdaten vorliegen und oben noch nicht erfolgreich
         if (de.kjltowinkler.msapp.data.schulportal.SchulportalClient.hasCredentials) {
             val liveResult = de.kjltowinkler.msapp.data.schulportal.SchulportalClient.fetchSubstitutionPlan()
             if (liveResult.isSuccess) {
@@ -409,7 +436,7 @@ object SubstitutionRepository {
                 if (!liveEntries.isNullOrEmpty()) {
                     val normalized = expandAndNormalizeEntries(liveEntries)
                     val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-                    val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
+                    val currentWeek = normalized.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
                     cachedLiveEntries = currentWeek
                     isLiveDataSource = true
                     isUsingCachedData = false
@@ -420,11 +447,11 @@ object SubstitutionRepository {
             }
         }
 
-        // 3. Fallback auf persistenten Offline-Cache der letzten Live-Aktualisierung
+        // 4. Fallback auf persistenten Offline-Cache der letzten Live-Aktualisierung
         val fromStorage = getCachedSubstitutionsFromStorage()
         if (!fromStorage.isNullOrEmpty()) {
             val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-            val currentWeek = fromStorage.filter { today.isDateInCurrentWeek(it.date) }
+            val currentWeek = fromStorage.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
             if (currentWeek.isNotEmpty()) {
                 cachedLiveEntries = currentWeek
                 isLiveDataSource = true
@@ -434,7 +461,7 @@ object SubstitutionRepository {
             }
         }
 
-        // 4. Fallback auf lokale substitutions.json Assets (falls noch nie ein Sync stattgefunden hat)
+        // 5. Fallback auf lokale substitutions.json Assets (falls noch nie ein Sync stattgefunden hat)
         isLiveDataSource = false
         isUsingCachedData = false
         isOffline = true
@@ -448,7 +475,7 @@ object SubstitutionRepository {
         }
         val normalizedFallback = expandAndNormalizeEntries(fallback)
         val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-        val currentWeek = normalizedFallback.filter { today.isDateInCurrentWeek(it.date) }
+        val currentWeek = normalizedFallback.filter { it.date.isBlank() || today.isDateInCurrentWeek(it.date) }
         return currentWeek
     }
 

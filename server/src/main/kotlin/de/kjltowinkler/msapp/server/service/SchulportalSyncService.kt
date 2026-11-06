@@ -63,14 +63,14 @@ object SchulportalSyncService {
                         val key = rs.getString("key")
                         val value = rs.getString("value")
                         when (key) {
-                            "schulportal_school_id" -> if (value.isNotBlank()) schoolId = value
-                            "schulportal_username" -> if (value.isNotBlank()) username = value
-                            "schulportal_password" -> if (value.isNotBlank()) password = value
-                            "schulportal_auto_sync" -> autoSyncEnabled = value.toBoolean()
-                            "schulportal_interval" -> syncIntervalMinutes = value.toIntOrNull() ?: 15
-                            "schulportal_last_sync_time" -> lastSyncTimestamp = value.toLongOrNull() ?: 0L
-                            "schulportal_last_sync_text" -> lastSyncText = value
-                            "schulportal_last_status" -> lastStatusMessage = value
+                            "schulportal_school_id" -> if (value.isNotBlank()) schoolId = value.trim('\'', '"', ' ')
+                            "schulportal_username" -> if (value.isNotBlank()) username = value.trim('\'', '"', ' ')
+                            "schulportal_password" -> if (value.isNotBlank()) password = value.trim('\'', '"', ' ')
+                            "schulportal_auto_sync" -> autoSyncEnabled = value.trim('\'', '"', ' ').toBoolean()
+                            "schulportal_interval" -> syncIntervalMinutes = value.trim('\'', '"', ' ').toIntOrNull() ?: 15
+                            "schulportal_last_sync_time" -> lastSyncTimestamp = value.trim('\'', '"', ' ').toLongOrNull() ?: 0L
+                            "schulportal_last_sync_text" -> lastSyncText = value.trim('\'', '"', ' ')
+                            "schulportal_last_status" -> lastStatusMessage = value.trim('\'', '"', ' ')
                         }
                     }
                 }

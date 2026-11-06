@@ -445,15 +445,22 @@ class SharedCommonTest {
         assertFalse(mondayNov2.isDateInCurrentWeek("2026-10-23"))
         assertFalse(mondayNov2.isDateInCurrentWeek("2026-10-22"))
 
-        // Nächste Woche muss ebenfalls false sein
-        assertFalse(mondayNov2.isDateInCurrentWeek("2026-11-09"))
+        // Kommende Tage / Nächste Woche müssen ebenfalls true sein (Schulportal plant im Voraus)
+        assertTrue(mondayNov2.isDateInCurrentWeek("2026-11-09"))
 
-        // Donnerstag, 05. November 2026
-        val thursdayNov5 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 5)
-        assertEquals(4, thursdayNov5.dayOfWeek)
-        assertTrue(thursdayNov5.isDateInCurrentWeek("2026-11-02")) // Montag derselben Woche
-        assertTrue(thursdayNov5.isDateInCurrentWeek("2026-11-05")) // Heute
-        assertFalse(thursdayNov5.isDateInCurrentWeek("2026-10-30")) // Freitag letzter Woche
+        // Freitag, 06. November 2026: Nächster Montag (09.11.2026) muss unbedingt sichtbar sein!
+        val fridayNov6 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 6)
+        assertEquals(5, fridayNov6.dayOfWeek)
+        assertTrue(fridayNov6.isDateInCurrentWeek("2026-11-02")) // Montag dieser Woche
+        assertTrue(fridayNov6.isDateInCurrentWeek("2026-11-06")) // Heute
+        assertTrue(fridayNov6.isDateInCurrentWeek("2026-11-09")) // Kommender Montag (nächster Schultag)
+        assertFalse(fridayNov6.isDateInCurrentWeek("2026-10-30")) // Vorwoche
+
+        // Wochenende (Samstag/Sonntag): Freitag der endenden Woche sowie kommender Montag sind sichtbar
+        val saturdayNov7 = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 7)
+        assertTrue(saturdayNov7.isDateInCurrentWeek("2026-11-06"))
+        assertTrue(saturdayNov7.isDateInCurrentWeek("2026-11-09"))
+        assertFalse(saturdayNov7.isDateInCurrentWeek("2026-10-30"))
     }
 
     @Test
