@@ -380,21 +380,19 @@ object SubstitutionRepository {
         try {
             val backendResult = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchSubstitutions(forceRefresh = forceRefresh)
             if (backendResult.isSuccess) {
-                val serverEntries = backendResult.getOrNull()
-                if (!serverEntries.isNullOrEmpty()) {
-                    val normalized = expandAndNormalizeEntries(serverEntries)
-                    val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-                    val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
-                    cachedLiveEntries = currentWeek
-                    isLiveDataSource = true
-                    isUsingCachedData = false
-                    isOffline = false
-                    persistSubstitutions(currentWeek)
-                    de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
-                        updateLastUpdatedText(it)
-                    }
-                    return currentWeek
+                val serverEntries = backendResult.getOrNull() ?: emptyList()
+                val normalized = expandAndNormalizeEntries(serverEntries)
+                val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+                val currentWeek = normalized.filter { today.isDateInCurrentWeek(it.date) }
+                cachedLiveEntries = currentWeek
+                isLiveDataSource = true
+                isUsingCachedData = false
+                isOffline = false
+                persistSubstitutions(currentWeek)
+                de.kjltowinkler.msapp.data.backend.BackendApiClient.lastUpdatedFromServer?.let {
+                    updateLastUpdatedText(it)
                 }
+                return currentWeek
             }
         } catch (_: Exception) {
             // Backend offline oder nicht erreichbar -> Fallback
