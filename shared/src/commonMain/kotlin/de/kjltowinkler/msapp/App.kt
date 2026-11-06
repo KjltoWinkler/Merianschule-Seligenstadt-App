@@ -468,14 +468,7 @@ fun App() {
                                     .onFailure { err ->
                                         isCheckingUsername = false
                                         val msg = err.message ?: ""
-                                        usernameError = when {
-                                            msg.contains("ConnectException") || msg.contains("UnresolvedAddressException") || msg.contains("Failed to connect") -> {
-                                                "Verbindung zum Server fehlgeschlagen. Bitte prüfe deine Internetverbindung."
-                                            }
-                                            else -> {
-                                                "Dieser Account existiert nicht. Bitte überprüfe deine Eingabe."
-                                            }
-                                        }
+                                        usernameError = "Verbindung zum Server fehlgeschlagen. Bitte prüfe deine Internetverbindung (${msg.ifBlank { "Netzwerkfehler" }})."
                                     }
                             }
                         }

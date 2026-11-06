@@ -6,7 +6,6 @@ import de.kjltowinkler.msapp.data.sync.*
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TaskList
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -86,7 +85,7 @@ object BackendApiClient {
         PlatformStorage.remove(KEY_CURRENT_USER)
     }
 
-    private val client = HttpClient(CIO) {
+    private val client = createPlatformHttpClient {
         install(WebSockets)
     }
 
