@@ -171,9 +171,10 @@ fun createMockAccount(
 @Composable
 @Preview
 fun App() {
-    var isDarkTheme by remember { mutableStateOf(true) }
-    var isDynamicColor by remember { mutableStateOf(true) }
-    var isPredictiveBackEnabled by remember { mutableStateOf(true) }
+    val userSettings = de.kjltowinkler.msapp.data.settings.SettingsRepository.settings
+    val isDarkTheme = userSettings.isDarkTheme
+    val isDynamicColor = userSettings.isDynamicColor
+    val isPredictiveBackEnabled = userSettings.isPredictiveBackEnabled
 
     AppTheme(darkTheme = isDarkTheme, dynamicColor = isDynamicColor) {
         CompositionLocalProvider(
@@ -247,6 +248,10 @@ fun App() {
 
             // Automatische Sitzungsüberprüfung beim Start & Update-Check
             LaunchedEffect(Unit) {
+                // Realtime WebSocket & periodischen Sync direkt beim Start aktivieren
+                de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.initializeRealtimeListener()
+                de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.startPeriodicSync()
+
                 // Prüft auf neue App-Updates und benachrichtigt bei neuer Version
                 de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
 
@@ -272,6 +277,8 @@ fun App() {
             LaunchedEffect(Unit) {
 
                 if (BackendApiClient.isLoggedIn) {
+                    de.kjltowinkler.msapp.data.settings.SettingsRepository.syncWithServer()
+                    de.kjltowinkler.msapp.data.settings.SettingsRepository.startRealtimeSync()
                     de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
                     de.kjltowinkler.msapp.data.task.TasksRepository.startRealtimeSync()
                     de.kjltowinkler.msapp.data.task.TaskNotificationManager.checkAndNotify()
@@ -335,6 +342,7 @@ fun App() {
                     wasNetworkOffline = false
                     // Re-Sync nach Offline-Phase
                     if (BackendApiClient.isLoggedIn) {
+                        de.kjltowinkler.msapp.data.settings.SettingsRepository.syncWithServer()
                         de.kjltowinkler.msapp.data.task.TasksRepository.syncWithServer()
                         BackendApiClient.fetchUserCourses().onSuccess { courses ->
                             de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
@@ -1011,11 +1019,11 @@ fun App() {
                     studentId = currentAccount.studentId,
                     accountName = currentAccount.username,
                     useMaterialYou = isDynamicColor,
-                    onMaterialYouChanged = { isDynamicColor = it },
+                    onMaterialYouChanged = { de.kjltowinkler.msapp.data.settings.SettingsRepository.updateDynamicColor(it) },
                     initialDarkTheme = isDarkTheme,
-                    onDarkThemeChanged = { isDarkTheme = it },
+                    onDarkThemeChanged = { de.kjltowinkler.msapp.data.settings.SettingsRepository.updateDarkTheme(it) },
                     predictiveBackEnabled = isPredictiveBackEnabled,
-                    onPredictiveBackChanged = { isPredictiveBackEnabled = it },
+                    onPredictiveBackChanged = { de.kjltowinkler.msapp.data.settings.SettingsRepository.updatePredictiveBack(it) },
                     onSchoolWayClicked = {
                         navController.navigate(AppRoutes.SETTINGS_SCHOOL_WAY)
                     },

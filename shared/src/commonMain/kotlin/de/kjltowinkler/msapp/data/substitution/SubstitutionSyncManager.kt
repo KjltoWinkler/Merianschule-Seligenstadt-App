@@ -21,6 +21,9 @@ object SubstitutionSyncManager {
     var lastKnownSnapshot: List<SubstitutionEntry>? = null
         private set
 
+    var isBaselineInitialized: Boolean = false
+        private set
+
     private val _changeEvents = MutableSharedFlow<SubstitutionDiffResult>(extraBufferCapacity = 1)
     val changeEvents: SharedFlow<SubstitutionDiffResult> = _changeEvents.asSharedFlow()
 
@@ -32,6 +35,7 @@ object SubstitutionSyncManager {
         if (lastKnownSnapshot == null && entries.isNotEmpty()) {
             lastKnownSnapshot = entries
         }
+        isBaselineInitialized = true
     }
 
     private const val KEY_LAST_SEEN_IDS = "key_last_seen_live_entry_ids"
@@ -51,13 +55,43 @@ object SubstitutionSyncManager {
     }
 
     /**
+     * Registriert den WebSocket-Listener für sofortige Vertretungsplan-Aktualisierungen vom Server.
+     */
+    fun initializeRealtimeListener() {
+        de.kjltowinkler.msapp.data.backend.BackendApiClient.setSubstitutionUpdateListener {
+            handleRemoteSubstitutionUpdate()
+        }
+        de.kjltowinkler.msapp.data.backend.BackendApiClient.startRealtimeConnection()
+    }
+
+    /**
+     * Wird direkt aufgerufen, sobald der Server über WebSocket ein substitutions_updated Event sendet.
+     */
+    suspend fun handleRemoteSubstitutionUpdate() {
+        try {
+            println("SubstitutionSyncManager: Remote-Signal 'substitutions_updated' empfangen -> sofortiger Check!")
+            checkForUpdates(
+                forceRefresh = true,
+                notifyIfChanged = true,
+                allowEmptyBaseline = true,
+                fromRemoteTrigger = true
+            )
+        } catch (e: Throwable) {
+            println("SubstitutionSyncManager: Fehler beim Verarbeiten des Remote-Updates: ${e.message}")
+        }
+    }
+
+    /**
      * Prüft auf Änderungen im Vertretungsplan (über Netzwerk / Schulportal).
      * Sendet automatisch eine System-Push-Benachrichtigung, falls eine reale Änderung vorliegt.
-     * Vergangene Tage, bereits beendete Stunden von heute sowie fremde Klassen werden ignoriert.
+     * Vergangene Tage, bereits beendete Stunden von heute sowie fremde Klassen werden für
+     * schülerspezifische Alarme gefiltert.
      */
     suspend fun checkForUpdates(
         forceRefresh: Boolean = true,
-        notifyIfChanged: Boolean = true
+        notifyIfChanged: Boolean = true,
+        allowEmptyBaseline: Boolean = false,
+        fromRemoteTrigger: Boolean = false
     ): SubstitutionDiffResult {
         // 1. Hole frische Daten über das Repository
         val newEntries = SubstitutionRepository.loadSubstitutions(forceRefresh = forceRefresh)
@@ -78,51 +112,87 @@ object SubstitutionSyncManager {
             }
         }
 
+        val hasSavedBaseline = isBaselineInitialized || previous != null || de.kjltowinkler.msapp.data.storage.PlatformStorage.getString(KEY_LAST_SNAPSHOT_JSON) != null
+        isBaselineInitialized = true
+
         if (previous == null) {
-            // Erster Abruf nach App-Start ohne gespeicherten Snapshot -> als Baseline merken, keine Benachrichtigung
-            saveSnapshot(newEntries)
-            return SubstitutionDiffResult(hasChanges = false)
+            if (!fromRemoteTrigger && !hasSavedBaseline) {
+                // Erster Abruf nach allererstem App-Start ohne gespeicherten Snapshot -> als Baseline merken, keine Benachrichtigung
+                saveSnapshot(newEntries)
+                return SubstitutionDiffResult(hasChanges = false)
+            }
+            previous = emptyList()
         }
 
-        val userClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.ifBlank { null } ?: "09AR"
+        val userClass = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className?.ifBlank { null }
+            ?: de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("user_class_name")?.ifBlank { null }
+            ?: "09AR"
 
-        // 3. Differenz ermitteln (nur für diesen Schüler relevante und noch bevorstehende Stunden)
-        val diff = SubstitutionChangeDetector.detectChanges(
+        val canAllowEmpty = allowEmptyBaseline || fromRemoteTrigger || hasSavedBaseline
+
+        // 3a. Differenz für Schüler-spezifische Benachrichtigung
+        val diffUser = SubstitutionChangeDetector.detectChanges(
             previousEntries = previous,
             newEntries = newEntries,
             userClass = userClass,
-            filterActiveAndRelevantOnly = true
+            filterActiveAndRelevantOnly = true,
+            allowEmptyBaseline = canAllowEmpty
         )
 
-        if (diff.hasChanges) {
+        // 3b. Differenz für alle Klassen (für globale UI-Aktualisierung und Benachrichtigung)
+        val diffGlobal = SubstitutionChangeDetector.detectChanges(
+            previousEntries = previous,
+            newEntries = newEntries,
+            userClass = userClass,
+            filterActiveAndRelevantOnly = false,
+            allowEmptyBaseline = canAllowEmpty
+        )
+
+        val finalDiff = if (diffUser.hasChanges) diffUser else diffGlobal
+
+        if (diffGlobal.hasChanges || diffUser.hasChanges) {
             // Snapshot aktualisieren
             saveSnapshot(newEntries)
 
-            // Event für UI (z.B. SnackBar) auslösen
-            _changeEvents.tryEmit(diff)
+            // Event für UI (z.B. SnackBar und sofortiges Neu-Rendern) auslösen
+            _changeEvents.tryEmit(finalDiff)
 
             // System-Push-Benachrichtigung absenden
             if (notifyIfChanged) {
-                PlatformNotifier.sendNotification(
-                    title = diff.title,
-                    summary = diff.summary,
-                    details = diff.detailLines
-                )
+                if (diffUser.hasChanges) {
+                    PlatformNotifier.sendNotification(
+                        title = diffUser.title,
+                        summary = diffUser.summary,
+                        details = diffUser.detailLines
+                    )
+                } else if (diffGlobal.hasChanges) {
+                    val count = diffGlobal.addedEntries.size + diffGlobal.modifiedEntries.size
+                    val title = "Vertretungsplan aktualisiert"
+                    val summary = if (count == 1) "1 neue Vertretungsplan-Änderung verfügbar" else "$count neue Vertretungsplan-Änderungen verfügbar"
+                    val details = diffGlobal.detailLines.take(5)
+                    PlatformNotifier.sendNotification(
+                        title = title,
+                        summary = summary,
+                        details = details
+                    )
+                }
             }
         } else {
             // Keine inhaltlichen Änderungen, aber Snapshot aktualisieren
             saveSnapshot(newEntries)
         }
 
-        return diff
+        return finalDiff
     }
 
     /**
-     * Startet die automatische periodische Abfrage im Hintergrund, solange die App aktiv ist.
+     * Startet die automatische periodische Abfrage im Hintergrund, solange die App aktiv ist,
+     * und initialisiert den Echtzeit-WebSocket-Listener.
      * @param intervalMinutes Intervall in Minuten (Standard: 5 Minuten)
      * @param initialDelayMs Verzögerung vor dem ersten Check (Standard: 5 Sekunden)
      */
     fun startPeriodicSync(intervalMinutes: Long = 5, initialDelayMs: Long = 5000L) {
+        initializeRealtimeListener()
         if (syncJob?.isActive == true) return
 
         syncJob = syncScope.launch {

@@ -83,6 +83,7 @@ object SchoolWayRepository {
             morningEndStop = endStop
         )
         persistConfig()
+        de.kjltowinkler.msapp.data.settings.SettingsRepository.updateSchoolWay(currentConfig)
     }
 
     fun updateAfternoonStop(endStop: String) {
@@ -90,6 +91,7 @@ object SchoolWayRepository {
             afternoonEndStop = endStop
         )
         persistConfig()
+        de.kjltowinkler.msapp.data.settings.SettingsRepository.updateSchoolWay(currentConfig)
     }
 
     fun updateWalkingMinutes(minutes: Int) {
@@ -97,6 +99,7 @@ object SchoolWayRepository {
             walkingMinutes = minutes.coerceIn(1, 15)
         )
         persistConfig()
+        de.kjltowinkler.msapp.data.settings.SettingsRepository.updateSchoolWay(currentConfig)
     }
 
     fun resetToDefaults() {
@@ -104,6 +107,7 @@ object SchoolWayRepository {
         customRecommendations = defaultRecommendations
         persistConfig()
         persistRecommendations()
+        de.kjltowinkler.msapp.data.settings.SettingsRepository.updateSchoolWay(currentConfig)
     }
 
     fun clearRecommendations() {

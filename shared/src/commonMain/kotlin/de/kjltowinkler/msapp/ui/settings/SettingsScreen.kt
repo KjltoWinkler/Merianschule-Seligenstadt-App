@@ -48,14 +48,16 @@ fun SettingsScreen(
     onNavigateTo2FaSetup: () -> Unit = {},
     onDisable2Fa: () -> Unit = {}
 ) {
-    var delayWarningsEnabled by rememberSaveable { mutableStateOf(true) }
-    var relaxedDismissalEnabled by rememberSaveable { mutableStateOf(true) }
-    var taskReminderEnabled by rememberSaveable { mutableStateOf(TaskNotificationManager.isRemindersEnabled) }
-    var darkThemeEnabled by rememberSaveable { mutableStateOf(initialDarkTheme) }
-    var materialYouEnabled by rememberSaveable { mutableStateOf(useMaterialYou) }
-    var isPredictiveBackOn by rememberSaveable { mutableStateOf(predictiveBackEnabled) }
+    val currentSettings = de.kjltowinkler.msapp.data.settings.SettingsRepository.settings
+    val delayWarningsEnabled = currentSettings.delayWarningsEnabled
+    val relaxedDismissalEnabled = currentSettings.relaxedDismissalEnabled
+    val vplanUpdatesEnabled = currentSettings.vplanUpdatesEnabled
+    val taskReminderEnabled = currentSettings.taskReminderEnabled
+    val darkThemeEnabled = currentSettings.isDarkTheme
+    val materialYouEnabled = currentSettings.isDynamicColor
+    val isPredictiveBackOn = currentSettings.isPredictiveBackEnabled
+    val selectedReminderTime = currentSettings.reminderLeadTime
 
-    var selectedReminderTime by rememberSaveable { mutableStateOf(TaskNotificationManager.reminderLeadTime) }
     var showPickTimeDialog by rememberSaveable { mutableStateOf(false) }
     var showCustomPickTimeDialog by rememberSaveable { mutableStateOf(false) }
     var isTwoFactorOn by remember(isTwoFactorEnabled) { mutableStateOf(isTwoFactorEnabled) }
@@ -185,7 +187,7 @@ fun SettingsScreen(
                         trailing = {
                             MaterialYouSwitch(
                                 checked = delayWarningsEnabled,
-                                onCheckedChange = { delayWarningsEnabled = it },
+                                onCheckedChange = { de.kjltowinkler.msapp.data.settings.SettingsRepository.updateDelayWarnings(it) },
                                 contentDescription = "Verspätungs-Warnungen"
                             )
                         }
@@ -202,7 +204,7 @@ fun SettingsScreen(
                         trailing = {
                             MaterialYouSwitch(
                                 checked = relaxedDismissalEnabled,
-                                onCheckedChange = { relaxedDismissalEnabled = it },
+                                onCheckedChange = { de.kjltowinkler.msapp.data.settings.SettingsRepository.updateRelaxedDismissal(it) },
                                 contentDescription = "Entspannter Schulschluss"
                             )
                         }
@@ -221,7 +223,6 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    var vplanUpdatesEnabled by rememberSaveable { mutableStateOf(true) }
                     SettingsItemRow(
                         title = "Vertretungsplan-Updates",
                         subtitle = "Sofort bei Entfall oder Raumänderung\nbenachrichtigen",
@@ -230,7 +231,7 @@ fun SettingsScreen(
                         trailing = {
                             MaterialYouSwitch(
                                 checked = vplanUpdatesEnabled,
-                                onCheckedChange = { vplanUpdatesEnabled = it },
+                                onCheckedChange = { de.kjltowinkler.msapp.data.settings.SettingsRepository.updateVplanUpdates(it) },
                                 contentDescription = "Vertretungsplan-Updates"
                             )
                         }
@@ -277,8 +278,7 @@ fun SettingsScreen(
                                 MaterialYouSwitch(
                                     checked = taskReminderEnabled,
                                     onCheckedChange = {
-                                        taskReminderEnabled = it
-                                        TaskNotificationManager.isRemindersEnabled = it
+                                        de.kjltowinkler.msapp.data.settings.SettingsRepository.updateTaskReminder(it)
                                         if (it) TaskNotificationManager.checkAndNotify()
                                     },
                                     contentDescription = "Aufgaben-Erinnerung"
@@ -354,8 +354,8 @@ fun SettingsScreen(
                             MaterialYouSwitch(
                                 checked = darkThemeEnabled,
                                 onCheckedChange = {
-                                    darkThemeEnabled = it
                                     onDarkThemeChanged(it)
+                                    de.kjltowinkler.msapp.data.settings.SettingsRepository.updateDarkTheme(it)
                                 },
                                 contentDescription = "Dunkles Design"
                             )
@@ -374,8 +374,8 @@ fun SettingsScreen(
                             MaterialYouSwitch(
                                 checked = materialYouEnabled,
                                 onCheckedChange = {
-                                    materialYouEnabled = it
                                     onMaterialYouChanged(it)
+                                    de.kjltowinkler.msapp.data.settings.SettingsRepository.updateDynamicColor(it)
                                 },
                                 contentDescription = "Material You"
                             )
@@ -394,8 +394,8 @@ fun SettingsScreen(
                             MaterialYouSwitch(
                                 checked = isPredictiveBackOn,
                                 onCheckedChange = {
-                                    isPredictiveBackOn = it
                                     onPredictiveBackChanged(it)
+                                    de.kjltowinkler.msapp.data.settings.SettingsRepository.updatePredictiveBack(it)
                                 },
                                 contentDescription = "Intelligente Zurück-Geste"
                             )
@@ -607,8 +607,7 @@ fun SettingsScreen(
         PickReminderTimeDialog(
             selectedOption = selectedReminderTime,
             onOptionSelected = { option ->
-                selectedReminderTime = option
-                TaskNotificationManager.reminderLeadTime = option
+                de.kjltowinkler.msapp.data.settings.SettingsRepository.updateReminderLeadTime(option)
                 TaskNotificationManager.checkAndNotify()
                 showPickTimeDialog = false
             },
@@ -627,8 +626,7 @@ fun SettingsScreen(
             initialAmount = "10",
             initialUnitIndex = 0,
             onConfirm = { result ->
-                selectedReminderTime = result
-                TaskNotificationManager.reminderLeadTime = result
+                de.kjltowinkler.msapp.data.settings.SettingsRepository.updateReminderLeadTime(result)
                 TaskNotificationManager.checkAndNotify()
                 showCustomPickTimeDialog = false
             },

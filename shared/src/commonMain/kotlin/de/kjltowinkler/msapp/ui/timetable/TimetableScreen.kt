@@ -32,6 +32,7 @@ import de.kjltowinkler.msapp.data.timetable.TeacherInfo
 import de.kjltowinkler.msapp.data.timetable.TimetableDay
 import de.kjltowinkler.msapp.data.timetable.TimetableLesson
 import de.kjltowinkler.msapp.data.timetable.TimetableRepository
+import de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay
 import de.kjltowinkler.msapp.theme.FigmaLinkGreen
 import de.kjltowinkler.msapp.theme.FigmaPrimaryDark
 import kotlinx.coroutines.async
@@ -49,7 +50,9 @@ fun TimetableScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val days = TimetableDay.entries
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { days.size })
+    val initialDay = remember { getInitialTimetableDay() }
+    val initialPageIndex = remember(initialDay) { days.indexOf(initialDay).coerceAtLeast(0) }
+    val pagerState = rememberPagerState(initialPage = initialPageIndex, pageCount = { days.size })
     val tabScrollState = rememberScrollState()
 
     val listStates = List(days.size) { index ->

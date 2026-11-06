@@ -183,6 +183,18 @@ class SharedCommonTest {
     }
 
     @Test
+    fun testChangeDetectorAllowEmptyBaselineDetectsNewEntries() {
+        val entries = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.defaultEntries
+        val diff = de.kjltowinkler.msapp.data.substitution.SubstitutionChangeDetector.detectChanges(
+            previousEntries = emptyList(),
+            newEntries = entries,
+            allowEmptyBaseline = true
+        )
+        assertTrue(diff.hasChanges)
+        assertEquals(entries.size, diff.addedEntries.size)
+    }
+
+    @Test
     fun testChangeDetectorNewCancellation() {
         val base = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.defaultEntries
         val newCancellation = de.kjltowinkler.msapp.data.substitution.SubstitutionEntry(
@@ -509,5 +521,171 @@ class SharedCommonTest {
             dueTime = "12:00"
         )
         assertFalse(futureTask.isOverdue(nowMillis = de.kjltowinkler.msapp.data.task.parseDateTimeToEpochMillis(2026, 11, 2, 10, 0)))
+    }
+
+    @Test
+    fun testInitialTimetableDaySelection() {
+        val mondayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 2)
+        val tuesdayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 3)
+        val wednesdayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 4)
+        val thursdayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 5)
+        val fridayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 6)
+        val saturdayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 7)
+        val sundayDate = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 8)
+
+        val emptyLessons: (de.kjltowinkler.msapp.data.timetable.TimetableDay) -> List<de.kjltowinkler.msapp.data.timetable.TimetableLesson> = { emptyList() }
+
+        // Montag: Während Schultag (< 13:05) -> Montag; Nach Schulschluss (>= 13:05) -> Dienstag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MONTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = mondayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(10, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.DIENSTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = mondayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(15, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+
+        // Dienstag: Während Schultag -> Dienstag; Nach Schulschluss -> Mittwoch
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.DIENSTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = tuesdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(11, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MITTWOCH,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = tuesdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(13, 10),
+                getLessonsForDay = emptyLessons
+            )
+        )
+
+        // Mittwoch: Während Schultag -> Mittwoch; Nach Schulschluss -> Donnerstag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MITTWOCH,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = wednesdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(8, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.DONNERSTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = wednesdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(14, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+
+        // Donnerstag: Während Schultag -> Donnerstag; Nach Schulschluss -> Freitag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.DONNERSTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = thursdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(9, 30),
+                getLessonsForDay = emptyLessons
+            )
+        )
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.FREITAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = thursdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(13, 5),
+                getLessonsForDay = emptyLessons
+            )
+        )
+
+        // Freitag: Während Schultag (< 12:15) -> Freitag; Nach Schulschluss (>= 12:15) -> Montag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.FREITAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = fridayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(11, 45),
+                getLessonsForDay = emptyLessons
+            )
+        )
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MONTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = fridayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(12, 15),
+                getLessonsForDay = emptyLessons
+            )
+        )
+
+        // Wochenende: Samstag & Sonntag -> Immer Montag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MONTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = saturdayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(15, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MONTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = sundayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(20, 0),
+                getLessonsForDay = emptyLessons
+            )
+        )
+
+        // Mit benutzerdefinierten Stunden (z.B. Nachmittagsunterricht bis 15:30)
+        val customLessons: (de.kjltowinkler.msapp.data.timetable.TimetableDay) -> List<de.kjltowinkler.msapp.data.timetable.TimetableLesson> = { day ->
+            if (day == de.kjltowinkler.msapp.data.timetable.TimetableDay.MONTAG) {
+                listOf(
+                    de.kjltowinkler.msapp.data.timetable.TimetableLesson(
+                        id = "l1",
+                        periodNumber = 1,
+                        subject = "Mathematik",
+                        teacherCode = "MÜL",
+                        room = "R101",
+                        timeRange = "07:55 - 08:40"
+                    ),
+                    de.kjltowinkler.msapp.data.timetable.TimetableLesson(
+                        id = "l8",
+                        periodNumber = 8,
+                        subject = "Informatik",
+                        teacherCode = "WAG",
+                        room = "INF1",
+                        timeRange = "14:45 - 15:30"
+                    )
+                )
+            } else {
+                emptyList()
+            }
+        }
+
+        // Um 14:00 Uhr läuft der Schultag noch -> Montag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.MONTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = mondayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(14, 0),
+                getLessonsForDay = customLessons
+            )
+        )
+        // Um 15:30 Uhr ist Schluss -> Dienstag
+        assertEquals(
+            de.kjltowinkler.msapp.data.timetable.TimetableDay.DIENSTAG,
+            de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay(
+                today = mondayDate,
+                now = de.kjltowinkler.msapp.data.task.SimpleTime(15, 30),
+                getLessonsForDay = customLessons
+            )
+        )
     }
 }

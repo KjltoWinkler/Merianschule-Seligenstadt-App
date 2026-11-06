@@ -78,6 +78,26 @@ object TaskWebSocketManager {
         }
     }
 
+    suspend fun notifySettingsUpdate(
+        userId: String,
+        originInstanceId: String? = null
+    ) {
+        val sessions = userSessions[userId] ?: return
+        val originJson = if (originInstanceId != null) "\"$originInstanceId\"" else "null"
+        val message = """{"event":"settings_updated","origin":$originJson,"timestamp":${System.currentTimeMillis()}}"""
+        coroutineScope {
+            for (session in sessions) {
+                launch {
+                    try {
+                        session.send(Frame.Text(message))
+                    } catch (_: Exception) {
+                        // Ignore dead sessions
+                    }
+                }
+            }
+        }
+    }
+
     fun getActiveSessionCount(userId: String): Int {
         return userSessions[userId]?.size ?: 0
     }

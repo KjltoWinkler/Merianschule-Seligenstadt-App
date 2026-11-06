@@ -95,20 +95,46 @@ object BackendApiClient {
     private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var realTimeJob: Job? = null
 
+    private var onTaskUpdateListener: (suspend () -> Unit)? = null
+    private var onSubstitutionUpdateListener: (suspend () -> Unit)? = null
+    private var onSettingsUpdateListener: (suspend () -> Unit)? = null
+
+    fun setTaskUpdateListener(listener: (suspend () -> Unit)?) {
+        onTaskUpdateListener = listener
+    }
+
+    fun setSubstitutionUpdateListener(listener: (suspend () -> Unit)?) {
+        onSubstitutionUpdateListener = listener
+    }
+
+    fun setSettingsUpdateListener(listener: (suspend () -> Unit)?) {
+        onSettingsUpdateListener = listener
+    }
+
+    fun startRealtimeSettingsUpdates(onUpdate: suspend () -> Unit) {
+        onSettingsUpdateListener = onUpdate
+        startRealtimeConnection()
+    }
+
     /**
      * Startet die permanente WebSocket-Verbindung für Aufgaben-Echtzeitaktualisierungen.
      * Sobald ein anderes Gerät eine Änderung vornimmt, wird [onUpdate] ausgeführt.
      */
     fun startRealtimeTaskUpdates(onUpdate: suspend () -> Unit) {
-        if (!isLoggedIn) return
-        realTimeJob?.cancel()
+        onTaskUpdateListener = onUpdate
+        startRealtimeConnection()
+    }
+
+    fun startRealtimeConnection() {
+        if (realTimeJob?.isActive == true) return
         realTimeJob = clientScope.launch {
-            while (isActive && isLoggedIn) {
+            while (isActive) {
                 try {
-                    val token = authToken ?: break
+                    val token = authToken
+                    val tokenQuery = if (!token.isNullOrBlank()) "?token=$token" else ""
                     val wsScheme = if (serverUrl.startsWith("https://")) "wss://" else "ws://"
                     val cleanHost = serverUrl.removePrefix("https://").removePrefix("http://")
-                    val wsUrl = "$wsScheme$cleanHost/api/tasks/ws?token=$token"
+                    val wsUrl = "$wsScheme$cleanHost/api/tasks/ws$tokenQuery"
 
                     client.webSocket(wsUrl) {
                         for (frame in incoming) {
@@ -117,7 +143,16 @@ object BackendApiClient {
                                 if (text.contains("tasks_updated", ignoreCase = true)) {
                                     val isOwnEcho = text.contains("\"origin\":\"$clientInstanceId\"")
                                     if (!isOwnEcho) {
-                                        onUpdate()
+                                        onTaskUpdateListener?.invoke()
+                                    }
+                                }
+                                if (text.contains("substitutions_updated", ignoreCase = true)) {
+                                    onSubstitutionUpdateListener?.invoke()
+                                }
+                                if (text.contains("settings_updated", ignoreCase = true)) {
+                                    val isOwnEcho = text.contains("\"origin\":\"$clientInstanceId\"")
+                                    if (!isOwnEcho) {
+                                        onSettingsUpdateListener?.invoke()
                                     }
                                 }
                             }
@@ -359,6 +394,34 @@ object BackendApiClient {
             header("Authorization", "Bearer $token")
             contentType(ContentType.Application.Json)
             setBody(json.encodeToString(courses))
+        }
+        response.status == HttpStatusCode.OK
+    }
+
+    // ==========================================
+    // BENUTZEREINSTELLUNGEN
+    // ==========================================
+
+    suspend fun fetchUserSettings(): Result<de.kjltowinkler.msapp.data.settings.UserSettings> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/user/settings") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<de.kjltowinkler.msapp.data.settings.UserSettings>(body)
+        } else {
+            error("Einstellungen konnten nicht geladen werden: $body")
+        }
+    }
+
+    suspend fun saveUserSettings(settings: de.kjltowinkler.msapp.data.settings.UserSettings): Result<Boolean> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.put("$serverUrl/api/user/settings") {
+            header("Authorization", "Bearer $token")
+            header("X-Client-Instance", clientInstanceId)
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(settings))
         }
         response.status == HttpStatusCode.OK
     }

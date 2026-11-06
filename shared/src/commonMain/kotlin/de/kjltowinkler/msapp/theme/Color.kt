@@ -111,7 +111,7 @@ val FigmaLightColorScheme = lightColorScheme(
     outlineVariant = Color(0xFFC3C8C0)
 )
 
-// Material You Color Schemes (entsprechend Android 12+ M3 Dynamic Colors aus dem Screenshot)
+// Material You Color Schemes (entsprechend Android 12+ M3 Dynamic Colors)
 val MaterialYouDarkColorScheme = darkColorScheme(
     primary = Color(0xFFA9CAE8),
     onPrimary = Color(0xFF0D324C),
@@ -119,19 +119,19 @@ val MaterialYouDarkColorScheme = darkColorScheme(
     onPrimaryContainer = Color(0xFFA9CAE8),
     secondary = Color(0xFFA9CAE8),
     onSecondary = Color(0xFF0D324C),
-    secondaryContainer = Color(0xFF262D33),
+    secondaryContainer = Color(0xFF1B232B),
     onSecondaryContainer = Color(0xFFE0E6EE),
-    background = Color(0xFF151A1F),
+    background = Color(0xFF0E1318),
     onBackground = Color(0xFFE0E6EE),
-    surface = Color(0xFF151A1F),
+    surface = Color(0xFF0E1318),
     onSurface = Color(0xFFE0E6EE),
-    surfaceVariant = Color(0xFF262D33),
+    surfaceVariant = Color(0xFF161D24),
     onSurfaceVariant = Color(0xFFA4ACB3),
-    surfaceContainerLowest = Color(0xFF101418),
-    surfaceContainerLow = Color(0xFF1D2227),
-    surfaceContainer = Color(0xFF262D33),
-    surfaceContainerHigh = Color(0xFF2E353C),
-    surfaceContainerHighest = Color(0xFF363D44),
+    surfaceContainerLowest = Color(0xFF070B0E),
+    surfaceContainerLow = Color(0xFF070B0E),
+    surfaceContainer = Color(0xFF070B0E),
+    surfaceContainerHigh = Color(0xFF151C22),
+    surfaceContainerHighest = Color(0xFF1D242B),
     outline = Color(0xFF535A60),
     outlineVariant = Color(0xFF3F464C)
 )
