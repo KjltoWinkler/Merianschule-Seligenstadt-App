@@ -1,11 +1,11 @@
 package de.kjltowinkler.msapp.util
 
 actual object PlatformNotifier {
-    actual fun sendNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendNotification(title: String, summary: String, details: List<String>, entryId: String?) {
         println("[iOS Notification] $title: $summary (${details.joinToString("; ")})")
     }
 
-    actual fun sendTaskNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendTaskNotification(title: String, summary: String, details: List<String>, taskId: String?) {
         println("[iOS Task Notification] $title: $summary (${details.joinToString("; ")})")
     }
 

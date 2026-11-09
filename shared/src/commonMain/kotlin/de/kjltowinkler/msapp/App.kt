@@ -256,19 +256,29 @@ fun App() {
                 de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
 
                 val pendingNav = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_navigate_to")
+                val pendingHighlight = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_highlight_id")
                 if (pendingNav != null) {
                     de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_navigate_to")
+                    de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_highlight_id")
                     if (pendingNav == "settings" && BackendApiClient.isLoggedIn) {
                         navController.navigate(AppRoutes.SETTINGS)
+                    } else {
+                        de.kjltowinkler.msapp.util.NavigationEvents.emit(pendingNav, pendingHighlight)
                     }
                 }
             }
 
             LaunchedEffect(navController) {
-                de.kjltowinkler.msapp.util.NavigationEvents.routeFlow.collect { route ->
-                    if (route == "settings" && BackendApiClient.isLoggedIn) {
+                de.kjltowinkler.msapp.util.NavigationEvents.targetFlow.collect { target ->
+                    if (target.route == "settings" && BackendApiClient.isLoggedIn) {
                         try {
                             navController.navigate(AppRoutes.SETTINGS)
+                        } catch (_: Throwable) {}
+                    } else if ((target.route == "substitution" || target.route == "tasks" || target.route == "home") && BackendApiClient.isLoggedIn) {
+                        try {
+                            if (navController.currentDestination?.route != AppRoutes.HOME) {
+                                navController.popBackStack(AppRoutes.HOME, inclusive = false)
+                            }
                         } catch (_: Throwable) {}
                     }
                 }

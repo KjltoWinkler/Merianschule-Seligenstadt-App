@@ -36,6 +36,7 @@ import de.kjltowinkler.msapp.data.substitution.SubstitutionRepository
 import de.kjltowinkler.msapp.data.substitution.SubstitutionStateManager
 import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.getTodayDate
+import de.kjltowinkler.msapp.data.task.parseIsoDate
 import de.kjltowinkler.msapp.theme.AppTheme
 import de.kjltowinkler.msapp.ui.components.AppSwitch
 import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
@@ -76,7 +77,8 @@ fun SwipeableSubstitutionItem(
     onItemClick: () -> Unit,
     modifier: Modifier = Modifier,
     animateOnDismiss: Boolean = false,
-    onDragActiveChange: ((Boolean) -> Unit)? = null
+    onDragActiveChange: ((Boolean) -> Unit)? = null,
+    isHighlighted: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
     var hasHapticClicked by remember(entry.id) { mutableStateOf(false) }
@@ -231,24 +233,13 @@ fun SwipeableSubstitutionItem(
                 shape = cardShape,
                 onClick = onItemClick,
                 onToggleMark = { toggled -> onDismissed(toggled) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isHighlighted = isHighlighted
             )
         }
     }
 }
 
-private fun parseIsoDate(isoString: String): SimpleDate? {
-    val parts = isoString.split("-")
-    if (parts.size == 3) {
-        val y = parts[0].toIntOrNull()
-        val m = parts[1].toIntOrNull()
-        val d = parts[2].toIntOrNull()
-        if (y != null && m != null && d != null) {
-            return SimpleDate(y, m, d)
-        }
-    }
-    return null
-}
 
 private fun formatDayHeader(dateIso: String, fallbackLabel: String, todayIso: String, tomorrowIso: String): String {
     val date = parseIsoDate(dateIso)
@@ -278,11 +269,15 @@ private fun formatDayHeader(dateIso: String, fallbackLabel: String, todayIso: St
 fun SubstitutionPlanScreen(
     modifier: Modifier = Modifier,
     dateText: String = remember { de.kjltowinkler.msapp.getCurrentFormattedDate() },
-    useMaterialYou: Boolean = true
+    useMaterialYou: Boolean = true,
+    highlightEntryId: String? = null,
+    onHighlightHandled: () -> Unit = {}
 ) {
     val options = remember { SubstitutionFilter.entries }
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { options.size })
     val tabScrollState = rememberScrollState()
+
+    var activeHighlightId by remember { mutableStateOf<String?>(null) }
 
     // State für den Umschalter (z.B. Kommende Tage / Heute) - persistent im Repository gespeichert
     val isUpcoming = SubstitutionRepository.isUpcomingFilter
@@ -333,6 +328,28 @@ fun SubstitutionPlanScreen(
     val todayIso = remember(today) { today.toIsoString() }
     val tomorrowIso = remember(today) { today.plusDays(1).toIsoString() }
     val dayAfterTomorrowIso = remember(today) { today.plusDays(2).toIsoString() }
+
+    LaunchedEffect(highlightEntryId, allEntries) {
+        if (!highlightEntryId.isNullOrBlank()) {
+            activeHighlightId = highlightEntryId
+            val target = allEntries.find { it.id == highlightEntryId }
+            if (target != null) {
+                if (target.date.isNotBlank() && target.date >= tomorrowIso) {
+                    SubstitutionRepository.isUpcomingFilter = true
+                } else if (target.date == todayIso || target.date.isBlank()) {
+                    SubstitutionRepository.isUpcomingFilter = false
+                }
+                if (pagerState.currentPage != 0) {
+                    try {
+                        pagerState.animateScrollToPage(0)
+                    } catch (_: Throwable) {}
+                }
+            }
+            delay(3800)
+            activeHighlightId = null
+            onHighlightHandled()
+        }
+    }
 
     var isInitialLoading by remember { mutableStateOf(allEntries.isEmpty()) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -689,7 +706,8 @@ fun SubstitutionPlanScreen(
                                                     animateOnDismiss = true,
                                                     onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                     onDismissed = onItemDismissed,
-                                                    onItemClick = { onItemClicked(entry) }
+                                                    onItemClick = { onItemClicked(entry) },
+                                                    isHighlighted = entry.id == activeHighlightId
                                                 )
                                             }
                                         }
@@ -910,7 +928,8 @@ fun SubstitutionPlanScreen(
                                                     animateOnDismiss = false,
                                                     onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                     onDismissed = onItemDismissed,
-                                                    onItemClick = { onItemClicked(entry) }
+                                                    onItemClick = { onItemClicked(entry) },
+                                                    isHighlighted = entry.id == activeHighlightId
                                                 )
                                             }
                                         }
@@ -948,7 +967,8 @@ fun SubstitutionPlanScreen(
                                                         animateOnDismiss = false,
                                                         onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                         onDismissed = onItemDismissed,
-                                                        onItemClick = { onItemClicked(entry) }
+                                                        onItemClick = { onItemClicked(entry) },
+                                                        isHighlighted = entry.id == activeHighlightId
                                                     )
                                                 }
                                             }
@@ -1009,7 +1029,8 @@ fun SubstitutionPlanScreen(
                                                         animateOnDismiss = false,
                                                         onDragActiveChange = { dragging -> onItemDragActiveChange(entry.id, dragging) },
                                                         onDismissed = onItemDismissed,
-                                                        onItemClick = { onItemClicked(entry) }
+                                                        onItemClick = { onItemClicked(entry) },
+                                                        isHighlighted = entry.id == activeHighlightId
                                                     )
                                                 }
                                             }

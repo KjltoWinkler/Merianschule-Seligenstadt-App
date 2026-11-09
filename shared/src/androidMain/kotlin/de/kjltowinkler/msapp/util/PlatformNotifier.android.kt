@@ -85,17 +85,22 @@ actual object PlatformNotifier {
         }
     }
 
-    actual fun sendNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendNotification(title: String, summary: String, details: List<String>, entryId: String?) {
         try {
             val context = AppContextProvider.context
             ensureChannels(context)
 
+            val currentId = notificationId++
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("navigate_to", "substitution")
+                if (!entryId.isNullOrBlank()) {
+                    putExtra("highlight_id", entryId)
+                }
             }
             val pendingIntent = if (launchIntent != null) {
                 val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-                PendingIntent.getActivity(context, 0, launchIntent, flags)
+                PendingIntent.getActivity(context, currentId, launchIntent, flags)
             } else {
                 null
             }
@@ -140,23 +145,28 @@ actual object PlatformNotifier {
             }
 
             val manager = NotificationManagerCompat.from(context)
-            manager.notify(notificationId++, builder.build())
+            manager.notify(currentId, builder.build())
         } catch (e: Throwable) {
             println("PlatformNotifier.android: Fehler beim Senden: ${e.message}")
         }
     }
 
-    actual fun sendTaskNotification(title: String, summary: String, details: List<String>) {
+    actual fun sendTaskNotification(title: String, summary: String, details: List<String>, taskId: String?) {
         try {
             val context = AppContextProvider.context
             ensureChannels(context)
 
+            val currentId = taskNotificationId++
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("navigate_to", "tasks")
+                if (!taskId.isNullOrBlank()) {
+                    putExtra("highlight_id", taskId)
+                }
             }
             val pendingIntent = if (launchIntent != null) {
                 val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
-                PendingIntent.getActivity(context, 0, launchIntent, flags)
+                PendingIntent.getActivity(context, currentId, launchIntent, flags)
             } else {
                 null
             }
@@ -204,7 +214,7 @@ actual object PlatformNotifier {
             }
 
             val manager = NotificationManagerCompat.from(context)
-            manager.notify(taskNotificationId++, builder.build())
+            manager.notify(currentId, builder.build())
         } catch (e: Throwable) {
             println("PlatformNotifier.android: Fehler beim Senden von Task-Notif: ${e.message}")
         }

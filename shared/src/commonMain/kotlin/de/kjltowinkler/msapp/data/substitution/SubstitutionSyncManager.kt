@@ -160,20 +160,26 @@ object SubstitutionSyncManager {
             // System-Push-Benachrichtigung absenden
             if (notifyIfChanged) {
                 if (diffUser.hasChanges) {
+                    val targetEntryId = diffUser.addedEntries.firstOrNull()?.id
+                        ?: diffUser.modifiedEntries.firstOrNull()?.updated?.id
                     PlatformNotifier.sendNotification(
                         title = diffUser.title,
                         summary = diffUser.summary,
-                        details = diffUser.detailLines
+                        details = diffUser.detailLines,
+                        entryId = targetEntryId
                     )
                 } else if (diffGlobal.hasChanges) {
                     val count = diffGlobal.addedEntries.size + diffGlobal.modifiedEntries.size
                     val title = "Vertretungsplan aktualisiert"
                     val summary = if (count == 1) "1 neue Vertretungsplan-Änderung verfügbar" else "$count neue Vertretungsplan-Änderungen verfügbar"
                     val details = diffGlobal.detailLines.take(5)
+                    val targetEntryId = diffGlobal.addedEntries.firstOrNull()?.id
+                        ?: diffGlobal.modifiedEntries.firstOrNull()?.updated?.id
                     PlatformNotifier.sendNotification(
                         title = title,
                         summary = summary,
-                        details = details
+                        details = details,
+                        entryId = targetEntryId
                     )
                 }
             }

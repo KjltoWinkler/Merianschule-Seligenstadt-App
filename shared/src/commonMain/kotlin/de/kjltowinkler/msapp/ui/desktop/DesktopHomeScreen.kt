@@ -46,6 +46,30 @@ fun DesktopHomeScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var highlightedSubstitutionEntryId by remember { mutableStateOf<String?>(null) }
+    var highlightedTaskId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        de.kjltowinkler.msapp.util.NavigationEvents.targetFlow.collect { target ->
+            when (target.route) {
+                "substitution", "vplan" -> {
+                    selectedTab = 2
+                    highlightedSubstitutionEntryId = target.highlightId
+                }
+                "tasks", "aufgaben" -> {
+                    selectedTab = 3
+                    highlightedTaskId = target.highlightId
+                }
+                "home", "startseite" -> {
+                    selectedTab = 0
+                }
+                "timetable", "stundenplan" -> {
+                    selectedTab = 1
+                }
+            }
+        }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var isRefreshing by remember { mutableStateOf(false) }
     var showNewTaskDialog by remember { mutableStateOf(false) }
@@ -210,13 +234,17 @@ fun DesktopHomeScreen(
                                 2 -> {
                                     // Vertretungsplan
                                     SubstitutionPlanScreen(
-                                        modifier = Modifier.fillMaxSize()
+                                        modifier = Modifier.fillMaxSize(),
+                                        highlightEntryId = highlightedSubstitutionEntryId,
+                                        onHighlightHandled = { highlightedSubstitutionEntryId = null }
                                     )
                                 }
                                 3 -> {
                                     // Aufgaben
                                     TasksScreen(
                                         modifier = Modifier.fillMaxSize(),
+                                        highlightTaskId = highlightedTaskId,
+                                        onHighlightHandled = { highlightedTaskId = null },
                                         onAddTaskClicked = { isStarred, targetListId, isSchoolTask ->
                                             isNewTaskStarred = isStarred
                                             newTaskTargetListId = targetListId

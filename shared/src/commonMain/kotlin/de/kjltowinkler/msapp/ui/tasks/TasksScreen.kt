@@ -1,21 +1,24 @@
 package de.kjltowinkler.msapp.ui.tasks
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -112,6 +115,8 @@ private data class TasksFabMenuItem(
 fun TasksScreen(
     modifier: Modifier = Modifier,
     useMaterialYou: Boolean = true,
+    highlightTaskId: String? = null,
+    onHighlightHandled: () -> Unit = {},
     onAddTaskClicked: ((isStarred: Boolean, targetListId: String, isSchoolTask: Boolean) -> Unit)? = null,
     onNewListClicked: (() -> Unit)? = null
 ) {
@@ -175,6 +180,32 @@ fun TasksScreen(
     val allTasks = TasksRepository.tasks
     val schoolTasks = allTasks.filter { it.isSchoolTask }
     val starredTasks = allTasks.filter { it.isStarred }
+
+    var activeHighlightTaskId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(highlightTaskId, allTasks, tabs) {
+        if (!highlightTaskId.isNullOrBlank()) {
+            activeHighlightTaskId = highlightTaskId
+            val targetTask = allTasks.find { it.id == highlightTaskId }
+            if (targetTask != null) {
+                val targetPageIndex = tabs.indexOfFirst { tab ->
+                    when (tab) {
+                        is TasksTab.School -> targetTask.isSchoolTask
+                        is TasksTab.Private -> !targetTask.isSchoolTask && (tab.list.id == targetTask.listId || (targetTask.listId.isEmpty() && tab.list.id == "my_tasks"))
+                        is TasksTab.Starred -> false
+                    }
+                }
+                if (targetPageIndex >= 0 && targetPageIndex != pagerState.currentPage) {
+                    try {
+                        pagerState.animateScrollToPage(targetPageIndex)
+                    } catch (_: Throwable) {}
+                }
+            }
+            delay(3800)
+            activeHighlightTaskId = null
+            onHighlightHandled()
+        }
+    }
 
     val schoolTasksCount = schoolTasks.count { !it.isCompleted }
 
@@ -511,47 +542,150 @@ fun TasksScreen(
                                             groupTasksByOption(activeTasks, currentSortOption, isStarredTab = tab is TasksTab.Starred)
                                         }
 
+                                        var draggedTaskId by remember { mutableStateOf<String?>(null) }
+                                        var dragOffsetY by remember { mutableFloatStateOf(0f) }
+                                        val taskRowHeights = remember { mutableStateMapOf<String, Float>() }
+                                        val latestActiveTasks by rememberUpdatedState(activeTasks)
+                                        val latestSortOption by rememberUpdatedState(currentSortOption)
+
                                         val renderTaskRow: @Composable (TaskItem) -> Unit = { task ->
                                             var isDisappearing by remember(task.id) { mutableStateOf(false) }
+                                            val isBeingDragged = draggedTaskId == task.id
 
                                             AnimatedVisibility(
                                                 visible = !isDisappearing,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .zIndex(if (isBeingDragged) 10f else 1f),
                                                 enter = fadeIn(animationSpec = tween(180)) + expandVertically(animationSpec = tween(180, easing = FastOutSlowInEasing)),
                                                 exit = fadeOut(animationSpec = tween(130)) + shrinkVertically(animationSpec = tween(150, easing = FastOutSlowInEasing))
                                             ) {
-                                                ActiveTaskRowItem(
-                                                    task = task,
-                                                    onToggleComplete = { circleCoords ->
-                                                        try {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                                                        } catch (_: Exception) {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .graphicsLayer {
+                                                            if (isBeingDragged) {
+                                                                translationY = dragOffsetY
+                                                                scaleX = 1.02f
+                                                                scaleY = 1.02f
+                                                            }
                                                         }
-                                                        val root = rootCoordinates
-                                                        val localOrigin = if (root != null && root.isAttached && circleCoords.isAttached) {
-                                                            val circleCenter = Offset(
-                                                                circleCoords.size.width / 2f,
-                                                                circleCoords.size.height / 2f
-                                                            )
-                                                            root.localPositionOf(circleCoords, circleCenter)
-                                                        } else {
-                                                            val pos = circleCoords.positionInRoot()
-                                                            Offset(pos.x + circleCoords.size.width / 2f, pos.y + circleCoords.size.height / 2f)
-                                                        }
-                                                        val nextId = ++burstCounter
-                                                        activeBursts = activeBursts + ConfettiBurst(
-                                                            id = nextId,
-                                                            origin = localOrigin
+                                                        .shadow(
+                                                            elevation = if (isBeingDragged) 8.dp else 0.dp,
+                                                            shape = RoundedCornerShape(12.dp)
                                                         )
-                                                        isDisappearing = true
-                                                        coroutineScope.launch {
-                                                            delay(140)
-                                                            TasksRepository.toggleCompleted(task.id)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                            if (isBeingDragged) {
+                                                                colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)
+                                                            } else {
+                                                                Color.Transparent
+                                                            }
+                                                        )
+                                                        .onGloballyPositioned { coordinates ->
+                                                            taskRowHeights[task.id] = coordinates.size.height.toFloat()
                                                         }
-                                                    },
-                                                    onToggleStarred = { TasksRepository.toggleStarred(task.id) },
-                                                    onTaskClick = { selectedTaskForEdit = task }
-                                                )
+                                                        .pointerInput(task.id) {
+                                                            detectDragGesturesAfterLongPress(
+                                                                onDragStart = {
+                                                                    if (latestSortOption != TaskSortOption.MY_ORDER) {
+                                                                        TasksRepository.reorderTasks(latestActiveTasks)
+                                                                        currentSortOption = TaskSortOption.MY_ORDER
+                                                                    }
+                                                                    draggedTaskId = task.id
+                                                                    dragOffsetY = 0f
+                                                                    try {
+                                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                    } catch (_: Exception) {
+                                                                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                                    }
+                                                                },
+                                                                onDrag = { change, dragAmount ->
+                                                                    change.consume()
+                                                                    val currentDragId = draggedTaskId ?: return@detectDragGesturesAfterLongPress
+                                                                    dragOffsetY += dragAmount.y
+                                                                    val currentList = latestActiveTasks
+                                                                    val currentIndex = currentList.indexOfFirst { it.id == currentDragId }
+                                                                    if (currentIndex == -1) return@detectDragGesturesAfterLongPress
+
+                                                                    val defaultHeightPx = with(density) { 56.dp.toPx() }
+                                                                    val currentHeight = taskRowHeights[currentDragId] ?: defaultHeightPx
+                                                                    val spacingPx = with(density) { 6.dp.toPx() }
+
+                                                                    if (dragOffsetY > (currentHeight + spacingPx) * 0.5f && currentIndex < currentList.lastIndex) {
+                                                                        val targetTask = currentList[currentIndex + 1]
+                                                                        val targetHeight = taskRowHeights[targetTask.id] ?: currentHeight
+                                                                        val mutable = currentList.toMutableList()
+                                                                        val item = mutable.removeAt(currentIndex)
+                                                                        mutable.add(currentIndex + 1, item)
+                                                                        TasksRepository.reorderTasks(mutable)
+                                                                        dragOffsetY -= (targetHeight + spacingPx)
+                                                                        try {
+                                                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                                        } catch (_: Exception) {
+                                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                        }
+                                                                    } else if (dragOffsetY < -(currentHeight + spacingPx) * 0.5f && currentIndex > 0) {
+                                                                        val targetTask = currentList[currentIndex - 1]
+                                                                        val targetHeight = taskRowHeights[targetTask.id] ?: currentHeight
+                                                                        val mutable = currentList.toMutableList()
+                                                                        val item = mutable.removeAt(currentIndex)
+                                                                        mutable.add(currentIndex - 1, item)
+                                                                        TasksRepository.reorderTasks(mutable)
+                                                                        dragOffsetY += (targetHeight + spacingPx)
+                                                                        try {
+                                                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                                        } catch (_: Exception) {
+                                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                        }
+                                                                    }
+                                                                },
+                                                                onDragEnd = {
+                                                                    draggedTaskId = null
+                                                                    dragOffsetY = 0f
+                                                                },
+                                                                onDragCancel = {
+                                                                    draggedTaskId = null
+                                                                    dragOffsetY = 0f
+                                                                }
+                                                            )
+                                                        }
+                                                ) {
+                                                    ActiveTaskRowItem(
+                                                        task = task,
+                                                        onToggleComplete = { circleCoords ->
+                                                            try {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                                                            } catch (_: Exception) {
+                                                                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                            }
+                                                            val root = rootCoordinates
+                                                            val localOrigin = if (root != null && root.isAttached && circleCoords.isAttached) {
+                                                                val circleCenter = Offset(
+                                                                    circleCoords.size.width / 2f,
+                                                                    circleCoords.size.height / 2f
+                                                                )
+                                                                root.localPositionOf(circleCoords, circleCenter)
+                                                            } else {
+                                                                val pos = circleCoords.positionInRoot()
+                                                                Offset(pos.x + circleCoords.size.width / 2f, pos.y + circleCoords.size.height / 2f)
+                                                            }
+                                                            val nextId = ++burstCounter
+                                                            activeBursts = activeBursts + ConfettiBurst(
+                                                                id = nextId,
+                                                                origin = localOrigin
+                                                            )
+                                                            isDisappearing = true
+                                                            coroutineScope.launch {
+                                                                delay(140)
+                                                                TasksRepository.toggleCompleted(task.id)
+                                                            }
+                                                        },
+                                                        onToggleStarred = { TasksRepository.toggleStarred(task.id) },
+                                                        onTaskClick = { selectedTaskForEdit = task },
+                                                        isHighlighted = task.id == activeHighlightTaskId
+                                                    )
+                                                }
                                             }
                                         }
 
@@ -1231,13 +1365,47 @@ private fun ActiveTaskRowItem(
     task: de.kjltowinkler.msapp.data.task.TaskItem,
     onToggleComplete: (LayoutCoordinates) -> Unit,
     onToggleStarred: () -> Unit,
-    onTaskClick: () -> Unit
+    onTaskClick: () -> Unit,
+    isHighlighted: Boolean = false
 ) {
     val colorScheme = MaterialTheme.colorScheme
     var circleCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            delay(150)
+            try {
+                bringIntoViewRequester.bringIntoView()
+            } catch (_: Throwable) {}
+        }
+    }
+
+    val highlightModifier = if (isHighlighted) {
+        val infiniteTransition = rememberInfiniteTransition(label = "TaskHighlightPulse")
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "TaskHighlightAlpha"
+        )
+        Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(colorScheme.primaryContainer.copy(alpha = 0.35f))
+            .border(2.dp, colorScheme.primary.copy(alpha = alpha), RoundedCornerShape(14.dp))
+            .padding(horizontal = 6.dp, vertical = 6.dp)
+    } else {
+        Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+    }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .then(highlightModifier),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

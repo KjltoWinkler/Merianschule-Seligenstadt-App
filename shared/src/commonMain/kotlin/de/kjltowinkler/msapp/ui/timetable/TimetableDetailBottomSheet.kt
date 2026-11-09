@@ -35,6 +35,8 @@ fun TimetableDetailBottomSheet(
     onDismissRequest: () -> Unit,
     onTeacherClick: (String) -> Unit,
     onAddTaskForSubject: (String) -> Unit,
+    matchingSubstitution: de.kjltowinkler.msapp.data.substitution.SubstitutionEntry? = null,
+    onNavigateToSubstitution: ((de.kjltowinkler.msapp.data.substitution.SubstitutionEntry) -> Unit)? = null,
     useMaterialYou: Boolean = true,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
@@ -289,6 +291,52 @@ fun TimetableDetailBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(14.dp))
+
+            if (matchingSubstitution != null) {
+                val isCancellation = matchingSubstitution.type.equals("Entfall", ignoreCase = true)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(singleBrickShape)
+                        .background(
+                            if (isCancellation) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                            else brickBackgroundColor
+                        )
+                        .clickable {
+                            onDismissRequest()
+                            onNavigateToSubstitution?.invoke(matchingSubstitution)
+                        }
+                        .handCursor()
+                        .defaultMinSize(minHeight = 54.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_nav_event_note),
+                        contentDescription = null,
+                        tint = if (isCancellation) MaterialTheme.colorScheme.error else actionIconTint,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "${matchingSubstitution.type} im Vertretungsplan ansehen",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textPrimaryColor
+                        )
+                        if (matchingSubstitution.details.isNotBlank()) {
+                            Text(
+                                text = matchingSubstitution.details,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
 
             // --- AKTIONEN-GRUPPE: Aufgabe für dieses Fach anlegen (als Brick) ---
             Row(

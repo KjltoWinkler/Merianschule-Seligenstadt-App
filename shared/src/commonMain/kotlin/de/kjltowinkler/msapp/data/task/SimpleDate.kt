@@ -114,6 +114,15 @@ data class SimpleDate(
     }
 }
 
+fun parseIsoDate(isoString: String): SimpleDate? {
+    val parts = isoString.trim().split("-")
+    if (parts.size != 3) return null
+    val year = parts[0].toIntOrNull() ?: return null
+    val month = parts[1].toIntOrNull() ?: return null
+    val day = parts[2].toIntOrNull() ?: return null
+    return SimpleDate(year, month, day)
+}
+
 data class SimpleTime(
     val hour: Int,
     val minute: Int

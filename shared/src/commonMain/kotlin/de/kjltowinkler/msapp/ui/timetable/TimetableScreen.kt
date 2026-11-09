@@ -49,9 +49,16 @@ import org.jetbrains.compose.resources.painterResource
 fun TimetableScreen(
     modifier: Modifier = Modifier,
     useMaterialYou: Boolean = true,
-    onAddTaskForSubject: ((String) -> Unit)? = null
+    onAddTaskForSubject: ((String) -> Unit)? = null,
+    onNavigateToSubstitution: ((de.kjltowinkler.msapp.data.substitution.SubstitutionEntry) -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
+    var substitutions by remember {
+        mutableStateOf(de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.getInitialOrCachedEntries())
+    }
+    LaunchedEffect(Unit) {
+        substitutions = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.loadSubstitutions()
+    }
     val days = TimetableDay.entries
     val initialDay = remember { getInitialTimetableDay() }
     val initialPageIndex = remember(initialDay) { days.indexOf(initialDay).coerceAtLeast(0) }
@@ -281,13 +288,24 @@ fun TimetableScreen(
                                 items = lessons,
                                 key = { _, lesson -> lesson.id }
                             ) { index, lesson ->
-                                // Karte für die Unterrichtsstunde (Komplett schwarz "000000")
+                                val matchingSubstitution = remember(lesson, substitutions, day) {
+                                    TimetableRepository.findMatchingSubstitution(day, lesson, substitutions)
+                                }
+                                // Karte für die Unterrichtsstunde
                                 TimetableLessonCard(
                                     lesson = lesson,
                                     teacherLinkColor = teacherLinkColor,
+                                    matchingSubstitution = matchingSubstitution,
                                     onCardClick = { selectedLessonForDetail = lesson },
                                     onTeacherClick = { code ->
                                         selectedTeacherInfo = TimetableRepository.getTeacherInfo(code)
+                                    },
+                                    onSubstitutionClick = { entry ->
+                                        if (onNavigateToSubstitution != null) {
+                                            onNavigateToSubstitution(entry)
+                                        } else {
+                                            de.kjltowinkler.msapp.util.NavigationEvents.emit("substitution", entry.id)
+                                        }
                                     }
                                 )
 
@@ -347,14 +365,27 @@ fun TimetableScreen(
     }
 
     selectedLessonForDetail?.let { lesson ->
+        val currentDay = days[pagerState.currentPage]
+        val matchingSub = remember(lesson, substitutions, currentDay) {
+            TimetableRepository.findMatchingSubstitution(currentDay, lesson, substitutions)
+        }
         TimetableDetailBottomSheet(
             lesson = lesson,
+            matchingSubstitution = matchingSub,
             onDismissRequest = { selectedLessonForDetail = null },
             onTeacherClick = { code ->
                 selectedTeacherInfo = TimetableRepository.getTeacherInfo(code)
             },
             onAddTaskForSubject = { subjectName ->
                 onAddTaskForSubject?.invoke(subjectName)
+            },
+            onNavigateToSubstitution = { entry ->
+                selectedLessonForDetail = null
+                if (onNavigateToSubstitution != null) {
+                    onNavigateToSubstitution(entry)
+                } else {
+                    de.kjltowinkler.msapp.util.NavigationEvents.emit("substitution", entry.id)
+                }
             },
             useMaterialYou = useMaterialYou
         )
@@ -377,8 +408,12 @@ fun TimetableLessonCard(
     teacherLinkColor: Color,
     onCardClick: () -> Unit,
     onTeacherClick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    matchingSubstitution: de.kjltowinkler.msapp.data.substitution.SubstitutionEntry? = null,
+    onSubstitutionClick: ((de.kjltowinkler.msapp.data.substitution.SubstitutionEntry) -> Unit)? = null
 ) {
+    val isCancellation = matchingSubstitution?.type?.equals("Entfall", ignoreCase = true) == true
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -396,35 +431,84 @@ fun TimetableLessonCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            // Kopfzeile: "1. Stunde · 07:40 - 08:25"
+            // Kopfzeile: "1. Stunde · 07:40 - 08:25" & ggf. Vertretungsplan-Badge
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "${lesson.periodNumber}. Stunde",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 15.sp
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Text(
+                        text = "${lesson.periodNumber}. Stunde",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 15.sp
+                        )
                     )
-                )
-                Text(
-                    text = "·",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+                    Text(
+                        text = "·",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
                     )
-                )
-                Text(
-                    text = lesson.timeRange,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
+                    Text(
+                        text = lesson.timeRange,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
                     )
-                )
+                }
+
+                if (matchingSubstitution != null) {
+                    val badgeBg = if (isCancellation) {
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f)
+                    } else {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
+                    }
+                    val badgeTint = if (isCancellation) {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = badgeBg,
+                        modifier = Modifier
+                            .handCursor()
+                            .clickable {
+                                onSubstitutionClick?.invoke(matchingSubstitution)
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_nav_event_note),
+                                contentDescription = "Im Vertretungsplan anzeigen: ${matchingSubstitution.type}",
+                                tint = badgeTint,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = matchingSubstitution.type,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = badgeTint
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -434,8 +518,9 @@ fun TimetableLessonCard(
                 text = TimetableRepository.resolveSubjectName(lesson.subject),
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 22.sp
+                    color = if (isCancellation) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    fontSize = 22.sp,
+                    textDecoration = if (isCancellation) TextDecoration.LineThrough else TextDecoration.None
                 )
             )
 

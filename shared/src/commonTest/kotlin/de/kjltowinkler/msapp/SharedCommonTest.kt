@@ -9,6 +9,10 @@ import de.kjltowinkler.msapp.ui.tasks.groupTasksByOption
 import de.kjltowinkler.msapp.ui.tasks.groupTasksByDate
 import de.kjltowinkler.msapp.ui.tasks.groupTasksByDeadline
 import de.kjltowinkler.msapp.ui.tasks.groupTasksByStarred
+import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
+import de.kjltowinkler.msapp.data.timetable.TimetableDay
+import de.kjltowinkler.msapp.data.timetable.TimetableLesson
+import de.kjltowinkler.msapp.data.timetable.TimetableRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -804,5 +808,98 @@ class SharedCommonTest {
         assertEquals(listOf("reorder_t3", "reorder_t2", "reorder_t1", "reorder_other"), TasksRepository.tasks.map { it.id })
 
         TasksRepository.clearAndReset()
+    }
+
+    @Test
+    fun testNavigationEventsAndDeepLinking() {
+        // 1. Vertretungsplan-Deep-Link
+        de.kjltowinkler.msapp.util.NavigationEvents.emit("substitution", "sub_entry_42")
+        val pendingTarget = de.kjltowinkler.msapp.util.NavigationEvents.pendingTarget
+        assertNotNull(pendingTarget)
+        assertEquals("substitution", pendingTarget.route)
+        assertEquals("sub_entry_42", pendingTarget.highlightId)
+
+        val consumedHighlight = de.kjltowinkler.msapp.util.NavigationEvents.consumePendingHighlight("substitution")
+        assertEquals("sub_entry_42", consumedHighlight)
+        assertNull(de.kjltowinkler.msapp.util.NavigationEvents.pendingTarget)
+
+        // 2. Aufgaben-Deep-Link
+        de.kjltowinkler.msapp.util.NavigationEvents.emit("tasks", "task_due_99")
+        assertEquals("task_due_99", de.kjltowinkler.msapp.util.NavigationEvents.pendingTarget?.highlightId)
+        assertEquals("task_due_99", de.kjltowinkler.msapp.util.NavigationEvents.consumePendingHighlight("tasks"))
+        assertNull(de.kjltowinkler.msapp.util.NavigationEvents.consumePendingHighlight("tasks"))
+    }
+
+    @Test
+    fun testTimetableMatchingSubstitution() {
+        val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+        val dayOfWeek = today.dayOfWeek // 1 (Mon) to 7 (Sun)
+        val timetableDay = when (dayOfWeek) {
+            1 -> TimetableDay.MONTAG
+            2 -> TimetableDay.DIENSTAG
+            3 -> TimetableDay.MITTWOCH
+            4 -> TimetableDay.DONNERSTAG
+            5 -> TimetableDay.FREITAG
+            else -> TimetableDay.MONTAG
+        }
+
+        val testLesson = TimetableLesson(
+            id = "lesson_math",
+            periodNumber = 2,
+            timeRange = "08:30 - 09:15",
+            subject = "Mathematik",
+            room = "Raum B208",
+            teacherCode = "Ky",
+            teacherName = "Hr. Kaya"
+        )
+
+        val matchingSub = SubstitutionEntry(
+            id = "sub_math_entfall",
+            date = today.toIsoString(),
+            period = "2. Std",
+            subject = "Mathematik",
+            className = "9aR",
+            type = "Entfall",
+            details = "Hr. Kaya entfällt ersatzlos"
+        )
+
+        val nonMatchingPeriodSub = SubstitutionEntry(
+            id = "sub_other_period",
+            date = today.toIsoString(),
+            period = "5. Std",
+            subject = "Mathematik",
+            className = "9aR",
+            type = "Vertretung"
+        )
+
+        val subs = listOf(matchingSub, nonMatchingPeriodSub)
+
+        val matched = TimetableRepository.findMatchingSubstitution(
+            day = timetableDay,
+            lesson = testLesson,
+            substitutions = subs,
+            userClass = "9aR"
+        )
+
+        assertNotNull(matched)
+        assertEquals("sub_math_entfall", matched.id)
+        assertEquals("Entfall", matched.type)
+
+        // Test non-matching period lesson
+        val testLesson5 = TimetableLesson(
+            id = "lesson_bio",
+            periodNumber = 1,
+            timeRange = "07:40 - 08:25",
+            subject = "Biologie",
+            room = "Raum BIO1",
+            teacherCode = "Me"
+        )
+        val notMatched = TimetableRepository.findMatchingSubstitution(
+            day = timetableDay,
+            lesson = testLesson5,
+            substitutions = subs,
+            userClass = "9aR"
+        )
+        assertNull(notMatched)
     }
 }

@@ -66,9 +66,13 @@ class MainActivity : ComponentActivity() {
 
     private fun handleNavigationIntent(intent: android.content.Intent?) {
         val nav = intent?.getStringExtra("navigate_to")
+        val highlightId = intent?.getStringExtra("highlight_id")
         if (nav != null) {
             de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_navigate_to", nav)
-            de.kjltowinkler.msapp.util.NavigationEvents.emitRoute(nav)
+            if (!highlightId.isNullOrBlank()) {
+                de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_highlight_id", highlightId)
+            }
+            de.kjltowinkler.msapp.util.NavigationEvents.emit(nav, highlightId)
         }
     }
 }

@@ -134,6 +134,29 @@ fun MobileHomeScreen(
     useMaterialYou: Boolean = true
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(3) }
+    var highlightedSubstitutionEntryId by remember { mutableStateOf<String?>(null) }
+    var highlightedTaskId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        de.kjltowinkler.msapp.util.NavigationEvents.targetFlow.collect { target ->
+            when (target.route) {
+                "substitution", "vplan" -> {
+                    selectedTab = 2
+                    highlightedSubstitutionEntryId = target.highlightId
+                }
+                "tasks", "aufgaben" -> {
+                    selectedTab = 3
+                    highlightedTaskId = target.highlightId
+                }
+                "home", "startseite" -> {
+                    selectedTab = 0
+                }
+                "timetable", "stundenplan" -> {
+                    selectedTab = 1
+                }
+            }
+        }
+    }
 
     val navItems = listOf(
         "Startseite" to (Res.drawable.ic_nav_home_filled to Res.drawable.ic_nav_home_outlined),
@@ -442,19 +465,28 @@ fun MobileHomeScreen(
                                     newTaskSubject = subjectName
                                     newTaskTargetListId = "my_tasks"
                                     showNewTaskBottomSheet = true
+                                },
+                                onNavigateToSubstitution = { entry ->
+                                    highlightedSubstitutionEntryId = entry.id
+                                    selectedTab = 2
+                                    de.kjltowinkler.msapp.util.NavigationEvents.emit("substitution", entry.id)
                                 }
                             )
                         }
                         2 -> {
                             de.kjltowinkler.msapp.ui.substitution.SubstitutionPlanScreen(
                                 modifier = Modifier.fillMaxSize(),
-                                useMaterialYou = useMaterialYou
+                                useMaterialYou = useMaterialYou,
+                                highlightEntryId = highlightedSubstitutionEntryId,
+                                onHighlightHandled = { highlightedSubstitutionEntryId = null }
                             )
                         }
                         else -> {
                             de.kjltowinkler.msapp.ui.tasks.TasksScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 useMaterialYou = useMaterialYou,
+                                highlightTaskId = highlightedTaskId,
+                                onHighlightHandled = { highlightedTaskId = null },
                                 onAddTaskClicked = { isStarred, targetListId, isSchoolTask ->
                                     isNewTaskStarred = isStarred
                                     newTaskTargetListId = targetListId

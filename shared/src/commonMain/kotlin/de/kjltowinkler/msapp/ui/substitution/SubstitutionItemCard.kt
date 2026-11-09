@@ -1,8 +1,17 @@
 package de.kjltowinkler.msapp.ui.substitution
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -11,6 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import de.kjltowinkler.msapp.ui.components.handCursor
+import kotlinx.coroutines.delay
 import merianschuleseligenstadtapp.shared.generated.resources.Res
 import merianschuleseligenstadtapp.shared.generated.resources.ic_star_filled
 import merianschuleseligenstadtapp.shared.generated.resources.ic_star_outline
@@ -33,17 +46,53 @@ fun SubstitutionItemCard(
     onToggleMark: (SubstitutionEntry) -> Unit,
     onClick: () -> Unit = {},
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(28.dp),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isHighlighted: Boolean = false
 ) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            delay(150)
+            try {
+                bringIntoViewRequester.bringIntoView()
+            } catch (_: Throwable) {}
+        }
+    }
+
+    val borderStroke = if (isHighlighted) {
+        val infiniteTransition = rememberInfiniteTransition(label = "SubstitutionHighlightPulse")
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "HighlightBorderAlpha"
+        )
+        BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = alpha))
+    } else {
+        null
+    }
+
+    val cardBg = if (isHighlighted) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.32f)
+    } else {
+        de.kjltowinkler.msapp.theme.screenCardContainerColor()
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight()
+            .bringIntoViewRequester(bringIntoViewRequester)
             .handCursor()
             .clickable { onClick() },
         shape = shape,
+        border = borderStroke,
         colors = CardDefaults.cardColors(
-            containerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()
+            containerColor = cardBg
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {

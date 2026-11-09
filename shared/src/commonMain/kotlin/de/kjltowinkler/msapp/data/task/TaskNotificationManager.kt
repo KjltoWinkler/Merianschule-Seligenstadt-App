@@ -99,7 +99,7 @@ object TaskNotificationManager {
                     if (task.description.isNotBlank()) details.add(task.description)
                     details.add("Status: Nicht erledigt (dringend)")
 
-                    PlatformNotifier.sendTaskNotification(title, summary, details)
+                    PlatformNotifier.sendTaskNotification(title, summary, details, taskId = task.id)
                     PlatformStorage.setString(overdueKey, nowMillis.toString())
                 }
             }
@@ -129,7 +129,7 @@ object TaskNotificationManager {
                     if (deadlineText.isNotBlank()) details.add("Frist: $deadlineText")
                     if (task.description.isNotBlank()) details.add(task.description)
 
-                    PlatformNotifier.sendTaskNotification(title, summary, details)
+                    PlatformNotifier.sendTaskNotification(title, summary, details, taskId = task.id)
                     PlatformStorage.setString(upcomingKey, nowMillis.toString())
                 }
             }

@@ -922,6 +922,78 @@ object TimetableRepository {
             false
         }
     }
+
+    /**
+     * Ermittelt, ob und welcher Vertretungsplan-Eintrag für eine Unterrichtsstunde an einem bestimmten Tag vorliegt.
+     */
+    fun findMatchingSubstitution(
+        day: TimetableDay,
+        lesson: TimetableLesson,
+        substitutions: List<de.kjltowinkler.msapp.data.substitution.SubstitutionEntry> = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.getInitialOrCachedEntries(),
+        userClass: String = de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className ?: "09AR"
+    ): de.kjltowinkler.msapp.data.substitution.SubstitutionEntry? {
+        if (substitutions.isEmpty()) return null
+
+        val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+        val (monday, _) = today.getWeekRange()
+        val dayOffset = when (day) {
+            TimetableDay.MONTAG -> 0
+            TimetableDay.DIENSTAG -> 1
+            TimetableDay.MITTWOCH -> 2
+            TimetableDay.DONNERSTAG -> 3
+            TimetableDay.FREITAG -> 4
+        }
+        val dayIso = monday.plusDays(dayOffset).toIsoString()
+        val targetDayOfWeek = day.ordinal + 1 // Montag = 1, Freitag = 5
+
+        val relevant = substitutions.filter {
+            de.kjltowinkler.msapp.data.courses.CourseRepository.isEntryRelevant(it, userClass)
+        }
+        val hasExactDateMatch = relevant.any { it.date == dayIso }
+
+        val dayEntries = relevant.filter { entry ->
+            if (hasExactDateMatch) {
+                entry.date == dayIso
+            } else {
+                val parsed = de.kjltowinkler.msapp.data.task.parseIsoDate(entry.date)
+                parsed?.dayOfWeek == targetDayOfWeek || (entry.date.isBlank() && day == TimetableDay.MONTAG)
+            }
+        }
+        if (dayEntries.isEmpty()) return null
+
+        fun matchesPeriod(periodStr: String, periodNumber: Int): Boolean {
+            val range = Regex("""(\d+)\s*[-/]\s*(\d+)""").find(periodStr)
+            if (range != null) {
+                val start = range.groupValues[1].toIntOrNull() ?: -1
+                val end = range.groupValues[2].toIntOrNull() ?: -1
+                if (periodNumber in start..end) return true
+            }
+            val numbers = Regex("""\b\d+\b""").findAll(periodStr).mapNotNull { it.value.toIntOrNull() }.toList()
+            return numbers.contains(periodNumber)
+        }
+
+        val resolvedLessonSubject = resolveSubjectName(lesson.subject)
+
+        // 1. Priorisierte Suche: Übereinstimmung von Stunde UND Fach / Lehrkraft
+        val exactMatch = dayEntries.firstOrNull { entry ->
+            if (!matchesPeriod(entry.period, lesson.periodNumber)) return@firstOrNull false
+            if (entry.subject.isNotBlank()) {
+                val resolvedEntrySubject = resolveSubjectName(entry.subject)
+                resolvedLessonSubject.equals(resolvedEntrySubject, ignoreCase = true) ||
+                    resolvedLessonSubject.contains(resolvedEntrySubject, ignoreCase = true) ||
+                    resolvedEntrySubject.contains(resolvedLessonSubject, ignoreCase = true)
+            } else {
+                entry.details.contains(lesson.teacherCode, ignoreCase = true) ||
+                    (lesson.teacherName.isNotBlank() && entry.details.contains(lesson.teacherName, ignoreCase = true))
+            }
+        }
+        if (exactMatch != null) return exactMatch
+
+        // 2. Fallback: Übereinstimmung der Stunde in der relevanten Klasse
+        return dayEntries.firstOrNull { entry ->
+            matchesPeriod(entry.period, lesson.periodNumber)
+        }
+    }
 }
 
 /**
