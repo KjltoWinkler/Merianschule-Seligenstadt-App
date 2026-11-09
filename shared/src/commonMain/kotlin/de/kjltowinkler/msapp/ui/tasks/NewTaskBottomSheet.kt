@@ -5,10 +5,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -141,6 +143,12 @@ fun NewTaskBottomSheet(
                     .padding(top = 20.dp, bottom = 16.dp)
             ) {
                 // --- 1. Titel-Eingabezeile ("Neue Aufgaben") ---
+                val titleTextStyle = TextStyle(
+                    fontFamily = getGoogleSansFlexFontFamily(),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurface
+                )
                 BasicTextField(
                     value = taskTitle,
                     onValueChange = { taskTitle = it },
@@ -148,24 +156,21 @@ fun NewTaskBottomSheet(
                         .fillMaxWidth()
                         .focusRequester(titleFocusRequester)
                         .textCursor(),
-                    textStyle = TextStyle(
-                        fontFamily = getGoogleSansFlexFontFamily(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colorScheme.onSurface
-                    ),
+                    textStyle = titleTextStyle,
                     cursorBrush = SolidColor(colorScheme.primary),
+                    singleLine = true,
                     decorationBox = { innerTextField ->
-                        if (taskTitle.isEmpty()) {
-                            Text(
-                                text = "Neue Aufgaben",
-                                fontFamily = getGoogleSansFlexFontFamily(),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (taskTitle.isEmpty()) {
+                                Text(
+                                    text = "Neue Aufgaben",
+                                    style = titleTextStyle.copy(
+                                        color = colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                )
+                            }
+                            innerTextField()
                         }
-                        innerTextField()
                     },
                     keyboardOptions = KeyboardOptions(imeAction = if (showDescription) ImeAction.Next else ImeAction.Done),
                     keyboardActions = KeyboardActions(
@@ -181,6 +186,12 @@ fun NewTaskBottomSheet(
                 AnimatedVisibility(visible = showDescription) {
                     Column {
                         Spacer(modifier = Modifier.height(12.dp))
+                        val detailsTextStyle = TextStyle(
+                            fontFamily = getGoogleSansFlexFontFamily(),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = colorScheme.onSurface
+                        )
                         BasicTextField(
                             value = taskDescription,
                             onValueChange = { taskDescription = it },
@@ -188,22 +199,20 @@ fun NewTaskBottomSheet(
                                 .fillMaxWidth()
                                 .focusRequester(detailsFocusRequester)
                                 .textCursor(),
-                            textStyle = TextStyle(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Normal,
-                                color = colorScheme.onSurface
-                            ),
+                            textStyle = detailsTextStyle,
                             cursorBrush = SolidColor(colorScheme.primary),
                             decorationBox = { innerTextField ->
-                                if (taskDescription.isEmpty()) {
-                                    Text(
-                                        text = "Details hinzufügen",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Normal,
-                                        color = colorScheme.onSurfaceVariant
-                                    )
+                                Box(contentAlignment = Alignment.CenterStart) {
+                                    if (taskDescription.isEmpty()) {
+                                        Text(
+                                            text = "Details hinzufügen",
+                                            style = detailsTextStyle.copy(
+                                                color = colorScheme.onSurfaceVariant
+                                            )
+                                        )
+                                    }
+                                    innerTextField()
                                 }
-                                innerTextField()
                             },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
                         )
@@ -219,116 +228,36 @@ fun NewTaskBottomSheet(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
                     ) {
                         if (selectedSubject.isNotBlank()) {
-                            InputChip(
-                                selected = true,
+                            NewTaskChip(
+                                text = selectedSubject,
                                 onClick = { showSubjectPicker = true },
-                                modifier = Modifier.handCursor(),
-                                label = { Text(selectedSubject) },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(Res.drawable.ic_apps),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                },
-                                trailingIcon = {
-                                    Icon(
-                                        painter = painterResource(Res.drawable.ic_close),
-                                        contentDescription = "Fach entfernen",
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) {
-                                                selectedSubject = ""
-                                            }
-                                            .handCursor()
-                                    )
-                                },
-                                colors = InputChipDefaults.inputChipColors(
-                                    containerColor = colorScheme.secondaryContainer,
-                                    labelColor = colorScheme.onSecondaryContainer,
-                                    trailingIconColor = colorScheme.onSecondaryContainer,
-                                    selectedContainerColor = colorScheme.secondaryContainer,
-                                    selectedLabelColor = colorScheme.onSecondaryContainer,
-                                    selectedTrailingIconColor = colorScheme.onSecondaryContainer
-                                ),
-                                border = null
+                                onRemove = { selectedSubject = "" },
+                                contentDescription = "Fach entfernen"
                             )
                         }
 
-                    selectedDate?.let { date ->
-                        InputChip(
-                            selected = true,
-                            onClick = { showDatePicker = true },
-                            modifier = Modifier.handCursor(),
-                            label = { Text("${date.dayOfMonth}.${date.monthNumber}.${date.year}") },
-                            trailingIcon = {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_close),
-                                    contentDescription = "Datum entfernen",
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            selectedDate = null
-                                        }
-                                        .handCursor()
-                                )
-                            },
-                            colors = InputChipDefaults.inputChipColors(
-                                containerColor = colorScheme.secondaryContainer,
-                                labelColor = colorScheme.onSecondaryContainer,
-                                trailingIconColor = colorScheme.onSecondaryContainer,
-                                selectedContainerColor = colorScheme.secondaryContainer,
-                                selectedLabelColor = colorScheme.onSecondaryContainer,
-                                selectedTrailingIconColor = colorScheme.onSecondaryContainer
-                            ),
-                            border = null
-                        )
-                    }
-                    if (selectedHour != null && selectedMinute != null) {
-                        InputChip(
-                            selected = true,
-                            onClick = { showTimePicker = true },
-                            modifier = Modifier.handCursor(),
-                            label = {
-                                Text(
-                                    "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} Uhr"
-                                )
-                            },
-                            trailingIcon = {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_close),
-                                    contentDescription = "Uhrzeit entfernen",
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            selectedHour = null
-                                            selectedMinute = null
-                                        }
-                                        .handCursor()
-                                )
-                            },
-                            colors = InputChipDefaults.inputChipColors(
-                                containerColor = colorScheme.secondaryContainer,
-                                labelColor = colorScheme.onSecondaryContainer,
-                                trailingIconColor = colorScheme.onSecondaryContainer,
-                                selectedContainerColor = colorScheme.secondaryContainer,
-                                selectedLabelColor = colorScheme.onSecondaryContainer,
-                                selectedTrailingIconColor = colorScheme.onSecondaryContainer
-                            ),
-                            border = null
-                        )
+                        selectedDate?.let { date ->
+                            NewTaskChip(
+                                text = date.formattedCompletedGerman(),
+                                onClick = { showDatePicker = true },
+                                onRemove = { selectedDate = null },
+                                contentDescription = "Datum entfernen"
+                            )
+                        }
+
+                        if (selectedHour != null && selectedMinute != null) {
+                            NewTaskChip(
+                                text = "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')} Uhr",
+                                onClick = { showTimePicker = true },
+                                onRemove = {
+                                    selectedHour = null
+                                    selectedMinute = null
+                                },
+                                contentDescription = "Uhrzeit entfernen"
+                            )
+                        }
                     }
                 }
-            }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -431,9 +360,7 @@ fun NewTaskBottomSheet(
                                 val dueTimeString = if (selectedHour != null && selectedMinute != null) {
                                     "${selectedHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}"
                                 } else ""
-                                val dueDateString = selectedDate?.let {
-                                    "${it.dayOfMonth}.${it.monthNumber}.${it.year}"
-                                } ?: ""
+                                val dueDateString = selectedDate?.formattedCompletedGerman() ?: ""
 
                                 val newTask = TaskItem(
                                     id = getCurrentEpochMillis().toString(),
@@ -496,5 +423,66 @@ fun NewTaskBottomSheet(
             },
             onDismissRequest = { showTimePicker = false }
         )
+    }
+}
+
+/**
+ * Kompakter, gerahmter Chip für Fach, Zeit und Datum beim Erstellen einer Aufgabe.
+ * Entspricht dem Design mit 8.dp abgerundeten Ecken, feinem Rahmen, Primärfarb-Akzent
+ * und integriertem Schließen-Icon.
+ */
+@Composable
+private fun NewTaskChip(
+    text: String,
+    onClick: () -> Unit,
+    onRemove: () -> Unit,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, colorScheme.primary.copy(alpha = 0.45f)),
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = true)
+                    ) { onClick() }
+                    .padding(start = 12.dp, top = 6.dp, end = 4.dp, bottom = 6.dp)
+                    .handCursor()
+            ) {
+                Text(
+                    text = text,
+                    fontFamily = getGoogleSansFlexFontFamily(),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.primary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(bounded = false, radius = 14.dp)
+                    ) { onRemove() }
+                    .padding(start = 4.dp, top = 6.dp, end = 10.dp, bottom = 6.dp)
+                    .handCursor(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_close),
+                    contentDescription = contentDescription,
+                    tint = colorScheme.primary.copy(alpha = 0.85f),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
     }
 }

@@ -19,7 +19,7 @@ class ApkManifestParserTest {
         val info = ApkManifestParser.parse(apkFile)
         assertNotNull(info)
         assertEquals("de.kjltowinkler.msapp", info.packageName)
-        assertEquals(3, info.versionCode)
-        assertEquals("1.0.2", info.versionName)
+        assertEquals(6, info.versionCode)
+        assertEquals("1.0.5", info.versionName)
     }
 }

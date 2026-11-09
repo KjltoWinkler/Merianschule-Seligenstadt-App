@@ -32,6 +32,7 @@ object AppUpdateManager {
                 val status = if (info.versionCode > currentCode) {
                     UpdateCheckStatus.UpdateAvailable(info)
                 } else {
+                    _downloadStatus.value = UpdateDownloadStatus.Idle
                     UpdateCheckStatus.UpToDate
                 }
                 _checkStatus.value = status

@@ -1,8 +1,8 @@
 {
-    "versionCode": 1,
-    "versionName": "1.0.0",
+    "versionCode": 6,
+    "versionName": "1.0.5",
     "downloadUrl": "/api/app/download/latest.apk",
-    "releaseNotes": "• Merianschule Seligenstadt App - Initiale Version mit Stundenplan, Vertretungsplan und Aufgaben",
-    "fileSizeBytes": 32972849,
-    "publishedAt": 1793641542036
+    "releaseNotes": "• Merianschule Seligenstadt App - Update v1.0.5 mit Performance- und Synchronisationsoptimierungen",
+    "fileSizeBytes": 33039560,
+    "publishedAt": 1793970000000
 }

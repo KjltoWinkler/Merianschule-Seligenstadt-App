@@ -207,6 +207,18 @@ fun Route.appUpdateRoutes() {
             val current = AppUpdateRepository.getUpdateInfo()
             val apk = AppUpdateRepository.getApkFile()
 
+            val parsedManifest = if (apk.exists()) de.kjltowinkler.msapp.server.util.ApkManifestParser.parse(apk) else null
+            if (parsedManifest != null && (parsedManifest.versionCode != req.versionCode || parsedManifest.versionName != req.versionName.trim())) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    SimpleApiResponse(
+                        false,
+                        "Die auf dem Server liegende APK hat Version ${parsedManifest.versionName} (Build ${parsedManifest.versionCode}). Die Versionsangaben müssen mit der vorhandenen APK übereinstimmen."
+                    )
+                )
+                return@post
+            }
+
             val updated = current.copy(
                 versionCode = req.versionCode,
                 versionName = req.versionName.trim(),
@@ -241,6 +253,18 @@ fun Route.appUpdateRoutes() {
 
             if (!apk.exists()) {
                 call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Keine APK-Datei auf dem Server vorhanden. Bitte lade zuerst eine APK hoch."))
+                return@post
+            }
+
+            val parsedManifest = de.kjltowinkler.msapp.server.util.ApkManifestParser.parse(apk)
+            if (parsedManifest != null && (parsedManifest.versionCode != req.versionCode || parsedManifest.versionName != req.versionName.trim())) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    SimpleApiResponse(
+                        false,
+                        "Die auf dem Server liegende APK hat Version ${parsedManifest.versionName} (Build ${parsedManifest.versionCode}). Bitte lade zuerst die passende APK für Build ${req.versionCode} (${req.versionName}) hoch!"
+                    )
+                )
                 return@post
             }
 

@@ -96,6 +96,14 @@ actual object PlatformAppUpdater {
         runCatching {
             val context = AppContextProvider.context
             val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
+
+            // Alte zwischengespeicherte APKs im Update-Ordner restlos entfernen
+            updatesDir.listFiles()?.forEach { file ->
+                if (file.isFile && file.name.endsWith(".apk", ignoreCase = true)) {
+                    file.delete()
+                }
+            }
+
             val cleanVersionName = updateInfo.versionName.replace(Regex("[^a-zA-Z0-9.-]"), "_")
             val destinationFile = File(updatesDir, "MerianschuleApp-$cleanVersionName.apk")
             if (destinationFile.exists()) destinationFile.delete()
@@ -133,6 +141,22 @@ actual object PlatformAppUpdater {
             }
 
             onProgress(100, downloadedBytes, if (totalBytes > 0) totalBytes else downloadedBytes)
+
+            // Integritäts- und Versionsprüfung der heruntergeladenen APK-Datei
+            val archiveInfo = context.packageManager.getPackageArchiveInfo(destinationFile.absolutePath, 0)
+            if (archiveInfo == null) {
+                destinationFile.delete()
+                throw IllegalStateException("Die heruntergeladene APK-Datei ist ungültig oder beschädigt.")
+            }
+
+            val downloadedCode = PackageInfoCompat.getLongVersionCode(archiveInfo).toInt()
+            val currentCode = currentVersionCode
+            if (downloadedCode <= currentCode) {
+                destinationFile.delete()
+                throw IllegalStateException(
+                    "Die heruntergeladene Version (Build $downloadedCode) ist nicht neuer als die aktuell installierte App (Build $currentCode). Auf dem Server liegt noch eine veraltete APK-Datei."
+                )
+            }
 
             // Installieren direkt anstoßen
             installApk(destinationFile.absolutePath).getOrThrow()
