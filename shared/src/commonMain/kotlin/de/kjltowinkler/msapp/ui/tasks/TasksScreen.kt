@@ -33,6 +33,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
+import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
@@ -381,7 +382,7 @@ fun TasksScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 18.dp, vertical = 18.dp)
+                                .padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 16.dp)
                                 .animateContentSize(
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -408,19 +409,19 @@ fun TasksScreen(
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
                                     IconButton(
                                         onClick = { showSortBottomSheet = true },
                                         modifier = Modifier
-                                            .size(48.dp)
+                                            .size(42.dp)
                                             .handCursor()
                                     ) {
                                         Icon(
                                             painter = painterResource(Res.drawable.ic_swap_vert),
                                             contentDescription = "Sortieren",
                                             tint = colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(26.dp)
                                         )
                                     }
 
@@ -436,14 +437,14 @@ fun TasksScreen(
                                             }
                                         },
                                         modifier = Modifier
-                                            .size(48.dp)
+                                            .size(42.dp)
                                             .handCursor()
                                     ) {
                                         Icon(
                                             painter = painterResource(Res.drawable.ic_more_vert),
                                             contentDescription = "Weitere Optionen",
                                             tint = colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(26.dp)
                                         )
                                     }
                                 }
@@ -468,7 +469,7 @@ fun TasksScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Spacer(modifier = Modifier.height(24.dp))
+                                            Spacer(modifier = Modifier.height(14.dp))
                                             when (tab) {
                                                 TasksTab.Starred -> {
                                                     TaskEmptyState(
@@ -492,7 +493,7 @@ fun TasksScreen(
                                                     )
                                                 }
                                             }
-                                            Spacer(modifier = Modifier.height(18.dp))
+                                            Spacer(modifier = Modifier.height(10.dp))
                                         }
                                     }
                                     TaskListContentState.ALL_DONE -> {
@@ -500,12 +501,60 @@ fun TasksScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
-                                            Spacer(modifier = Modifier.height(18.dp))
+                                            Spacer(modifier = Modifier.height(10.dp))
                                             AllTasksCompletedIllustration()
-                                            Spacer(modifier = Modifier.height(14.dp))
+                                            Spacer(modifier = Modifier.height(8.dp))
                                         }
                                     }
                                     TaskListContentState.HAS_ACTIVE -> {
+                                        val taskGroups = remember(activeTasks, currentSortOption) {
+                                            groupTasksByOption(activeTasks, currentSortOption)
+                                        }
+
+                                        val renderTaskRow: @Composable (TaskItem) -> Unit = { task ->
+                                            var isDisappearing by remember(task.id) { mutableStateOf(false) }
+
+                                            AnimatedVisibility(
+                                                visible = !isDisappearing,
+                                                enter = fadeIn(animationSpec = tween(180)) + expandVertically(animationSpec = tween(180, easing = FastOutSlowInEasing)),
+                                                exit = fadeOut(animationSpec = tween(130)) + shrinkVertically(animationSpec = tween(150, easing = FastOutSlowInEasing))
+                                            ) {
+                                                ActiveTaskRowItem(
+                                                    task = task,
+                                                    onToggleComplete = { circleCoords ->
+                                                        try {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                                                        } catch (_: Exception) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                        }
+                                                        val root = rootCoordinates
+                                                        val localOrigin = if (root != null && root.isAttached && circleCoords.isAttached) {
+                                                            val circleCenter = Offset(
+                                                                circleCoords.size.width / 2f,
+                                                                circleCoords.size.height / 2f
+                                                            )
+                                                            root.localPositionOf(circleCoords, circleCenter)
+                                                        } else {
+                                                            val pos = circleCoords.positionInRoot()
+                                                            Offset(pos.x + circleCoords.size.width / 2f, pos.y + circleCoords.size.height / 2f)
+                                                        }
+                                                        val nextId = ++burstCounter
+                                                        activeBursts = activeBursts + ConfettiBurst(
+                                                            id = nextId,
+                                                            origin = localOrigin
+                                                        )
+                                                        isDisappearing = true
+                                                        coroutineScope.launch {
+                                                            delay(140)
+                                                            TasksRepository.toggleCompleted(task.id)
+                                                        }
+                                                    },
+                                                    onToggleStarred = { TasksRepository.toggleStarred(task.id) },
+                                                    onTaskClick = { selectedTaskForEdit = task }
+                                                )
+                                            }
+                                        }
+
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -515,50 +564,43 @@ fun TasksScreen(
                                                         stiffness = Spring.StiffnessMedium
                                                     )
                                                 ),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
-                                            Spacer(modifier = Modifier.height(10.dp))
-                                            activeTasks.forEach { task ->
-                                                var isDisappearing by remember(task.id) { mutableStateOf(false) }
-
-                                                AnimatedVisibility(
-                                                    visible = !isDisappearing,
-                                                    enter = fadeIn(animationSpec = tween(180)) + expandVertically(animationSpec = tween(180, easing = FastOutSlowInEasing)),
-                                                    exit = fadeOut(animationSpec = tween(130)) + shrinkVertically(animationSpec = tween(150, easing = FastOutSlowInEasing))
-                                                ) {
-                                                    ActiveTaskRowItem(
-                                                        task = task,
-                                                        onToggleComplete = { circleCoords ->
-                                                            try {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                                                            } catch (_: Exception) {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                                            }
-                                                            val root = rootCoordinates
-                                                            val localOrigin = if (root != null && root.isAttached && circleCoords.isAttached) {
-                                                                val circleCenter = Offset(
-                                                                    circleCoords.size.width / 2f,
-                                                                    circleCoords.size.height / 2f
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            if (taskGroups != null) {
+                                                taskGroups.forEachIndexed { groupIndex, group ->
+                                                    if (group.title.isNotBlank()) {
+                                                        val headerColor = when {
+                                                            group.isErrorColor -> colorScheme.error
+                                                            group.title == "Kein Datum" -> colorScheme.onSurfaceVariant
+                                                            currentSortOption == TaskSortOption.DATE -> colorScheme.primary
+                                                            else -> colorScheme.onSurface
+                                                        }
+                                                        Text(
+                                                            text = group.title,
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = headerColor,
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(
+                                                                    start = 4.dp,
+                                                                    top = if (groupIndex == 0) 4.dp else 14.dp,
+                                                                    bottom = 2.dp
                                                                 )
-                                                                root.localPositionOf(circleCoords, circleCenter)
-                                                            } else {
-                                                                val pos = circleCoords.positionInRoot()
-                                                                Offset(pos.x + circleCoords.size.width / 2f, pos.y + circleCoords.size.height / 2f)
-                                                            }
-                                                            val nextId = ++burstCounter
-                                                            activeBursts = activeBursts + ConfettiBurst(
-                                                                id = nextId,
-                                                                origin = localOrigin
-                                                            )
-                                                            isDisappearing = true
-                                                            coroutineScope.launch {
-                                                                delay(140)
-                                                                TasksRepository.toggleCompleted(task.id)
-                                                            }
-                                                        },
-                                                        onToggleStarred = { TasksRepository.toggleStarred(task.id) },
-                                                        onTaskClick = { selectedTaskForEdit = task }
-                                                    )
+                                                        )
+                                                    }
+                                                    group.tasks.forEach { task ->
+                                                        key(task.id) {
+                                                            renderTaskRow(task)
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                activeTasks.forEach { task ->
+                                                    key(task.id) {
+                                                        renderTaskRow(task)
+                                                    }
                                                 }
                                             }
                                         }
@@ -588,7 +630,7 @@ fun TasksScreen(
                         )
                     ) {
                         Column {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
 
                             var isErledigtExpanded by rememberSaveable(page) { mutableStateOf(false) }
 
@@ -614,7 +656,7 @@ fun TasksScreen(
                                             .handCursor()
                                             .clickable { isErledigtExpanded = !isErledigtExpanded }
                                             .padding(horizontal = 18.dp)
-                                            .padding(top = 16.dp, bottom = if (isErledigtExpanded) 10.dp else 16.dp),
+                                            .padding(top = 12.dp, bottom = if (isErledigtExpanded) 8.dp else 12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -635,7 +677,7 @@ fun TasksScreen(
                                             contentDescription = if (isErledigtExpanded) "Einklappen" else "Ausklappen",
                                             tint = colorScheme.onSurfaceVariant,
                                             modifier = Modifier
-                                                .size(24.dp)
+                                                .size(26.dp)
                                                 .rotate(rotationAngle)
                                         )
                                     }
@@ -655,8 +697,8 @@ fun TasksScreen(
                                                     )
                                                 )
                                                 .padding(horizontal = 18.dp)
-                                                .padding(bottom = 16.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                .padding(bottom = 12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
                                         ) {
                                             completedTasks.forEach { task ->
                                                 var isReactivating by remember(task.id) { mutableStateOf(false) }

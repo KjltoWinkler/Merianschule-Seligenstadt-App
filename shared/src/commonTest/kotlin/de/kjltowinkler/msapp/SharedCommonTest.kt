@@ -5,10 +5,16 @@ import de.kjltowinkler.msapp.data.task.TasksRepository
 import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.ui.tasks.TaskSortOption
 import de.kjltowinkler.msapp.ui.tasks.sortedByOption
+import de.kjltowinkler.msapp.ui.tasks.groupTasksByOption
+import de.kjltowinkler.msapp.ui.tasks.groupTasksByDate
+import de.kjltowinkler.msapp.ui.tasks.groupTasksByDeadline
+import de.kjltowinkler.msapp.ui.tasks.groupTasksByStarred
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertNull
+import kotlin.test.assertNotNull
 
 class SharedCommonTest {
 
@@ -694,5 +700,64 @@ class SharedCommonTest {
                 getLessonsForDay = customLessons
             )
         )
+    }
+
+    @Test
+    fun testTaskGroupingByOption() {
+        val today = de.kjltowinkler.msapp.data.task.getTodayDate()
+        val yesterday = today.minusDays(1)
+        val tomorrow = today.plusDays(1)
+        val future = today.plusDays(5)
+
+        val taskYesterday = TaskItem(id = "t_yesterday", title = "Gestern fällig", dueDate = yesterday.toIsoString())
+        val taskToday = TaskItem(id = "t_today", title = "Heute fällig", dueDate = today.toIsoString())
+        val taskTomorrow = TaskItem(id = "t_tomorrow", title = "Morgen fällig", dueDate = tomorrow.toIsoString())
+        val taskFuture = TaskItem(id = "t_future", title = "In 5 Tagen fällig", dueDate = future.toIsoString())
+        val taskNoDate = TaskItem(id = "t_no_date", title = "Ohne Datum")
+
+        val allTasks = listOf(taskYesterday, taskToday, taskTomorrow, taskFuture, taskNoDate)
+
+        // 1. Gruppierung nach DATE
+        val dateGroups = groupTasksByOption(allTasks, TaskSortOption.DATE)
+        assertNotNull(dateGroups)
+        assertEquals(5, dateGroups.size)
+        assertEquals("Vergangenheit", dateGroups[0].title)
+        assertTrue(dateGroups[0].isErrorColor)
+        assertEquals(listOf("t_yesterday"), dateGroups[0].tasks.map { it.id })
+
+        assertEquals("Heute", dateGroups[1].title)
+        assertFalse(dateGroups[1].isErrorColor)
+        assertEquals(listOf("t_today"), dateGroups[1].tasks.map { it.id })
+
+        assertEquals("Morgen", dateGroups[2].title)
+        assertFalse(dateGroups[2].isErrorColor)
+        assertEquals(listOf("t_tomorrow"), dateGroups[2].tasks.map { it.id })
+
+        assertEquals(future.formattedCompletedGerman(), dateGroups[3].title)
+        assertEquals(listOf("t_future"), dateGroups[3].tasks.map { it.id })
+
+        assertEquals("Kein Datum", dateGroups[4].title)
+        assertEquals(listOf("t_no_date"), dateGroups[4].tasks.map { it.id })
+
+        // 2. Gruppierung nach DEADLINE
+        val deadlineGroups = groupTasksByOption(allTasks, TaskSortOption.DEADLINE)
+        assertNotNull(deadlineGroups)
+        assertTrue(deadlineGroups.any { it.title == "Keine Frist" })
+        assertTrue(deadlineGroups.any { it.title.startsWith("Fällig am ") })
+
+        // 3. Gruppierung nach RECENTLY_STARRED
+        val starredTask = TaskItem(id = "t_starred", title = "Wichtig", isStarred = true)
+        val unstarredTask = TaskItem(id = "t_unstarred", title = "Normal", isStarred = false)
+        val starGroups = groupTasksByOption(listOf(starredTask, unstarredTask), TaskSortOption.RECENTLY_STARRED)
+        assertNotNull(starGroups)
+        assertEquals(2, starGroups.size)
+        assertEquals("Markiert", starGroups[0].title)
+        assertEquals(listOf("t_starred"), starGroups[0].tasks.map { it.id })
+        assertEquals("Nicht markiert", starGroups[1].title)
+        assertEquals(listOf("t_unstarred"), starGroups[1].tasks.map { it.id })
+
+        // 4. Keine Gruppierung bei TITLE und MY_ORDER
+        assertNull(groupTasksByOption(allTasks, TaskSortOption.TITLE))
+        assertNull(groupTasksByOption(allTasks, TaskSortOption.MY_ORDER))
     }
 }
