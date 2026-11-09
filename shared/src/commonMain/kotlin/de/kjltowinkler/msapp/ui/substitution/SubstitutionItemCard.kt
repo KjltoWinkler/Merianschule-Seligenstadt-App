@@ -1,12 +1,8 @@
 package de.kjltowinkler.msapp.ui.substitution
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,9 +58,13 @@ fun SubstitutionItemCard(
     }
 
     val defaultContainerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()
-    val highlightTargetColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+    val highlightTargetColor = lerp(
+        defaultContainerColor,
+        MaterialTheme.colorScheme.primary,
+        0.12f
+    )
 
-    val cardBg by androidx.compose.animation.animateColorAsState(
+    val cardBg by animateColorAsState(
         targetValue = if (isHighlighted) highlightTargetColor else defaultContainerColor,
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "SubstitutionCardBg"

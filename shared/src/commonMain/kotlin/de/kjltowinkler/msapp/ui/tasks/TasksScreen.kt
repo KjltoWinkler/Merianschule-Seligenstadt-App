@@ -654,11 +654,10 @@ fun TasksScreen(
                                                     ActiveTaskRowItem(
                                                         task = task,
                                                         onToggleComplete = { circleCoords ->
+                                                            de.kjltowinkler.msapp.util.PlatformHaptics.performTaskCompletedHaptic()
                                                             try {
                                                                 haptic.performHapticFeedback(HapticFeedbackType.Confirm)
-                                                            } catch (_: Exception) {
-                                                                haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                                            }
+                                                            } catch (_: Exception) {}
                                                             val root = rootCoordinates
                                                             val localOrigin = if (root != null && root.isAttached && circleCoords.isAttached) {
                                                                 val circleCenter = Offset(

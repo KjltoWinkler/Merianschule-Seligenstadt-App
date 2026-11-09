@@ -428,8 +428,7 @@ fun NewTaskBottomSheet(
 
 /**
  * Kompakter, gerahmter Chip für Fach, Zeit und Datum beim Erstellen einer Aufgabe.
- * Entspricht dem Design mit 8.dp abgerundeten Ecken, feinem Rahmen, Primärfarb-Akzent
- * und integriertem Schließen-Icon.
+ * Schlank in der Höhe, dezent grau gehalten für Text, Icon und Umrandung.
  */
 @Composable
 private fun NewTaskChip(
@@ -443,7 +442,7 @@ private fun NewTaskChip(
     Surface(
         shape = RoundedCornerShape(8.dp),
         color = Color.Transparent,
-        border = BorderStroke(1.dp, colorScheme.primary.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, colorScheme.outline.copy(alpha = 0.65f)),
         modifier = modifier
     ) {
         Row(
@@ -455,32 +454,32 @@ private fun NewTaskChip(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = ripple(bounded = true)
                     ) { onClick() }
-                    .padding(start = 12.dp, top = 6.dp, end = 4.dp, bottom = 6.dp)
+                    .padding(start = 10.dp, top = 3.dp, end = 3.dp, bottom = 3.dp)
                     .handCursor()
             ) {
                 Text(
                     text = text,
                     fontFamily = getGoogleSansFlexFontFamily(),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colorScheme.primary
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colorScheme.onSurfaceVariant
                 )
             }
             Box(
                 modifier = Modifier
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(bounded = false, radius = 14.dp)
+                        indication = ripple(bounded = false, radius = 12.dp)
                     ) { onRemove() }
-                    .padding(start = 4.dp, top = 6.dp, end = 10.dp, bottom = 6.dp)
+                    .padding(start = 2.dp, top = 3.dp, end = 8.dp, bottom = 3.dp)
                     .handCursor(),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(Res.drawable.ic_close),
                     contentDescription = contentDescription,
-                    tint = colorScheme.primary.copy(alpha = 0.85f),
-                    modifier = Modifier.size(14.dp)
+                    tint = colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                    modifier = Modifier.size(13.dp)
                 )
             }
         }
