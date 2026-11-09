@@ -181,10 +181,10 @@ fun groupTasksByDeadline(tasks: List<TaskItem>): List<TaskGroup> {
 
 /**
  * Gruppiert Aufgaben nach "Vor Kurzem markiert":
- * - "Markiert" (mit Stern markierte Aufgaben)
+ * - "Vor Kurzem markiert" (im Markiert-Tab) bzw. "Markiert" (in anderen Listen)
  * - "Nicht markiert" (nicht markierte Aufgaben)
  */
-fun groupTasksByStarred(tasks: List<TaskItem>): List<TaskGroup> {
+fun groupTasksByStarred(tasks: List<TaskItem>, isStarredTab: Boolean = false): List<TaskGroup> {
     if (tasks.isEmpty()) return emptyList()
 
     val starredTasks = tasks.filter { it.isStarred }
@@ -192,7 +192,8 @@ fun groupTasksByStarred(tasks: List<TaskItem>): List<TaskGroup> {
 
     val groups = mutableListOf<TaskGroup>()
     if (starredTasks.isNotEmpty()) {
-        groups.add(TaskGroup(title = "Markiert", isErrorColor = false, tasks = starredTasks))
+        val title = if (isStarredTab) "Vor Kurzem markiert" else "Markiert"
+        groups.add(TaskGroup(title = title, isErrorColor = false, tasks = starredTasks))
     }
     if (unstarredTasks.isNotEmpty()) {
         groups.add(TaskGroup(title = "Nicht markiert", isErrorColor = false, tasks = unstarredTasks))
@@ -205,11 +206,15 @@ fun groupTasksByStarred(tasks: List<TaskItem>): List<TaskGroup> {
  * Liefert die Gruppenaufteilung für eine Aufgabenliste anhand der gewählten Sortierung,
  * oder null, wenn keine Indikatoren angezeigt werden sollen (z. B. Titel oder Meine Reihenfolge).
  */
-fun groupTasksByOption(tasks: List<TaskItem>, option: TaskSortOption): List<TaskGroup>? {
+fun groupTasksByOption(
+    tasks: List<TaskItem>,
+    option: TaskSortOption,
+    isStarredTab: Boolean = false
+): List<TaskGroup>? {
     return when (option) {
         TaskSortOption.DATE -> groupTasksByDate(tasks)
         TaskSortOption.DEADLINE -> groupTasksByDeadline(tasks)
-        TaskSortOption.RECENTLY_STARRED -> groupTasksByStarred(tasks)
+        TaskSortOption.RECENTLY_STARRED -> groupTasksByStarred(tasks, isStarredTab)
         TaskSortOption.TITLE, TaskSortOption.MY_ORDER -> null
     }
 }

@@ -745,10 +745,10 @@ class SharedCommonTest {
         assertTrue(deadlineGroups.any { it.title == "Keine Frist" })
         assertTrue(deadlineGroups.any { it.title.startsWith("Fällig am ") })
 
-        // 3. Gruppierung nach RECENTLY_STARRED
+        // 3. Gruppierung nach RECENTLY_STARRED (Standard-Listen vs. Markiert-Tab)
         val starredTask = TaskItem(id = "t_starred", title = "Wichtig", isStarred = true)
         val unstarredTask = TaskItem(id = "t_unstarred", title = "Normal", isStarred = false)
-        val starGroups = groupTasksByOption(listOf(starredTask, unstarredTask), TaskSortOption.RECENTLY_STARRED)
+        val starGroups = groupTasksByOption(listOf(starredTask, unstarredTask), TaskSortOption.RECENTLY_STARRED, isStarredTab = false)
         assertNotNull(starGroups)
         assertEquals(2, starGroups.size)
         assertEquals("Markiert", starGroups[0].title)
@@ -756,8 +756,53 @@ class SharedCommonTest {
         assertEquals("Nicht markiert", starGroups[1].title)
         assertEquals(listOf("t_unstarred"), starGroups[1].tasks.map { it.id })
 
+        // Im Markiert-Tab soll die Überschrift "Vor Kurzem markiert" heißen statt "Markiert"
+        val starTabGroups = groupTasksByOption(listOf(starredTask), TaskSortOption.RECENTLY_STARRED, isStarredTab = true)
+        assertNotNull(starTabGroups)
+        assertEquals(1, starTabGroups.size)
+        assertEquals("Vor Kurzem markiert", starTabGroups[0].title)
+        assertEquals(listOf("t_starred"), starTabGroups[0].tasks.map { it.id })
+
         // 4. Keine Gruppierung bei TITLE und MY_ORDER
         assertNull(groupTasksByOption(allTasks, TaskSortOption.TITLE))
         assertNull(groupTasksByOption(allTasks, TaskSortOption.MY_ORDER))
+    }
+
+    @Test
+    fun testMoveTaskAndReorderTasks() {
+        TasksRepository.clearAndReset()
+
+        val task1 = TaskItem(id = "reorder_t1", title = "Task 1", listId = "my_tasks")
+        val task2 = TaskItem(id = "reorder_t2", title = "Task 2", listId = "my_tasks")
+        val task3 = TaskItem(id = "reorder_t3", title = "Task 3", listId = "my_tasks")
+        val otherTask = TaskItem(id = "reorder_other", title = "Other List", listId = "other_list")
+
+        TasksRepository.addTask(task1)
+        TasksRepository.addTask(otherTask)
+        TasksRepository.addTask(task2)
+        TasksRepository.addTask(task3)
+
+        // Initial tasks list in _tasks: [task3, task2, otherTask, task1] (since addTask inserts at index 0)
+        assertEquals(listOf("reorder_t3", "reorder_t2", "reorder_other", "reorder_t1"), TasksRepository.tasks.map { it.id })
+
+        // 1. Move task3 downwards past task2
+        TasksRepository.moveTask("reorder_t3", "reorder_t2")
+        assertEquals(listOf("reorder_t2", "reorder_t3", "reorder_other", "reorder_t1"), TasksRepository.tasks.map { it.id })
+
+        // 2. Move task1 upwards before task3
+        TasksRepository.moveTask("reorder_t1", "reorder_t3")
+        assertEquals(listOf("reorder_t2", "reorder_t1", "reorder_t3", "reorder_other"), TasksRepository.tasks.map { it.id })
+
+        // 3. Reorder subset: only tasks belonging to my_tasks [reorder_t3, reorder_t2, reorder_t1]
+        // Note: reorder_other should stay at its relative index
+        val subset = listOf(
+            task3,
+            task2,
+            task1
+        )
+        TasksRepository.reorderTasks(subset)
+        assertEquals(listOf("reorder_t3", "reorder_t2", "reorder_t1", "reorder_other"), TasksRepository.tasks.map { it.id })
+
+        TasksRepository.clearAndReset()
     }
 }

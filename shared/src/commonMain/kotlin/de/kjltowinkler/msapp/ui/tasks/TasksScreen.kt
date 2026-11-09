@@ -507,8 +507,8 @@ fun TasksScreen(
                                         }
                                     }
                                     TaskListContentState.HAS_ACTIVE -> {
-                                        val taskGroups = remember(activeTasks, currentSortOption) {
-                                            groupTasksByOption(activeTasks, currentSortOption)
+                                        val taskGroups = remember(activeTasks, currentSortOption, tab) {
+                                            groupTasksByOption(activeTasks, currentSortOption, isStarredTab = tab is TasksTab.Starred)
                                         }
 
                                         val renderTaskRow: @Composable (TaskItem) -> Unit = { task ->

@@ -522,6 +522,46 @@ object TasksRepository {
         saveToCache()
     }
 
+    fun moveTask(fromTaskId: String, toTaskId: String) {
+        if (fromTaskId == toTaskId) return
+        val fromIndex = _tasks.indexOfFirst { it.id == fromTaskId }
+        val toIndex = _tasks.indexOfFirst { it.id == toTaskId }
+        if (fromIndex != -1 && toIndex != -1) {
+            val item = _tasks.removeAt(fromIndex)
+            val newTargetIndex = _tasks.indexOfFirst { it.id == toTaskId }
+            if (fromIndex < toIndex) {
+                _tasks.add(newTargetIndex + 1, item)
+            } else {
+                _tasks.add(newTargetIndex, item)
+            }
+            _dirtyTaskIds.add(fromTaskId)
+            saveToCache()
+            triggerBackgroundSync()
+        }
+    }
+
+    fun reorderTasks(orderedSubset: List<TaskItem>) {
+        if (orderedSubset.size <= 1) return
+        val subsetIds = orderedSubset.map { it.id }.toSet()
+        val positions = _tasks.mapIndexedNotNull { index, task ->
+            if (task.id in subsetIds) index else null
+        }
+        if (positions.size != orderedSubset.size) return
+        var changed = false
+        orderedSubset.forEachIndexed { i, task ->
+            val pos = positions[i]
+            if (_tasks[pos].id != task.id) {
+                _tasks[pos] = task
+                _dirtyTaskIds.add(task.id)
+                changed = true
+            }
+        }
+        if (changed) {
+            saveToCache()
+            triggerBackgroundSync()
+        }
+    }
+
     fun createPrivateList(title: String): TaskList {
         val now = getCurrentEpochMillis()
         val id = "list_${(100000..999999).random()}"
