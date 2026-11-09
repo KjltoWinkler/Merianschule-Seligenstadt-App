@@ -749,18 +749,17 @@ class SharedCommonTest {
         assertTrue(deadlineGroups.any { it.title == "Keine Frist" })
         assertTrue(deadlineGroups.any { it.title.startsWith("Fällig am ") })
 
-        // 3. Gruppierung nach RECENTLY_STARRED (Standard-Listen vs. Markiert-Tab)
+        // 3. Gruppierung nach RECENTLY_STARRED (in allen Tabs "Vor Kurzem markiert")
         val starredTask = TaskItem(id = "t_starred", title = "Wichtig", isStarred = true)
         val unstarredTask = TaskItem(id = "t_unstarred", title = "Normal", isStarred = false)
         val starGroups = groupTasksByOption(listOf(starredTask, unstarredTask), TaskSortOption.RECENTLY_STARRED, isStarredTab = false)
         assertNotNull(starGroups)
         assertEquals(2, starGroups.size)
-        assertEquals("Markiert", starGroups[0].title)
+        assertEquals("Vor Kurzem markiert", starGroups[0].title)
         assertEquals(listOf("t_starred"), starGroups[0].tasks.map { it.id })
         assertEquals("Nicht markiert", starGroups[1].title)
         assertEquals(listOf("t_unstarred"), starGroups[1].tasks.map { it.id })
 
-        // Im Markiert-Tab soll die Überschrift "Vor Kurzem markiert" heißen statt "Markiert"
         val starTabGroups = groupTasksByOption(listOf(starredTask), TaskSortOption.RECENTLY_STARRED, isStarredTab = true)
         assertNotNull(starTabGroups)
         assertEquals(1, starTabGroups.size)

@@ -181,7 +181,7 @@ fun groupTasksByDeadline(tasks: List<TaskItem>): List<TaskGroup> {
 
 /**
  * Gruppiert Aufgaben nach "Vor Kurzem markiert":
- * - "Vor Kurzem markiert" (im Markiert-Tab) bzw. "Markiert" (in anderen Listen)
+ * - "Vor Kurzem markiert" (sowohl im Markiert-Tab als auch in allen anderen Listen)
  * - "Nicht markiert" (nicht markierte Aufgaben)
  */
 fun groupTasksByStarred(tasks: List<TaskItem>, isStarredTab: Boolean = false): List<TaskGroup> {
@@ -192,8 +192,7 @@ fun groupTasksByStarred(tasks: List<TaskItem>, isStarredTab: Boolean = false): L
 
     val groups = mutableListOf<TaskGroup>()
     if (starredTasks.isNotEmpty()) {
-        val title = if (isStarredTab) "Vor Kurzem markiert" else "Markiert"
-        groups.add(TaskGroup(title = title, isErrorColor = false, tasks = starredTasks))
+        groups.add(TaskGroup(title = "Vor Kurzem markiert", isErrorColor = false, tasks = starredTasks))
     }
     if (unstarredTasks.isNotEmpty()) {
         groups.add(TaskGroup(title = "Nicht markiert", isErrorColor = false, tasks = unstarredTasks))
