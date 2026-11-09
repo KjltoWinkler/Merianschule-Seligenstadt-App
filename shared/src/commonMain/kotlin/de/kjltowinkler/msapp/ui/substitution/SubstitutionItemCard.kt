@@ -60,27 +60,14 @@ fun SubstitutionItemCard(
         }
     }
 
-    val borderStroke = if (isHighlighted) {
-        val infiniteTransition = rememberInfiniteTransition(label = "SubstitutionHighlightPulse")
-        val alpha by infiniteTransition.animateFloat(
-            initialValue = 0.4f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(600, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "HighlightBorderAlpha"
-        )
-        BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = alpha))
-    } else {
-        null
-    }
+    val defaultContainerColor = de.kjltowinkler.msapp.theme.screenCardContainerColor()
+    val highlightTargetColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
 
-    val cardBg = if (isHighlighted) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.32f)
-    } else {
-        de.kjltowinkler.msapp.theme.screenCardContainerColor()
-    }
+    val cardBg by androidx.compose.animation.animateColorAsState(
+        targetValue = if (isHighlighted) highlightTargetColor else defaultContainerColor,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "SubstitutionCardBg"
+    )
 
     Card(
         modifier = modifier
@@ -90,7 +77,6 @@ fun SubstitutionItemCard(
             .handCursor()
             .clickable { onClick() },
         shape = shape,
-        border = borderStroke,
         colors = CardDefaults.cardColors(
             containerColor = cardBg
         ),

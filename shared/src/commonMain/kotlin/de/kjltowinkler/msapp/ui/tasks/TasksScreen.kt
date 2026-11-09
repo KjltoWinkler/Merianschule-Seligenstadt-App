@@ -1381,31 +1381,19 @@ private fun ActiveTaskRowItem(
         }
     }
 
-    val highlightModifier = if (isHighlighted) {
-        val infiniteTransition = rememberInfiniteTransition(label = "TaskHighlightPulse")
-        val alpha by infiniteTransition.animateFloat(
-            initialValue = 0.4f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(600, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "TaskHighlightAlpha"
-        )
-        Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(colorScheme.primaryContainer.copy(alpha = 0.35f))
-            .border(2.dp, colorScheme.primary.copy(alpha = alpha), RoundedCornerShape(14.dp))
-            .padding(horizontal = 6.dp, vertical = 6.dp)
-    } else {
-        Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-    }
+    val rowBgColor by animateColorAsState(
+        targetValue = if (isHighlighted) colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "TaskRowBgColor"
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(bringIntoViewRequester)
-            .then(highlightModifier),
+            .clip(RoundedCornerShape(12.dp))
+            .background(rowBgColor)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
