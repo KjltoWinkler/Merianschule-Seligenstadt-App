@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
             de.kjltowinkler.msapp.data.update.AppUpdateManager.checkForUpdates()
+            de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.checkForUpdates(forceRefresh = true, notifyIfChanged = true)
         }
     }
 

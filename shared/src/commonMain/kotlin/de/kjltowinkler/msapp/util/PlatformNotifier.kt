@@ -35,5 +35,14 @@ expect object PlatformNotifier {
      * @return true wenn die Benachrichtigung erfolgreich an das System übergeben wurde, sonst false.
      */
     fun sendUpdateNotification(title: String, summary: String, details: List<String> = emptyList()): Boolean
+
+    /**
+     * Sendet eine Push-Benachrichtigung, wenn ein neuer oder aktualisierter Stundenplan vorliegt.
+     */
+    fun sendTimetableNotification(
+        title: String,
+        summary: String,
+        details: List<String> = emptyList()
+    )
 }
 

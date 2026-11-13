@@ -23,9 +23,14 @@ actual object PlatformNotifier {
     private const val UPDATE_CHANNEL_NAME = "App-Updates"
     private const val UPDATE_CHANNEL_DESC = "Benachrichtigungen über neue Versionen und Updates der App"
 
+    private const val TIMETABLE_CHANNEL_ID = "merian_timetable_v1"
+    private const val TIMETABLE_CHANNEL_NAME = "Stundenplan-Aktualisierungen"
+    private const val TIMETABLE_CHANNEL_DESC = "Benachrichtigungen über neue und aktualisierte Stundenpläne"
+
     private var notificationId = 2001
     private var taskNotificationId = 3001
     private const val UPDATE_NOTIFICATION_ID = 4001
+    private var timetableNotificationId = 5001
 
     private fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -81,6 +86,21 @@ actual object PlatformNotifier {
                     lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 }
                 notificationManager.createNotificationChannel(updateChannel)
+            }
+
+            if (notificationManager.getNotificationChannel(TIMETABLE_CHANNEL_ID) == null) {
+                val timetableChannel = NotificationChannel(
+                    TIMETABLE_CHANNEL_ID,
+                    TIMETABLE_CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = TIMETABLE_CHANNEL_DESC
+                    enableVibration(true)
+                    vibrationPattern = longArrayOf(0, 300, 150, 300)
+                    setSound(defaultSoundUri, audioAttributes)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                }
+                notificationManager.createNotificationChannel(timetableChannel)
             }
         }
     }
@@ -297,6 +317,69 @@ actual object PlatformNotifier {
         } catch (e: Throwable) {
             println("PlatformNotifier.android: Fehler beim Senden von Update-Notif: ${e.message}")
             false
+        }
+    }
+
+    actual fun sendTimetableNotification(title: String, summary: String, details: List<String>) {
+        try {
+            val context = AppContextProvider.context
+            ensureChannels(context)
+
+            val currentId = timetableNotificationId++
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("navigate_to", "timetable")
+            }
+            val pendingIntent = if (launchIntent != null) {
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+                PendingIntent.getActivity(context, currentId, launchIntent, flags)
+            } else {
+                null
+            }
+
+            val notifResId = context.resources.getIdentifier("ic_notification", "drawable", context.packageName)
+            val smallIconRes = if (notifResId != 0) notifResId else (context.applicationInfo.icon.takeIf { it != 0 } ?: android.R.drawable.ic_dialog_info)
+            val defaultSoundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+
+            val builder = NotificationCompat.Builder(context, TIMETABLE_CHANNEL_ID)
+                .setSmallIcon(smallIconRes)
+                .setColor(0xFF2E6B4A.toInt())
+                .setContentTitle(title)
+                .setContentText(summary)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setCategory(NotificationCompat.CATEGORY_EVENT)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setSound(defaultSoundUri)
+                .setVibrate(longArrayOf(0, 300, 150, 300))
+                .setAutoCancel(true)
+
+            try {
+                val appIconRes = context.applicationInfo.icon
+                if (appIconRes != 0) {
+                    val largeIcon = android.graphics.BitmapFactory.decodeResource(context.resources, appIconRes)
+                    if (largeIcon != null) {
+                        builder.setLargeIcon(largeIcon)
+                    }
+                }
+            } catch (_: Throwable) {}
+
+            if (pendingIntent != null) {
+                builder.setContentIntent(pendingIntent)
+            }
+
+            if (details.isNotEmpty()) {
+                val bigTextStyle = NotificationCompat.BigTextStyle()
+                    .setBigContentTitle(title)
+                    .setSummaryText("Stundenplan-Aktualisierung")
+                    .bigText(details.joinToString("\n"))
+                builder.setStyle(bigTextStyle)
+            }
+
+            val manager = NotificationManagerCompat.from(context)
+            manager.notify(currentId, builder.build())
+        } catch (e: Throwable) {
+            println("PlatformNotifier.android: Fehler beim Senden von Timetable-Notif: ${e.message}")
         }
     }
 }

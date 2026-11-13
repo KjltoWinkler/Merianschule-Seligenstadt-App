@@ -58,6 +58,16 @@ class SubstitutionSyncWorker(
                 println("SubstitutionSyncWorker: Fehler beim App-Update-Check: ${e.message}")
             }
 
+            // 4. Neuer Stundenplan im Hintergrund prüfen und Push-Benachrichtigung senden
+            try {
+                de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.checkForUpdates(
+                    forceRefresh = true,
+                    notifyIfChanged = true
+                )
+            } catch (e: Throwable) {
+                println("SubstitutionSyncWorker: Fehler beim Stundenplan-Check: ${e.message}")
+            }
+
             Result.success()
         } catch (e: Throwable) {
             println("SubstitutionSyncWorker: Schwerer Fehler im Hintergrund-Worker: ${e.message}")

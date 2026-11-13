@@ -124,6 +124,11 @@ fun TimetableScreen(
 
     LaunchedEffect(Unit) {
         TimetableRepository.loadFromServer()
+        launch {
+            de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.timetableUpdatedEvents.collect {
+                substitutions = de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.loadSubstitutions()
+            }
+        }
     }
 
     val teacherLinkColor = if (useMaterialYou) {
@@ -216,6 +221,10 @@ fun TimetableScreen(
                                 val targetScroll = calculateTargetScroll(targetIndex)
                                 tabScrollState.animateScrollTo(targetScroll)
                             }
+                            de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.checkForUpdates(
+                                forceRefresh = true,
+                                notifyIfChanged = false
+                            )
                             TimetableRepository.loadFromServer()
                             minTimeJob.await()
                         } finally {

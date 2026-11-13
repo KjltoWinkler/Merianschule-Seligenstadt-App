@@ -13,5 +13,9 @@ actual object PlatformNotifier {
         println("[iOS Update Notification] $title: $summary (${details.joinToString("; ")})")
         return true
     }
+
+    actual fun sendTimetableNotification(title: String, summary: String, details: List<String>) {
+        println("[iOS Timetable Notification] $title: $summary (${details.joinToString("; ")})")
+    }
 }
 

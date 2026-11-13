@@ -378,6 +378,7 @@ fun Route.adminRoutes() {
                 }
                 val success = TimetableServerRepository.deleteClassTimetable(className)
                 if (success) {
+                    TaskWebSocketManager.broadcastTimetableUpdate(className)
                     call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Stundenplan für Klasse $className gelöscht."))
                 } else {
                     call.respond(HttpStatusCode.NotFound, SimpleApiResponse(false, "Stundenplan nicht gefunden."))
@@ -404,6 +405,7 @@ fun Route.adminRoutes() {
                         validFor = timetableDto.validFor,
                         rawJsonContent = rawText
                     )
+                    TaskWebSocketManager.broadcastTimetableUpdate(timetableDto.className)
                     call.respond(HttpStatusCode.OK, AdminStatusResponse(
                         success = true,
                         message = "Stundenplan für Klasse ${timetableDto.className} erfolgreich gespeichert ($count Stunden hinterlegt).",
@@ -460,6 +462,7 @@ fun Route.adminRoutes() {
                             days = timetable.days,
                             validFor = timetable.validFor
                         )
+                        TaskWebSocketManager.broadcastTimetableUpdate(timetable.className)
                     }
 
                     call.respond(HttpStatusCode.OK, de.kjltowinkler.msapp.data.sync.GeminiTimetableScanResponse(

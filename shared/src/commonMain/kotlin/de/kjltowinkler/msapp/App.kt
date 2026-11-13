@@ -251,9 +251,11 @@ fun App() {
                 // Realtime WebSocket & periodischen Sync direkt beim Start aktivieren
                 de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.initializeRealtimeListener()
                 de.kjltowinkler.msapp.data.substitution.SubstitutionSyncManager.startPeriodicSync()
+                de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.initializeRealtimeListener()
 
-                // Prüft auf neue App-Updates und benachrichtigt bei neuer Version
+                // Prüft auf neue App-Updates und Stundenplan-Aktualisierungen
                 de.kjltowinkler.msapp.data.update.AppUpdateManager.checkAndNotifyUpdate()
+                de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.checkForUpdates(forceRefresh = true, notifyIfChanged = true)
 
                 val pendingNav = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_navigate_to")
                 val pendingHighlight = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_highlight_id")

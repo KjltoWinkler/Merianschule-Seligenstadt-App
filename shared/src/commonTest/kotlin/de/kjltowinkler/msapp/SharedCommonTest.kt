@@ -769,6 +769,42 @@ class SharedCommonTest {
         // 4. Keine Gruppierung bei TITLE und MY_ORDER
         assertNull(groupTasksByOption(allTasks, TaskSortOption.TITLE))
         assertNull(groupTasksByOption(allTasks, TaskSortOption.MY_ORDER))
+
+        // 5. Gruppierung nach Fach (TaskSortOption.SUBJECT)
+        val mathTask = TaskItem(id = "t_math", title = "Mathe Hausaufgabe", subject = "Mathematik")
+        val germanTask = TaskItem(id = "t_german", title = "Deutsch Aufsatz", subject = "Deutsch")
+        val englishTask = TaskItem(id = "t_english", title = "Englisch Vokabeln", subject = "Englisch")
+        val noSubjectTask = TaskItem(id = "t_none", title = "Einkaufen", subject = "")
+
+        val subjectTasks = listOf(mathTask, noSubjectTask, germanTask, englishTask)
+        val sortedBySubject = subjectTasks.sortedByOption(TaskSortOption.SUBJECT)
+        assertEquals(listOf("Deutsch Aufsatz", "Englisch Vokabeln", "Mathe Hausaufgabe", "Einkaufen"), sortedBySubject.map { it.title })
+
+        val subjectGroups = groupTasksByOption(subjectTasks, TaskSortOption.SUBJECT)
+        assertNotNull(subjectGroups)
+        assertEquals(4, subjectGroups.size)
+        assertEquals("Deutsch", subjectGroups[0].title)
+        assertEquals(listOf("t_german"), subjectGroups[0].tasks.map { it.id })
+        assertEquals("Englisch", subjectGroups[1].title)
+        assertEquals(listOf("t_english"), subjectGroups[1].tasks.map { it.id })
+        assertEquals("Mathematik", subjectGroups[2].title)
+        assertEquals(listOf("t_math"), subjectGroups[2].tasks.map { it.id })
+        assertEquals("Ohne Fach", subjectGroups[3].title)
+        assertEquals(listOf("t_none"), subjectGroups[3].tasks.map { it.id })
+
+        // Test SubjectColor Hessen Standards
+        val darkRed = de.kjltowinkler.msapp.theme.SubjectColor.getColor("Deutsch", isDark = true, fallback = androidx.compose.ui.graphics.Color.White)
+        assertEquals(androidx.compose.ui.graphics.Color(0xFFEF5350), darkRed)
+        val darkBlue = de.kjltowinkler.msapp.theme.SubjectColor.getColor("Mathematik", isDark = true, fallback = androidx.compose.ui.graphics.Color.White)
+        assertEquals(androidx.compose.ui.graphics.Color(0xFF42A5F5), darkBlue)
+        val darkYellow = de.kjltowinkler.msapp.theme.SubjectColor.getColor("Englisch", isDark = true, fallback = androidx.compose.ui.graphics.Color.White)
+        assertEquals(androidx.compose.ui.graphics.Color(0xFFFFD54F), darkYellow)
+        val darkGreen = de.kjltowinkler.msapp.theme.SubjectColor.getColor("Biologie", isDark = true, fallback = androidx.compose.ui.graphics.Color.White)
+        assertEquals(androidx.compose.ui.graphics.Color(0xFF66BB6A), darkGreen)
+        val darkAl = de.kjltowinkler.msapp.theme.SubjectColor.getColor("Arbeitslehre", isDark = true, fallback = androidx.compose.ui.graphics.Color.White)
+        assertEquals(androidx.compose.ui.graphics.Color(0xFFF5F3ED), darkAl)
+        val lightAl = de.kjltowinkler.msapp.theme.SubjectColor.getColor("AL", isDark = false, fallback = androidx.compose.ui.graphics.Color.Black)
+        assertEquals(androidx.compose.ui.graphics.Color(0xFF57534E), lightAl)
     }
 
     @Test
@@ -900,5 +936,39 @@ class SharedCommonTest {
             userClass = "9aR"
         )
         assertNull(notMatched)
+    }
+
+    @Test
+    fun testTimetableApplyDtoAndNotification() {
+        val testDto = de.kjltowinkler.msapp.data.sync.ClassTimetableDto(
+            className = "09AR",
+            days = mapOf(
+                "mon" to listOf(
+                    TimetableLesson(
+                        id = "mon_1_test",
+                        periodNumber = 1,
+                        timeRange = "07:40 - 08:25",
+                        subject = "Deutsch",
+                        room = "B208",
+                        teacherCode = "Af"
+                    )
+                )
+            ),
+            lastUpdated = 1794590962702L,
+            validFor = "2026/7"
+        )
+
+        TimetableRepository.applyTimetableDto(testDto)
+        val mondayLessons = TimetableRepository.getLessonsForDay(TimetableDay.MONTAG)
+        assertEquals(1, mondayLessons.size)
+        assertEquals("Deutsch", mondayLessons[0].subject)
+        assertEquals("Af", mondayLessons[0].teacherCode)
+
+        // Test PlatformNotifier.sendTimetableNotification
+        de.kjltowinkler.msapp.util.PlatformNotifier.sendTimetableNotification(
+            title = "Neuer Stundenplan verfügbar! 📅",
+            summary = "Der Stundenplan für Klasse 09AR wurde aktualisiert.",
+            details = listOf("Klasse: 09AR", "Gültig ab: 2026/7")
+        )
     }
 }

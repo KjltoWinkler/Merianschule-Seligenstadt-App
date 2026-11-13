@@ -694,10 +694,11 @@ object TimetableRepository {
         if (dto.days.isEmpty()) return
         TimetableDay.entries.forEach { dayEnum ->
             val dayLessons = dto.days.entries.firstOrNull { (dayKey, _) ->
-                dayEnum.name.equals(dayKey, ignoreCase = true) ||
-                dayEnum.id.equals(dayKey, ignoreCase = true) ||
-                dayEnum.displayName.equals(dayKey, ignoreCase = true) ||
-                dayEnum.shortName.equals(dayKey, ignoreCase = true)
+                val trimmed = dayKey.trim()
+                dayEnum.name.equals(trimmed, ignoreCase = true) ||
+                dayEnum.id.equals(trimmed, ignoreCase = true) ||
+                dayEnum.displayName.equals(trimmed, ignoreCase = true) ||
+                dayEnum.shortName.equals(trimmed, ignoreCase = true)
             }?.value ?: emptyList()
             val normalizedLessons = dayLessons.map { lesson ->
                 lesson.copy(subject = resolveSubjectName(lesson.subject))

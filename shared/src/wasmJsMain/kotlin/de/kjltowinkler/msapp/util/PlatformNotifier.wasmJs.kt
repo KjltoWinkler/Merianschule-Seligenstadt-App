@@ -13,5 +13,9 @@ actual object PlatformNotifier {
         println("[Web-Update-Benachrichtigung] $title: $summary (${details.joinToString("; ")})")
         return true
     }
+
+    actual fun sendTimetableNotification(title: String, summary: String, details: List<String>) {
+        println("[Web-Stundenplan-Benachrichtigung] $title: $summary (${details.joinToString("; ")})")
+    }
 }
 

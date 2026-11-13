@@ -97,6 +97,7 @@ object BackendApiClient {
     private var onTaskUpdateListener: (suspend () -> Unit)? = null
     private var onSubstitutionUpdateListener: (suspend () -> Unit)? = null
     private var onSettingsUpdateListener: (suspend () -> Unit)? = null
+    private var onTimetableUpdateListener: ((String?) -> Unit)? = null
 
     fun setTaskUpdateListener(listener: (suspend () -> Unit)?) {
         onTaskUpdateListener = listener
@@ -108,6 +109,10 @@ object BackendApiClient {
 
     fun setSettingsUpdateListener(listener: (suspend () -> Unit)?) {
         onSettingsUpdateListener = listener
+    }
+
+    fun setTimetableUpdateListener(listener: ((String?) -> Unit)?) {
+        onTimetableUpdateListener = listener
     }
 
     fun startRealtimeSettingsUpdates(onUpdate: suspend () -> Unit) {
@@ -147,6 +152,10 @@ object BackendApiClient {
                                 }
                                 if (text.contains("substitutions_updated", ignoreCase = true)) {
                                     onSubstitutionUpdateListener?.invoke()
+                                }
+                                if (text.contains("timetable_updated", ignoreCase = true)) {
+                                    val targetClass = Regex("\"className\"\\s*:\\s*\"([^\"]+)\"").find(text)?.groupValues?.getOrNull(1)
+                                    onTimetableUpdateListener?.invoke(targetClass)
                                 }
                                 if (text.contains("settings_updated", ignoreCase = true)) {
                                     val isOwnEcho = text.contains("\"origin\":\"$clientInstanceId\"")
@@ -512,7 +521,11 @@ object BackendApiClient {
     }
 
     suspend fun fetchTimetable(className: String = "09AR"): Result<ClassTimetableDto> = runCatching {
-        val response = client.get("$serverUrl/api/timetable?class=${className.trim()}")
+        val now = de.kjltowinkler.msapp.data.task.getCurrentEpochMillis()
+        val response = client.get("$serverUrl/api/timetable?class=${className.trim()}&_t=$now") {
+            header(io.ktor.http.HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
+            header(io.ktor.http.HttpHeaders.Pragma, "no-cache")
+        }
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             json.decodeFromString<ClassTimetableDto>(body)
