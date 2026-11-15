@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Material Design fallback colors for API < 31 -->
+    <color name="widget_background">#171A20</color>
+    <color name="widget_card_background">#222630</color>
+    <color name="widget_primary">#A8C7FA</color>
+    <color name="widget_on_primary">#062E6F</color>
+    <color name="widget_primary_container">#2B4370</color>
+    <color name="widget_on_surface">#E2E2E8</color>
+    <color name="widget_on_surface_variant">#C4C7D0</color>
+    <color name="widget_bus_badge">#1E3B2B</color>
+    <color name="widget_bus_text">#7CE495</color>
+    <color name="widget_divider">#2E323D</color>
+</resources>

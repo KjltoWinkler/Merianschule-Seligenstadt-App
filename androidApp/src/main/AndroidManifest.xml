@@ -45,6 +45,19 @@
                 <action android:name="de.kjltowinkler.msapp.TRIGGER_SYNC" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".widget.VeloAppWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="de.kjltowinkler.msapp.widget.ACTION_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/velo_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
