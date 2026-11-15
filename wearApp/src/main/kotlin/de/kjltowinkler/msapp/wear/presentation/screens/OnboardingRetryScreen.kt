@@ -94,7 +94,7 @@ fun OnboardingRetryScreen(
             item {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Stelle sicher, dass Bluetooth aktiv ist und die Merianschule-App auf dem Handy geöffnet ist.",
+                    text = "Stelle sicher, dass Bluetooth aktiv ist und Velo.Schulplaner auf dem Handy geöffnet ist.",
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Normal,

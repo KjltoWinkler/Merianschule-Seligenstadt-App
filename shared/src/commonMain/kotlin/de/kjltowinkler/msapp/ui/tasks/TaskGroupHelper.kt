@@ -202,6 +202,51 @@ fun groupTasksByStarred(tasks: List<TaskItem>, isStarredTab: Boolean = false): L
 }
 
 /**
+ * Gruppiert Aufgaben nach ihrem Schulfach in alphabetischer Reihenfolge.
+ * Innerhalb jedes Fachs sind die Aufgaben alphabetisch nach Titel sortiert.
+ * Aufgaben ohne Fach werden am Ende unter "Ohne Fach" zusammengefasst.
+ */
+fun groupTasksBySubject(tasks: List<TaskItem>): List<TaskGroup> {
+    if (tasks.isEmpty()) return emptyList()
+
+    val withSubject = tasks.filter { it.subject.isNotBlank() }
+    val withoutSubject = tasks.filter { it.subject.isBlank() }
+
+    val groupedBySubject = withSubject.groupBy { it.subject.trim() }
+        .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+
+    val groups = mutableListOf<TaskGroup>()
+
+    for ((subject, subjectTasks) in groupedBySubject) {
+        val sortedTasks = subjectTasks.sortedWith(
+            compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+        )
+        groups.add(
+            TaskGroup(
+                title = subject,
+                isErrorColor = false,
+                tasks = sortedTasks
+            )
+        )
+    }
+
+    if (withoutSubject.isNotEmpty()) {
+        val sortedWithout = withoutSubject.sortedWith(
+            compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+        )
+        groups.add(
+            TaskGroup(
+                title = "Ohne Fach",
+                isErrorColor = false,
+                tasks = sortedWithout
+            )
+        )
+    }
+
+    return groups
+}
+
+/**
  * Liefert die Gruppenaufteilung für eine Aufgabenliste anhand der gewählten Sortierung,
  * oder null, wenn keine Indikatoren angezeigt werden sollen (z. B. Titel oder Meine Reihenfolge).
  */
@@ -213,6 +258,7 @@ fun groupTasksByOption(
     return when (option) {
         TaskSortOption.DATE -> groupTasksByDate(tasks)
         TaskSortOption.DEADLINE -> groupTasksByDeadline(tasks)
+        TaskSortOption.SUBJECT -> groupTasksBySubject(tasks)
         TaskSortOption.RECENTLY_STARRED -> groupTasksByStarred(tasks, isStarredTab)
         TaskSortOption.TITLE, TaskSortOption.MY_ORDER -> null
     }

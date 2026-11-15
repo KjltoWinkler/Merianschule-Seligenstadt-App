@@ -58,7 +58,7 @@ fun DesktopTopHeader(
     onPrimaryActionClicked: () -> Unit = {}
 ) {
     val tabTitles = listOf("Startseite", "Stundenplan", "Vertretungsplan", "Aufgaben")
-    val currentTitle = tabTitles.getOrElse(selectedTab) { "Merianschule" }
+    val currentTitle = tabTitles.getOrElse(selectedTab) { "Velo.Schulplaner" }
 
     val coroutineScope = rememberCoroutineScope()
     val rotationAnim = remember { Animatable(0f) }

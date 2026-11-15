@@ -40,6 +40,7 @@ import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
+import de.kjltowinkler.msapp.theme.getSubjectColor
 import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -544,6 +545,7 @@ fun TasksScreen(
 
                                         var draggedTaskId by remember { mutableStateOf<String?>(null) }
                                         var dragOffsetY by remember { mutableFloatStateOf(0f) }
+                                        var currentReorderTasks by remember { mutableStateOf<List<TaskItem>?>(null) }
                                         val taskRowHeights = remember { mutableStateMapOf<String, Float>() }
                                         val latestActiveTasks by rememberUpdatedState(activeTasks)
                                         val latestSortOption by rememberUpdatedState(currentSortOption)
@@ -594,6 +596,7 @@ fun TasksScreen(
                                                                     }
                                                                     draggedTaskId = task.id
                                                                     dragOffsetY = 0f
+                                                                    currentReorderTasks = latestActiveTasks
                                                                     try {
                                                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                                     } catch (_: Exception) {
@@ -603,36 +606,56 @@ fun TasksScreen(
                                                                 onDrag = { change, dragAmount ->
                                                                     change.consume()
                                                                     val currentDragId = draggedTaskId ?: return@detectDragGesturesAfterLongPress
+                                                                    if (currentDragId != task.id) return@detectDragGesturesAfterLongPress
                                                                     dragOffsetY += dragAmount.y
-                                                                    val currentList = latestActiveTasks
-                                                                    val currentIndex = currentList.indexOfFirst { it.id == currentDragId }
+
+                                                                    var currentList = currentReorderTasks ?: latestActiveTasks
+                                                                    var currentIndex = currentList.indexOfFirst { it.id == currentDragId }
                                                                     if (currentIndex == -1) return@detectDragGesturesAfterLongPress
 
                                                                     val defaultHeightPx = with(density) { 56.dp.toPx() }
-                                                                    val currentHeight = taskRowHeights[currentDragId] ?: defaultHeightPx
                                                                     val spacingPx = with(density) { 6.dp.toPx() }
 
-                                                                    if (dragOffsetY > (currentHeight + spacingPx) * 0.5f && currentIndex < currentList.lastIndex) {
-                                                                        val targetTask = currentList[currentIndex + 1]
-                                                                        val targetHeight = taskRowHeights[targetTask.id] ?: currentHeight
-                                                                        val mutable = currentList.toMutableList()
-                                                                        val item = mutable.removeAt(currentIndex)
-                                                                        mutable.add(currentIndex + 1, item)
-                                                                        TasksRepository.reorderTasks(mutable)
-                                                                        dragOffsetY -= (targetHeight + spacingPx)
-                                                                        try {
-                                                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                                                        } catch (_: Exception) {
-                                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                                    var reordered = false
+                                                                    while (true) {
+                                                                        // Nach unten schieben
+                                                                        if (currentIndex < currentList.lastIndex) {
+                                                                            val targetTask = currentList[currentIndex + 1]
+                                                                            val targetHeight = taskRowHeights[targetTask.id] ?: defaultHeightPx
+                                                                            val delta = targetHeight + spacingPx
+                                                                            if (dragOffsetY > delta * 0.6f) {
+                                                                                val mutable = currentList.toMutableList()
+                                                                                val item = mutable.removeAt(currentIndex)
+                                                                                mutable.add(currentIndex + 1, item)
+                                                                                currentList = mutable
+                                                                                currentIndex++
+                                                                                dragOffsetY -= delta
+                                                                                reordered = true
+                                                                                continue
+                                                                            }
                                                                         }
-                                                                    } else if (dragOffsetY < -(currentHeight + spacingPx) * 0.5f && currentIndex > 0) {
-                                                                        val targetTask = currentList[currentIndex - 1]
-                                                                        val targetHeight = taskRowHeights[targetTask.id] ?: currentHeight
-                                                                        val mutable = currentList.toMutableList()
-                                                                        val item = mutable.removeAt(currentIndex)
-                                                                        mutable.add(currentIndex - 1, item)
-                                                                        TasksRepository.reorderTasks(mutable)
-                                                                        dragOffsetY += (targetHeight + spacingPx)
+                                                                        // Nach oben schieben
+                                                                        if (currentIndex > 0) {
+                                                                            val targetTask = currentList[currentIndex - 1]
+                                                                            val targetHeight = taskRowHeights[targetTask.id] ?: defaultHeightPx
+                                                                            val delta = targetHeight + spacingPx
+                                                                            if (dragOffsetY < -delta * 0.6f) {
+                                                                                val mutable = currentList.toMutableList()
+                                                                                val item = mutable.removeAt(currentIndex)
+                                                                                mutable.add(currentIndex - 1, item)
+                                                                                currentList = mutable
+                                                                                currentIndex--
+                                                                                dragOffsetY += delta
+                                                                                reordered = true
+                                                                                continue
+                                                                            }
+                                                                        }
+                                                                        break
+                                                                    }
+
+                                                                    if (reordered) {
+                                                                        currentReorderTasks = currentList
+                                                                        TasksRepository.reorderTasks(currentList)
                                                                         try {
                                                                             haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
                                                                         } catch (_: Exception) {
@@ -641,12 +664,22 @@ fun TasksScreen(
                                                                     }
                                                                 },
                                                                 onDragEnd = {
+                                                                    val finalOrder = currentReorderTasks
+                                                                    if (finalOrder != null) {
+                                                                        TasksRepository.reorderTasks(finalOrder)
+                                                                    }
                                                                     draggedTaskId = null
                                                                     dragOffsetY = 0f
+                                                                    currentReorderTasks = null
                                                                 },
                                                                 onDragCancel = {
+                                                                    val finalOrder = currentReorderTasks
+                                                                    if (finalOrder != null) {
+                                                                        TasksRepository.reorderTasks(finalOrder)
+                                                                    }
                                                                     draggedTaskId = null
                                                                     dragOffsetY = 0f
+                                                                    currentReorderTasks = null
                                                                 }
                                                             )
                                                         }
@@ -705,8 +738,9 @@ fun TasksScreen(
                                                     if (group.title.isNotBlank()) {
                                                         val headerColor = when {
                                                             group.isErrorColor -> colorScheme.error
-                                                            group.title == "Kein Datum" -> colorScheme.onSurfaceVariant
+                                                            group.title == "Kein Datum" || group.title == "Ohne Fach" -> colorScheme.onSurfaceVariant
                                                             currentSortOption == TaskSortOption.DATE -> colorScheme.primary
+                                                            currentSortOption == TaskSortOption.SUBJECT -> getSubjectColor(group.title)
                                                             else -> colorScheme.onSurface
                                                         }
                                                         Text(
@@ -730,7 +764,8 @@ fun TasksScreen(
                                                     }
                                                 }
                                             } else {
-                                                activeTasks.forEach { task ->
+                                                val tasksToRender = currentReorderTasks ?: activeTasks
+                                                tasksToRender.forEach { task ->
                                                     key(task.id) {
                                                         renderTaskRow(task)
                                                     }
@@ -1470,7 +1505,7 @@ private fun ActiveTaskRowItem(
                                 text = task.subject,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = colorScheme.primary
+                                color = getSubjectColor(task.subject)
                             )
                         }
 
@@ -1585,7 +1620,7 @@ private fun CompletedTaskRowItem(
                         text = task.subject,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                        color = getSubjectColor(task.subject).copy(alpha = 0.7f)
                     )
                     Text(
                         text = "•",

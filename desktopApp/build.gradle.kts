@@ -28,14 +28,14 @@ compose.desktop {
         mainClass = "de.kjltowinkler.msapp.desktop.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "Merianschule"
+            packageName = "VeloSchulplaner"
             packageVersion = "1.0.0"
-            description = "Merianschule Seligenstadt App"
-            copyright = "© 2026 Merianschule Seligenstadt"
-            vendor = "Merianschule Seligenstadt"
+            description = "Velo.Schulplaner"
+            copyright = "© 2026 Velo.Schulplaner"
+            vendor = "Velo.Schulplaner"
 
             linux {
-                packageName = "merianschule"
+                packageName = "velo-schulplaner"
                 iconFile.set(project.file("src/desktopMain/resources/icons/icon.png"))
                 shortcut = true
                 menuGroup = "Education"
@@ -44,7 +44,7 @@ compose.desktop {
             windows {
                 iconFile.set(project.file("src/desktopMain/resources/icons/icon.ico"))
                 menu = true
-                menuGroup = "Merianschule Seligenstadt"
+                menuGroup = "Velo.Schulplaner"
                 upgradeUuid = "b97950c0-1c39-44be-bdf1-bfaae4c0eb51"
                 dirChooser = true
                 shortcut = true
@@ -53,7 +53,7 @@ compose.desktop {
             macOS {
                 iconFile.set(project.file("src/desktopMain/resources/icons/icon.icns"))
                 bundleID = "de.kjltowinkler.msapp"
-                dockName = "Merianschule"
+                dockName = "Velo.Schulplaner"
             }
         }
     }

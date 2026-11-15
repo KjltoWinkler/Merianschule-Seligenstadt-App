@@ -36,6 +36,7 @@ enum class TaskSortOption(val label: String) {
     MY_ORDER("Meine Reihenfolge"),
     DATE("Datum"),
     DEADLINE("Frist"),
+    SUBJECT("Fach"),
     RECENTLY_STARRED("Vor Kurzem markiert"),
     TITLE("Titel")
 }
@@ -58,6 +59,17 @@ fun List<TaskItem>.sortedByOption(option: TaskSortOption): List<TaskItem> {
                 compareBy<TaskItem> { task ->
                     task.getDueEpochMillis() ?: Long.MAX_VALUE
                 }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+            )
+        }
+        TaskSortOption.SUBJECT -> {
+            sortedWith(
+                compareBy<TaskItem> {
+                    if (it.subject.isBlank()) 1 else 0
+                }.thenBy(String.CASE_INSENSITIVE_ORDER) {
+                    it.subject
+                }.thenBy(String.CASE_INSENSITIVE_ORDER) {
+                    it.title
+                }
             )
         }
         TaskSortOption.RECENTLY_STARRED -> {

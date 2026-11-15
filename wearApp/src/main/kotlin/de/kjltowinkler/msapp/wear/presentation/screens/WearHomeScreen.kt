@@ -57,7 +57,7 @@ fun WearHomeScreen() {
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.merianschule_logo),
-                        contentDescription = "Merianschule Logo",
+                        contentDescription = "Velo.Schulplaner Logo",
                         modifier = Modifier.size(28.dp)
                     )
                 }
@@ -66,7 +66,7 @@ fun WearHomeScreen() {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Merianschule",
+                    text = "Velo.Schulplaner",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onBackground

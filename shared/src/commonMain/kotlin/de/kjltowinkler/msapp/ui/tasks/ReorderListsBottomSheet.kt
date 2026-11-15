@@ -82,14 +82,16 @@ fun ReorderListsBottomSheet(
 
     var lists by remember { mutableStateOf(TasksRepository.privateLists.toList()) }
 
-    LaunchedEffect(TasksRepository.privateLists.toList()) {
-        lists = TasksRepository.privateLists.toList()
-    }
-
     var isClosing by remember { mutableStateOf(false) }
-    var draggedIndex by remember { mutableStateOf<Int?>(null) }
-    var dragOffsetY by remember { mutableStateOf(0f) }
-    var itemHeightPx by remember { mutableStateOf(0f) }
+    var draggedListId by remember { mutableStateOf<String?>(null) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val listHeights = remember { mutableStateMapOf<String, Float>() }
+
+    LaunchedEffect(TasksRepository.privateLists.toList()) {
+        if (draggedListId == null) {
+            lists = TasksRepository.privateLists.toList()
+        }
+    }
 
     fun closeWithAction(action: () -> Unit) {
         if (isClosing) return
@@ -150,102 +152,138 @@ fun ReorderListsBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 lists.forEachIndexed { index, list ->
-                    val isBeingDragged = draggedIndex == index
+                    key(list.id) {
+                        val isBeingDragged = draggedListId == list.id
 
-                    val shape = when {
-                        lists.size == 1 -> RoundedCornerShape(16.dp)
-                        index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-                        index == lists.lastIndex -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-                        else -> RoundedCornerShape(4.dp)
-                    }
+                        val shape = when {
+                            isBeingDragged -> RoundedCornerShape(16.dp)
+                            lists.size == 1 -> RoundedCornerShape(16.dp)
+                            index == 0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+                            index == lists.lastIndex -> RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
+                            else -> RoundedCornerShape(4.dp)
+                        }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .zIndex(if (isBeingDragged) 10f else 1f)
-                            .graphicsLayer {
-                                if (isBeingDragged) {
-                                    translationY = dragOffsetY
-                                    scaleX = 1.02f
-                                    scaleY = 1.02f
-                                }
-                            }
-                            .shadow(
-                                elevation = if (isBeingDragged) 8.dp else 0.dp,
-                                shape = shape
-                            )
-                            .clip(shape)
-                            .background(
-                                if (isBeingDragged) {
-                                    brickBackgroundColor.copy(alpha = 0.95f)
-                                } else {
-                                    brickBackgroundColor
-                                }
-                            )
-                            .onGloballyPositioned { coordinates ->
-                                if (itemHeightPx == 0f) {
-                                    itemHeightPx = coordinates.size.height.toFloat()
-                                }
-                            }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 1. Drag Handle Icon (6 Punkte)
-                        Box(
+                        Row(
                             modifier = Modifier
-                                .size(36.dp)
-                                .handCursor()
-                                .pointerInput(list.id, lists.size) {
-                                    detectDragGestures(
-                                        onDragStart = {
-                                            draggedIndex = index
-                                            dragOffsetY = 0f
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        },
-                                        onDrag = { change, dragAmount ->
-                                            change.consume()
-                                            val currentDragIndex = draggedIndex ?: return@detectDragGestures
-                                            val rowHeight = if (itemHeightPx > 0f) itemHeightPx else with(density) { 56.dp.toPx() }
-                                            dragOffsetY += dragAmount.y
-
-                                            // Nach unten ziehen
-                                            if (dragOffsetY > rowHeight * 0.5f && currentDragIndex < lists.lastIndex) {
-                                                val mutableLists = lists.toMutableList()
-                                                val temp = mutableLists[currentDragIndex]
-                                                mutableLists[currentDragIndex] = mutableLists[currentDragIndex + 1]
-                                                mutableLists[currentDragIndex + 1] = temp
-                                                lists = mutableLists
-                                                TasksRepository.reorderPrivateLists(mutableLists)
-                                                draggedIndex = currentDragIndex + 1
-                                                dragOffsetY -= rowHeight
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            }
-                                            // Nach oben ziehen
-                                            else if (dragOffsetY < -rowHeight * 0.5f && currentDragIndex > 0) {
-                                                val mutableLists = lists.toMutableList()
-                                                val temp = mutableLists[currentDragIndex]
-                                                mutableLists[currentDragIndex] = mutableLists[currentDragIndex - 1]
-                                                mutableLists[currentDragIndex - 1] = temp
-                                                lists = mutableLists
-                                                TasksRepository.reorderPrivateLists(mutableLists)
-                                                draggedIndex = currentDragIndex - 1
-                                                dragOffsetY += rowHeight
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            }
-                                        },
-                                        onDragEnd = {
-                                            draggedIndex = null
-                                            dragOffsetY = 0f
-                                            TasksRepository.reorderPrivateLists(lists)
-                                        },
-                                        onDragCancel = {
-                                            draggedIndex = null
-                                            dragOffsetY = 0f
-                                        }
-                                    )
-                                },
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .zIndex(if (isBeingDragged) 10f else 1f)
+                                .graphicsLayer {
+                                    if (isBeingDragged) {
+                                        translationY = dragOffsetY
+                                        scaleX = 1.02f
+                                        scaleY = 1.02f
+                                    }
+                                }
+                                .shadow(
+                                    elevation = if (isBeingDragged) 8.dp else 0.dp,
+                                    shape = shape
+                                )
+                                .clip(shape)
+                                .background(
+                                    if (isBeingDragged) {
+                                        brickBackgroundColor.copy(alpha = 0.95f)
+                                    } else {
+                                        brickBackgroundColor
+                                    }
+                                )
+                                .onGloballyPositioned { coordinates ->
+                                    listHeights[list.id] = coordinates.size.height.toFloat()
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // 1. Drag Handle Icon (6 Punkte)
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor()
+                                    .pointerInput(list.id) {
+                                        detectDragGestures(
+                                            onDragStart = {
+                                                draggedListId = list.id
+                                                dragOffsetY = 0f
+                                                try {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                } catch (_: Exception) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                }
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                change.consume()
+                                                val currentDragId = draggedListId ?: return@detectDragGestures
+                                                if (currentDragId != list.id) return@detectDragGestures
+                                                dragOffsetY += dragAmount.y
+
+                                                var currentLists = lists
+                                                var currentIndex = currentLists.indexOfFirst { it.id == currentDragId }
+                                                if (currentIndex == -1) return@detectDragGestures
+
+                                                val defaultHeightPx = with(density) { 56.dp.toPx() }
+                                                val spacingPx = with(density) { 2.dp.toPx() }
+
+                                                var reordered = false
+                                                while (true) {
+                                                    // Nach unten ziehen
+                                                    if (currentIndex < currentLists.lastIndex) {
+                                                        val targetList = currentLists[currentIndex + 1]
+                                                        val targetHeight = listHeights[targetList.id] ?: defaultHeightPx
+                                                        val delta = targetHeight + spacingPx
+                                                        if (dragOffsetY > delta * 0.6f) {
+                                                            val mutableLists = currentLists.toMutableList()
+                                                            val temp = mutableLists[currentIndex]
+                                                            mutableLists[currentIndex] = mutableLists[currentIndex + 1]
+                                                            mutableLists[currentIndex + 1] = temp
+                                                            currentLists = mutableLists
+                                                            currentIndex++
+                                                            dragOffsetY -= delta
+                                                            reordered = true
+                                                            continue
+                                                        }
+                                                    }
+                                                    // Nach oben ziehen
+                                                    if (currentIndex > 0) {
+                                                        val targetList = currentLists[currentIndex - 1]
+                                                        val targetHeight = listHeights[targetList.id] ?: defaultHeightPx
+                                                        val delta = targetHeight + spacingPx
+                                                        if (dragOffsetY < -delta * 0.6f) {
+                                                            val mutableLists = currentLists.toMutableList()
+                                                            val temp = mutableLists[currentIndex]
+                                                            mutableLists[currentIndex] = mutableLists[currentIndex - 1]
+                                                            mutableLists[currentIndex - 1] = temp
+                                                            currentLists = mutableLists
+                                                            currentIndex--
+                                                            dragOffsetY += delta
+                                                            reordered = true
+                                                            continue
+                                                        }
+                                                    }
+                                                    break
+                                                }
+
+                                                if (reordered) {
+                                                    lists = currentLists
+                                                    TasksRepository.reorderPrivateLists(currentLists)
+                                                    try {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                                    } catch (_: Exception) {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    }
+                                                }
+                                            },
+                                            onDragEnd = {
+                                                draggedListId = null
+                                                dragOffsetY = 0f
+                                                TasksRepository.reorderPrivateLists(lists)
+                                            },
+                                            onDragCancel = {
+                                                draggedListId = null
+                                                dragOffsetY = 0f
+                                                TasksRepository.reorderPrivateLists(lists)
+                                            }
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
                             Icon(
                                 painter = painterResource(Res.drawable.ic_drag_indicator),
                                 contentDescription = "Liste verschieben",
@@ -292,4 +330,5 @@ fun ReorderListsBottomSheet(
             }
         }
     }
+}
 }

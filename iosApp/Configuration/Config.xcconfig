@@ -1,6 +1,6 @@
 TEAM_ID=
 
-PRODUCT_NAME=Merianschule Seligenstadt App
+PRODUCT_NAME=Velo.Schulplaner
 PRODUCT_BUNDLE_IDENTIFIER=de.kjltowinkler.msapp.MerianschuleSeligenstadtApp$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=1

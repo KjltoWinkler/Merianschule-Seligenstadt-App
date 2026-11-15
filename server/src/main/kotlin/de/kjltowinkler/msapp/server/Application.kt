@@ -32,7 +32,7 @@ import org.slf4j.event.Level
 
 fun main() {
     println("==================================================")
-    println("  Merianschule Seligenstadt App - Backend Server  ")
+    println("  Velo.Schulplaner - Backend Server  ")
     println("==================================================")
     println("Port: ${ServerConfig.port}")
     println("Data Directory: ${ServerConfig.dataDir}")
@@ -152,7 +152,7 @@ data class HealthStatusResponse(
     routing {
         get("/") {
             call.respond(RootInfoResponse(
-                service = "Merianschule Seligenstadt App Backend",
+                service = "Velo.Schulplaner Backend",
                 status = "UP",
                 version = "1.0.0",
                 docs = "/api/admin/stats"

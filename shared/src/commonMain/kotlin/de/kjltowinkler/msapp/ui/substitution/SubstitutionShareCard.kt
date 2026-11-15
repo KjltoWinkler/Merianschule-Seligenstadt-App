@@ -412,7 +412,7 @@ fun SubstitutionShareCard(
                     color = Color(0xFF758573)
                 )
                 Text(
-                    text = "Erstellt mit der Merianschule App",
+                    text = "Erstellt mit Velo.Schulplaner",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF758573)

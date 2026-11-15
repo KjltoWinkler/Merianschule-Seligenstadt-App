@@ -66,7 +66,7 @@ fun AvatarPickerDialog(
     val presetAvatars = listOf(
         "mascot_clean" to "Maskottchen 1",
         "mascot_char" to "Maskottchen 2",
-        "app_icon" to "Schullogo"
+        "app_icon" to "App-Logo"
     )
 
     val colorOptions = listOf(

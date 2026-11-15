@@ -89,7 +89,7 @@ fun AccountAvatar(
         "app_icon" -> {
             Image(
                 painter = painterResource(Res.drawable.app_icon),
-                contentDescription = "Schul-Wappen Profilbild",
+                contentDescription = "App-Logo Profilbild",
                 contentScale = ContentScale.Fit,
                 modifier = modifier
                     .clip(CircleShape)
