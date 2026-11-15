@@ -156,14 +156,14 @@ fun SubstitutionShareCard(
                     }
                     Column {
                         Text(
-                            text = "Merianschule",
+                            text = "Velo.Schulplaner",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFE4EDE0),
                             letterSpacing = 0.2.sp
                         )
                         Text(
-                            text = "Seligenstadt • Vertretungsplan",
+                            text = "Merianschule Seligenstadt • Vertretungsplan",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF8F9E8C)

@@ -419,7 +419,7 @@ fun SettingsScreen(
                     val availableUpdate = (checkStatus as? UpdateCheckStatus.UpdateAvailable)?.updateInfo
 
                     SettingsItemRow(
-                        title = "Merianschule App",
+                        title = "Velo.Schulplaner",
                         subtitle = "Version ${PlatformAppUpdater.currentVersionName} (Build ${PlatformAppUpdater.currentVersionCode})",
                         titleColor = textPrimary,
                         subtitleColor = textSecondary,
@@ -695,7 +695,7 @@ fun SettingsScreen(
             },
             text = {
                 Text(
-                    text = "Damit die Merianschule App das Update direkt installieren kann, muss in den Android-Einstellungen die Berechtigung „Unbekannte Apps installieren“ für diese App aktiviert werden.\n\nMöchtest du die Einstellungen jetzt öffnen?",
+                    text = "Damit Velo.Schulplaner das Update direkt installieren kann, muss in den Android-Einstellungen die Berechtigung „Unbekannte Apps installieren“ für diese App aktiviert werden.\n\nMöchtest du die Einstellungen jetzt öffnen?",
                     style = MaterialTheme.typography.bodyMedium,
                     color = textSecondary
                 )
