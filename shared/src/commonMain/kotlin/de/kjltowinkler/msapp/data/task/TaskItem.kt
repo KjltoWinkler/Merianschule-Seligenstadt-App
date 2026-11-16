@@ -10,10 +10,94 @@ enum class TaskCategory {
 }
 
 @Serializable
+enum class TaskPrivacyMode {
+    RESTRICTED,       // Eingeschränkt (nur hinzugefügte Personen)
+    SCHOOL_USERS,     // Nutzer der Schule / Nutzer allgemein
+    ANYONE_WITH_LINK  // Jeder mit dem Link
+}
+
+@Serializable
+enum class TaskMemberRole {
+    OWNER,   // Eigentümer
+    EDITOR,  // Bearbeiter (kann bearbeiten/abhaken/hinzufügen)
+    VIEWER   // Betrachter (kann nur ansehen)
+}
+
+@Serializable
+data class SharedListMember(
+    val userId: String,
+    val username: String,
+    val fullName: String,
+    val email: String = "",
+    val className: String = "",
+    val avatarType: String = "initials",
+    val avatarColorHex: Long = 0xFF395A3CL,
+    val role: TaskMemberRole = TaskMemberRole.VIEWER
+)
+
+@Serializable
+data class SharedListMemberUpdate(
+    val userId: String,
+    val role: TaskMemberRole
+)
+
+@Serializable
+data class SharedTaskListInfo(
+    val listId: String,
+    val title: String,
+    val ownerId: String,
+    val ownerName: String,
+    val shareToken: String,
+    val shareUrl: String,
+    val privacyMode: TaskPrivacyMode = TaskPrivacyMode.RESTRICTED,
+    val linkRole: TaskMemberRole = TaskMemberRole.VIEWER,
+    val members: List<SharedListMember> = emptyList(),
+    val currentUserRole: TaskMemberRole = TaskMemberRole.VIEWER
+)
+
+@Serializable
+data class UpdateShareSettingsRequest(
+    val privacyMode: TaskPrivacyMode,
+    val linkRole: TaskMemberRole,
+    val members: List<SharedListMemberUpdate> = emptyList()
+)
+
+@Serializable
+data class SharedListJoinResponse(
+    val success: Boolean,
+    val message: String,
+    val list: TaskList? = null,
+    val tasks: List<TaskItem> = emptyList()
+)
+
+@Serializable
+data class SharedListDetailsDto(
+    val info: SharedTaskListInfo,
+    val tasks: List<TaskItem> = emptyList(),
+    val canEdit: Boolean = false
+)
+
+@Serializable
+data class UserSearchResultDto(
+    val id: String,
+    val username: String,
+    val fullName: String,
+    val className: String = "",
+    val avatarType: String = "initials",
+    val avatarColorHex: Long = 0xFF395A3CL,
+    val role: String = "USER"
+)
+
+@Serializable
 data class TaskList(
     val id: String,
     val title: String,
-    val updatedAt: Long = 0L
+    val updatedAt: Long = 0L,
+    val isShared: Boolean = false,
+    val shareToken: String? = null,
+    val ownerId: String? = null,
+    val ownerName: String? = null,
+    val role: TaskMemberRole = TaskMemberRole.OWNER
 )
 
 @Serializable

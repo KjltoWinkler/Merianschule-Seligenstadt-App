@@ -29,8 +29,8 @@ android {
         applicationId = "de.kjltowinkler.msapp"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 6
-        versionName = "1.0.5"
+        versionCode = project.findProperty("appVersionCode")?.toString()?.toIntOrNull() ?: 6
+        versionName = project.findProperty("appVersionName")?.toString() ?: "1.0.5"
     }
     packaging {
         resources {

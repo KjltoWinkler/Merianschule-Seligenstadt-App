@@ -103,6 +103,30 @@ fun Route.userRoutes() {
                     call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültiges Settings-Format: ${e.message}"))
                 }
             }
+
+            // GET /api/user/search?q=...
+            get("/search") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert."))
+                val query = call.request.queryParameters["q"] ?: ""
+                val users = de.kjltowinkler.msapp.server.repository.UserRepository.searchUsers(query, userId)
+                call.respond(HttpStatusCode.OK, users)
+            }
+        }
+    }
+
+    route("/api/users") {
+        authenticate("auth-jwt") {
+            // GET /api/users/search?q=...
+            get("/search") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert."))
+                val query = call.request.queryParameters["q"] ?: ""
+                val users = de.kjltowinkler.msapp.server.repository.UserRepository.searchUsers(query, userId)
+                call.respond(HttpStatusCode.OK, users)
+            }
         }
     }
 }

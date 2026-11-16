@@ -289,24 +289,33 @@ fun Route.appUpdateRoutes() {
 
             val multipart = call.receiveMultipart()
             var uploadedBytes = 0L
+            var customReleaseNotes: String? = null
             val apkFile = AppUpdateRepository.getApkFile()
 
             multipart.forEachPart { part ->
-                if (part is PartData.FileItem) {
-                    val originalName = part.originalFileName ?: "update.apk"
-                    if (originalName.endsWith(".apk", ignoreCase = true)) {
-                        part.streamProvider().use { input ->
-                            FileOutputStream(apkFile).use { output ->
-                                val buffer = ByteArray(32 * 1024)
-                                var bytes = input.read(buffer)
-                                while (bytes >= 0) {
-                                    output.write(buffer, 0, bytes)
-                                    uploadedBytes += bytes
-                                    bytes = input.read(buffer)
+                when (part) {
+                    is PartData.FormItem -> {
+                        if (part.name == "releaseNotes" || part.name == "notes") {
+                            customReleaseNotes = part.value
+                        }
+                    }
+                    is PartData.FileItem -> {
+                        val originalName = part.originalFileName ?: "update.apk"
+                        if (originalName.endsWith(".apk", ignoreCase = true)) {
+                            part.streamProvider().use { input ->
+                                FileOutputStream(apkFile).use { output ->
+                                    val buffer = ByteArray(32 * 1024)
+                                    var bytes = input.read(buffer)
+                                    while (bytes >= 0) {
+                                        output.write(buffer, 0, bytes)
+                                        uploadedBytes += bytes
+                                        bytes = input.read(buffer)
+                                    }
                                 }
                             }
                         }
                     }
+                    else -> {}
                 }
                 part.dispose()
             }
@@ -318,15 +327,18 @@ fun Route.appUpdateRoutes() {
 
             val current = AppUpdateRepository.getUpdateInfo()
             val parsedManifest = de.kjltowinkler.msapp.server.util.ApkManifestParser.parse(apkFile)
+            val finalReleaseNotes = customReleaseNotes?.trim()?.takeIf { it.isNotBlank() } ?: current.releaseNotes
             val updated = if (parsedManifest != null) {
                 current.copy(
                     versionCode = parsedManifest.versionCode,
                     versionName = parsedManifest.versionName,
+                    releaseNotes = finalReleaseNotes,
                     fileSizeBytes = uploadedBytes,
                     publishedAt = System.currentTimeMillis()
                 )
             } else {
                 current.copy(
+                    releaseNotes = finalReleaseNotes,
                     fileSizeBytes = uploadedBytes,
                     publishedAt = System.currentTimeMillis()
                 )

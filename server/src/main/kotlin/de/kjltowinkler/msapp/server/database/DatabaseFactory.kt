@@ -141,6 +141,32 @@ object DatabaseFactory {
                     );
                 """.trimIndent())
 
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS shared_task_lists (
+                        list_id TEXT NOT NULL,
+                        owner_id TEXT NOT NULL,
+                        share_token TEXT NOT NULL UNIQUE,
+                        privacy_mode TEXT NOT NULL DEFAULT 'RESTRICTED',
+                        link_role TEXT NOT NULL DEFAULT 'VIEWER',
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL,
+                        PRIMARY KEY (list_id),
+                        FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                """.trimIndent())
+
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS shared_task_list_members (
+                        list_id TEXT NOT NULL,
+                        user_id TEXT NOT NULL,
+                        role TEXT NOT NULL DEFAULT 'VIEWER',
+                        added_at INTEGER NOT NULL,
+                        PRIMARY KEY (list_id, user_id),
+                        FOREIGN KEY (list_id) REFERENCES shared_task_lists(list_id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    );
+                """.trimIndent())
+
                 // Bereinige eventuell vorhandene Alt-Sample-Aufgaben (z. B. "sample_1" bis "sample_6")
                 try {
                     stmt.execute("DELETE FROM tasks WHERE id LIKE 'sample_%';")

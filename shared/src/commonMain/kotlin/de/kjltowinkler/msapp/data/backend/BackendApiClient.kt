@@ -493,6 +493,87 @@ object BackendApiClient {
         }
     }
 
+    // ==========================================
+    // GETEILTE LISTEN (GOOGLE DOCS STYLE SHARING)
+    // ==========================================
+
+    suspend fun fetchShareInfo(listId: String): Result<de.kjltowinkler.msapp.data.task.SharedTaskListInfo> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/tasks/lists/$listId/share") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<de.kjltowinkler.msapp.data.task.SharedTaskListInfo>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
+    suspend fun updateShareSettings(
+        listId: String,
+        request: de.kjltowinkler.msapp.data.task.UpdateShareSettingsRequest
+    ): Result<de.kjltowinkler.msapp.data.task.SharedTaskListInfo> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.put("$serverUrl/api/tasks/lists/$listId/share") {
+            header("Authorization", "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(request))
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<de.kjltowinkler.msapp.data.task.SharedTaskListInfo>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
+    suspend fun searchUsers(query: String): Result<List<de.kjltowinkler.msapp.data.task.UserSearchResultDto>> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/users/search") {
+            header("Authorization", "Bearer $token")
+            parameter("q", query.trim())
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<List<de.kjltowinkler.msapp.data.task.UserSearchResultDto>>(body)
+        } else {
+            emptyList()
+        }
+    }
+
+    suspend fun fetchSharedListByToken(token: String): Result<de.kjltowinkler.msapp.data.task.SharedListDetailsDto> = runCatching {
+        val reqToken = authToken
+        val response = client.get("$serverUrl/api/tasks/share/$token") {
+            if (!reqToken.isNullOrBlank()) {
+                header("Authorization", "Bearer $reqToken")
+            }
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<de.kjltowinkler.msapp.data.task.SharedListDetailsDto>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
+    suspend fun joinSharedList(token: String): Result<de.kjltowinkler.msapp.data.task.SharedListJoinResponse> = runCatching {
+        val reqToken = authToken ?: error("Für das Beitreten ist eine Anmeldung erforderlich.")
+        val response = client.post("$serverUrl/api/tasks/share/$token/join") {
+            header("Authorization", "Bearer $reqToken")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<de.kjltowinkler.msapp.data.task.SharedListJoinResponse>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
     var lastUpdatedFromServer: String? = null
 
     // ==========================================

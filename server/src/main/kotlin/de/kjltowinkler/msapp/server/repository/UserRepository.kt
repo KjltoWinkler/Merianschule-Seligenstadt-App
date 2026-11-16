@@ -3,6 +3,7 @@ package de.kjltowinkler.msapp.server.repository
 import de.kjltowinkler.msapp.data.auth.RegisterRequest
 import de.kjltowinkler.msapp.data.auth.UpdateProfileRequest
 import de.kjltowinkler.msapp.data.auth.UserProfileDto
+import de.kjltowinkler.msapp.data.task.UserSearchResultDto
 import de.kjltowinkler.msapp.server.database.DatabaseFactory
 import de.kjltowinkler.msapp.server.security.DataEncryptionService
 import de.kjltowinkler.msapp.server.security.PasswordHasher
@@ -377,6 +378,48 @@ object UserRepository {
             stmt.setLong(4, now)
             stmt.setString(5, userId)
             stmt.executeUpdate() > 0
+        }
+    }
+
+    suspend fun searchUsers(query: String, currentUserId: String): List<UserSearchResultDto> = DatabaseFactory.query { conn ->
+        val trimmed = query.trim().lowercase()
+        if (trimmed.isEmpty()) return@query emptyList()
+        val sql = """
+            SELECT id, username, full_name, class_name, avatar_type, avatar_color_hex, role 
+            FROM users 
+            WHERE id != ? AND (
+                LOWER(username) LIKE ? OR 
+                LOWER(full_name) LIKE ? OR 
+                LOWER(email) LIKE ? OR 
+                LOWER(student_id) LIKE ?
+            )
+            ORDER BY full_name ASC 
+            LIMIT 20;
+        """.trimIndent()
+        conn.prepareStatement(sql).use { stmt ->
+            val pattern = "%$trimmed%"
+            stmt.setString(1, currentUserId)
+            stmt.setString(2, pattern)
+            stmt.setString(3, pattern)
+            stmt.setString(4, pattern)
+            stmt.setString(5, pattern)
+            stmt.executeQuery().use { rs ->
+                val list = mutableListOf<UserSearchResultDto>()
+                while (rs.next()) {
+                    list.add(
+                        UserSearchResultDto(
+                            id = rs.getString("id"),
+                            username = rs.getString("username"),
+                            fullName = rs.getString("full_name"),
+                            className = rs.getString("class_name") ?: "",
+                            avatarType = rs.getString("avatar_type") ?: "initials",
+                            avatarColorHex = rs.getLong("avatar_color_hex"),
+                            role = rs.getString("role") ?: "USER"
+                        )
+                    )
+                }
+                list
+            }
         }
     }
 
