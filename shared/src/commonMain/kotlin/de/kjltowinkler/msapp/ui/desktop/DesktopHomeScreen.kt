@@ -42,6 +42,7 @@ fun DesktopHomeScreen(
     gradeAndSchool: String = "Klasse 9aR • Realschule",
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
+    avatarUrl: String? = null,
     onProfileClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -150,6 +151,7 @@ fun DesktopHomeScreen(
                     gradeAndSchool = gradeAndSchool,
                     avatarType = avatarType,
                     avatarColorHex = avatarColorHex,
+                    avatarUrl = avatarUrl,
                     onProfileClicked = onProfileClicked,
                     substitutionBadgeCount = substitutionsCount,
                     tasksBadgeCount = tasksCount

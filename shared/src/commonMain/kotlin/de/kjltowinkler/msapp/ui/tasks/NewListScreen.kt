@@ -13,11 +13,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import kotlinx.coroutines.delay
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -99,6 +101,7 @@ fun NewListScreen(
                     text = "Neue Liste erstellen",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = getQuicksandFontFamily(),
                     color = textPrimary
                 )
 
@@ -132,6 +135,11 @@ fun NewListScreen(
             OutlinedTextField(
                 value = listTitle,
                 onValueChange = { listTitle = it },
+                textStyle = TextStyle(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = textPrimary
+                ),
                 placeholder = {
                     Text(
                         text = "Listentitel eingeben",

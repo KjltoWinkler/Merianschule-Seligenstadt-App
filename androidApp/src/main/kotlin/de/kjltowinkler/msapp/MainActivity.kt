@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleNavigationIntent(intent)
     }
 
@@ -74,6 +75,24 @@ class MainActivity : ComponentActivity() {
                 de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_highlight_id", highlightId)
             }
             de.kjltowinkler.msapp.util.NavigationEvents.emit(nav, highlightId)
+        }
+
+        val shareTokenExtra = intent?.getStringExtra("share_token")
+        if (!shareTokenExtra.isNullOrBlank()) {
+            val token = de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken(shareTokenExtra)
+            if (!token.isNullOrBlank()) {
+                de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_share_token", token)
+                de.kjltowinkler.msapp.util.NavigationEvents.emitShareToken(token)
+            }
+        }
+
+        val dataUri = intent?.data
+        if (dataUri != null) {
+            val token = de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken(dataUri.toString())
+            if (!token.isNullOrBlank()) {
+                de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_share_token", token)
+                de.kjltowinkler.msapp.util.NavigationEvents.emitShareToken(token)
+            }
         }
     }
 }

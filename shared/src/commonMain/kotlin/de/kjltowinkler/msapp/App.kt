@@ -78,8 +78,24 @@ data class MockAccountState(
     val classTeacher: String = "Hr. Thomas",
     val avatarType: String = "initials",
     val avatarColorHex: Long = 0xFF395A3CL,
+    val avatarUrl: String? = null,
     val hasCustomPassword: Boolean = false,
     val isTwoFactorEnabled: Boolean = false
+)
+
+fun de.kjltowinkler.msapp.data.auth.UserProfileDto.toAccountState(): MockAccountState = MockAccountState(
+    username = fullName.ifBlank { username },
+    loginUsername = username,
+    email = email,
+    studentId = studentId,
+    className = className,
+    schoolType = schoolType,
+    classTeacher = classTeacher,
+    avatarType = avatarType,
+    avatarColorHex = avatarColorHex,
+    avatarUrl = avatarUrl,
+    hasCustomPassword = hasCustomPassword,
+    isTwoFactorEnabled = isTwoFactorEnabled
 )
 
 fun createMockAccount(
@@ -204,25 +220,12 @@ fun App() {
         var twoFactorConfirmError by remember { mutableStateOf<String?>(null) }
         var lastEnteredPassword by remember { mutableStateOf("") }
         var isSettingUpTwoFactorFromSettings by remember { mutableStateOf(false) }
+        var pendingShareTokenToAccept by remember { mutableStateOf<String?>(null) }
 
         // Aktueller Account-Status (wird bei bestehender Sitzung aus dem Speicher geladen)
         var currentAccount by remember {
             mutableStateOf(
-                BackendApiClient.currentUser?.let { user ->
-                    MockAccountState(
-                        username = user.fullName.ifBlank { user.username },
-                        loginUsername = user.username,
-                        email = user.email,
-                        studentId = user.studentId,
-                        className = user.className,
-                        schoolType = user.schoolType,
-                        classTeacher = user.classTeacher,
-                        avatarType = user.avatarType,
-                        avatarColorHex = user.avatarColorHex,
-                        hasCustomPassword = user.hasCustomPassword,
-                        isTwoFactorEnabled = user.isTwoFactorEnabled
-                    )
-                } ?: MockAccountState()
+                BackendApiClient.currentUser?.toAccountState() ?: MockAccountState()
             )
         }
 
@@ -268,20 +271,50 @@ fun App() {
                         de.kjltowinkler.msapp.util.NavigationEvents.emit(pendingNav, pendingHighlight)
                     }
                 }
+
+                val pendingShare = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_share_token")
+                if (!pendingShare.isNullOrBlank() && BackendApiClient.isLoggedIn) {
+                    de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_share_token")
+                    pendingShareTokenToAccept = pendingShare
+                }
+            }
+
+            LaunchedEffect(BackendApiClient.isLoggedIn) {
+                if (BackendApiClient.isLoggedIn) {
+                    val pendingShare = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_share_token")
+                    if (!pendingShare.isNullOrBlank()) {
+                        de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_share_token")
+                        pendingShareTokenToAccept = pendingShare
+                    }
+                    launch {
+                        de.kjltowinkler.msapp.data.task.TasksRepository.checkPendingInvitations()
+                    }
+                }
             }
 
             LaunchedEffect(navController) {
-                de.kjltowinkler.msapp.util.NavigationEvents.targetFlow.collect { target ->
-                    if (target.route == "settings" && BackendApiClient.isLoggedIn) {
-                        try {
-                            navController.navigate(AppRoutes.SETTINGS)
-                        } catch (_: Throwable) {}
-                    } else if ((target.route == "substitution" || target.route == "tasks" || target.route == "home") && BackendApiClient.isLoggedIn) {
-                        try {
-                            if (navController.currentDestination?.route != AppRoutes.HOME) {
-                                navController.popBackStack(AppRoutes.HOME, inclusive = false)
-                            }
-                        } catch (_: Throwable) {}
+                launch {
+                    de.kjltowinkler.msapp.util.NavigationEvents.targetFlow.collect { target ->
+                        if (target.route == "settings" && BackendApiClient.isLoggedIn) {
+                            try {
+                                navController.navigate(AppRoutes.SETTINGS)
+                            } catch (_: Throwable) {}
+                        } else if ((target.route == "substitution" || target.route == "tasks" || target.route == "home") && BackendApiClient.isLoggedIn) {
+                            try {
+                                if (navController.currentDestination?.route != AppRoutes.HOME) {
+                                    navController.popBackStack(AppRoutes.HOME, inclusive = false)
+                                }
+                            } catch (_: Throwable) {}
+                        }
+                    }
+                }
+                launch {
+                    de.kjltowinkler.msapp.util.NavigationEvents.shareTokenFlow.collect { token ->
+                        if (BackendApiClient.isLoggedIn) {
+                            pendingShareTokenToAccept = token
+                        } else {
+                            de.kjltowinkler.msapp.data.storage.PlatformStorage.setString("pending_share_token", token)
+                        }
                     }
                 }
             }
@@ -298,19 +331,7 @@ fun App() {
                         de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
                     }
                     BackendApiClient.getProfile().onSuccess { user ->
-                        currentAccount = MockAccountState(
-                            username = user.fullName.ifBlank { user.username },
-                            loginUsername = user.username,
-                            email = user.email,
-                            studentId = user.studentId,
-                            className = user.className,
-                            schoolType = user.schoolType,
-                            classTeacher = user.classTeacher,
-                            avatarType = user.avatarType,
-                            avatarColorHex = user.avatarColorHex,
-                            hasCustomPassword = user.hasCustomPassword,
-                            isTwoFactorEnabled = user.isTwoFactorEnabled
-                        )
+                        currentAccount = user.toAccountState()
 
                         // Falls der Account noch das Einmal-Passwort hat -> zwingend neues Passwort erstellen lassen!
                         if (!user.hasCustomPassword) {
@@ -459,6 +480,7 @@ fun App() {
                                                 classTeacher = response.classTeacher ?: "Hr. Thomas",
                                                 avatarType = response.avatarType ?: "initials",
                                                 avatarColorHex = response.avatarColorHex ?: 0xFF395A3CL,
+                                                avatarUrl = response.avatarUrl,
                                                 hasCustomPassword = response.hasCustomPassword,
                                                 isTwoFactorEnabled = response.isTwoFactorEnabled
                                             )
@@ -635,18 +657,7 @@ fun App() {
                                 isSettingNewPassword = false
                                 newPasswordError = null
 
-                                currentAccount = MockAccountState(
-                                    username = auth.user.fullName.ifBlank { auth.user.username },
-                                    loginUsername = auth.user.username,
-                                    email = auth.user.email,
-                                    className = auth.user.className,
-                                    schoolType = auth.user.schoolType,
-                                    classTeacher = auth.user.classTeacher,
-                                    avatarType = auth.user.avatarType,
-                                    avatarColorHex = auth.user.avatarColorHex,
-                                    hasCustomPassword = true,
-                                    isTwoFactorEnabled = auth.user.isTwoFactorEnabled
-                                )
+                                currentAccount = auth.user.toAccountState()
 
                                 // Kurse synchronisieren / laden
                                 BackendApiClient.fetchUserCourses().onSuccess { courses ->
@@ -762,19 +773,7 @@ fun App() {
                                 BackendApiClient.verify2FaLogin(tempToken, cleanCode)
                                     .onSuccess { auth ->
                                         isConfirmingTwoFactor = false
-                                        currentAccount = MockAccountState(
-                                            username = auth.user.fullName.ifBlank { auth.user.username },
-                                            loginUsername = auth.user.username,
-                                            email = auth.user.email,
-                                            studentId = auth.user.studentId,
-                                            className = auth.user.className,
-                                            schoolType = auth.user.schoolType,
-                                            classTeacher = auth.user.classTeacher,
-                                            avatarType = auth.user.avatarType,
-                                            avatarColorHex = auth.user.avatarColorHex,
-                                            hasCustomPassword = auth.user.hasCustomPassword,
-                                            isTwoFactorEnabled = auth.user.isTwoFactorEnabled
-                                        )
+                                        currentAccount = auth.user.toAccountState()
 
                                         BackendApiClient.fetchUserCourses().onSuccess { courses ->
                                             de.kjltowinkler.msapp.data.courses.CourseRepository.setCourses(courses)
@@ -893,19 +892,7 @@ fun App() {
                                 loginError = null
                                 lastEnteredPassword = password
 
-                                currentAccount = MockAccountState(
-                                    username = auth.user.fullName.ifBlank { auth.user.username },
-                                    loginUsername = auth.user.username,
-                                    email = auth.user.email,
-                                    studentId = auth.user.studentId,
-                                    className = auth.user.className,
-                                    schoolType = auth.user.schoolType,
-                                    classTeacher = auth.user.classTeacher,
-                                    avatarType = auth.user.avatarType,
-                                    avatarColorHex = auth.user.avatarColorHex,
-                                    hasCustomPassword = auth.user.hasCustomPassword,
-                                    isTwoFactorEnabled = auth.user.isTwoFactorEnabled
-                                )
+                                currentAccount = auth.user.toAccountState()
 
                                 if (auth.requiresTwoFactor && !auth.tempToken.isNullOrBlank()) {
                                     twoFactorTempToken = auth.tempToken
@@ -978,6 +965,7 @@ fun App() {
                     studentId = currentAccount.studentId,
                     avatarType = currentAccount.avatarType,
                     avatarColorHex = currentAccount.avatarColorHex,
+                    avatarUrl = currentAccount.avatarUrl,
                     onAvatarChanged = { type, colorHex ->
                         currentAccount = currentAccount.copy(
                             avatarType = type,
@@ -988,6 +976,22 @@ fun App() {
                                 de.kjltowinkler.msapp.data.auth.UpdateProfileRequest(
                                     avatarType = type,
                                     avatarColorHex = colorHex
+                                )
+                            )
+                        }
+                    },
+                    onAvatarUrlChanged = { type, colorHex, newUrl ->
+                        currentAccount = currentAccount.copy(
+                            avatarType = type,
+                            avatarColorHex = colorHex,
+                            avatarUrl = newUrl
+                        )
+                        coroutineScope.launch {
+                            BackendApiClient.updateProfile(
+                                de.kjltowinkler.msapp.data.auth.UpdateProfileRequest(
+                                    avatarType = type,
+                                    avatarColorHex = colorHex,
+                                    avatarUrl = newUrl
                                 )
                             )
                         }
@@ -1070,6 +1074,43 @@ fun App() {
                     useMaterialYou = isDynamicColor
                 )
             }
+        }
+
+        val activeInvitation = de.kjltowinkler.msapp.data.task.TasksRepository.activeInvitationDialog
+        if (activeInvitation != null) {
+            de.kjltowinkler.msapp.ui.tasks.SharedListInvitationDialog(
+                invitation = activeInvitation,
+                onDismissRequest = {
+                    de.kjltowinkler.msapp.data.task.TasksRepository.activeInvitationDialog = null
+                },
+                onAccepted = { targetListId ->
+                    de.kjltowinkler.msapp.data.task.TasksRepository.activeInvitationDialog = null
+                    try {
+                        if (navController.currentDestination?.route != AppRoutes.HOME) {
+                            navController.popBackStack(AppRoutes.HOME, inclusive = false)
+                        }
+                    } catch (_: Throwable) {}
+                    de.kjltowinkler.msapp.util.NavigationEvents.emit("tasks")
+                }
+            )
+        }
+
+        if (pendingShareTokenToAccept != null) {
+            de.kjltowinkler.msapp.ui.tasks.AcceptSharedListDialog(
+                token = pendingShareTokenToAccept!!,
+                onDismissRequest = {
+                    pendingShareTokenToAccept = null
+                },
+                onListAccepted = { targetListId ->
+                    pendingShareTokenToAccept = null
+                    try {
+                        if (navController.currentDestination?.route != AppRoutes.HOME) {
+                            navController.popBackStack(AppRoutes.HOME, inclusive = false)
+                        }
+                    } catch (_: Throwable) {}
+                    de.kjltowinkler.msapp.util.NavigationEvents.emit("tasks")
+                }
+            )
         }
     }
 }

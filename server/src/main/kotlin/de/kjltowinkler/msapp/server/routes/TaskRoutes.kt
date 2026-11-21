@@ -174,16 +174,87 @@ fun Route.taskRoutes() {
                     val request = runCatching { call.receive<UpdateShareSettingsRequest>() }.getOrElse {
                         return@put call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültige Freigabedaten"))
                     }
-                    val updatedInfo = TaskRepository.updateShareSettings(userId, listId, request)
-                    if (updatedInfo != null) {
+                    val updateResult = TaskRepository.updateShareSettings(userId, listId, request)
+                    if (updateResult != null) {
+                        for (uid in updateResult.removedUserIds) {
+                            TaskWebSocketManager.notifyTaskUpdate(uid, "list_removed")
+                        }
+                        for (uid in updateResult.invitedUserIds) {
+                            TaskWebSocketManager.notifyTaskUpdate(uid, "list_invitation")
+                        }
                         val memberIds = TaskRepository.getSharedListMemberAndOwnerIds(listId)
                         for (uid in memberIds) {
                             TaskWebSocketManager.notifyTaskUpdate(uid, "share_settings_updated")
                         }
-                        call.respond(HttpStatusCode.OK, updatedInfo)
+                        call.respond(HttpStatusCode.OK, updateResult.updatedInfo)
                     } else {
                         call.respond(HttpStatusCode.Forbidden, SimpleApiResponse(false, "Nur der Eigentümer kann die Freigabe anpassen"))
                     }
+                }
+
+                // POST /api/tasks/lists/{id}/leave -> Geteilte Liste als Mitglied verlassen
+                post("/{id}/leave") {
+                    val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                        ?: return@post call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert"))
+                    val listId = call.parameters["id"]
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
+                    val ownerId = TaskRepository.getSharedListOwnerId(listId)
+                    val success = TaskRepository.leaveSharedList(userId, listId)
+                    if (success) {
+                        TaskWebSocketManager.notifyTaskUpdate(userId, "list_removed")
+                        if (ownerId != null) {
+                            TaskWebSocketManager.notifyTaskUpdate(ownerId, "member_left")
+                        }
+                        call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Liste erfolgreich verlassen"))
+                    } else {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Liste konnte nicht verlassen werden"))
+                    }
+                }
+            }
+
+            // Ausstehende Einladungen abrufen
+            get("/invitations") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert"))
+                val invitations = TaskRepository.getPendingInvitations(userId)
+                call.respond(HttpStatusCode.OK, invitations)
+            }
+
+            // Einladung annehmen
+            post("/invitations/{id}/accept") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert"))
+                val listId = call.parameters["id"]
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
+                val ownerId = TaskRepository.getSharedListOwnerId(listId)
+                val success = TaskRepository.acceptInvitation(userId, listId)
+                if (success) {
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "list_joined")
+                    if (ownerId != null) {
+                        TaskWebSocketManager.notifyTaskUpdate(ownerId, "member_joined")
+                    }
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Einladung erfolgreich angenommen"))
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Einladung konnte nicht angenommen werden"))
+                }
+            }
+
+            // Einladung ablehnen
+            post("/invitations/{id}/decline") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Nicht autorisiert"))
+                val listId = call.parameters["id"]
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "ID fehlt"))
+                val ownerId = TaskRepository.getSharedListOwnerId(listId)
+                val success = TaskRepository.declineInvitation(userId, listId)
+                if (success) {
+                    TaskWebSocketManager.notifyTaskUpdate(userId, "invitation_declined")
+                    if (ownerId != null) {
+                        TaskWebSocketManager.notifyTaskUpdate(ownerId, "share_settings_updated")
+                    }
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Einladung abgelehnt"))
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Einladung konnte nicht abgelehnt werden"))
                 }
             }
 
@@ -397,12 +468,25 @@ fun Route.taskRoutes() {
                             <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(window.location.href); alert('Link kopiert!');">
                                 Link kopieren
                             </button>
-                            <a class="btn btn-primary" href="veloschulplaner://share/${token}">
+                            <a class="btn btn-primary" id="openInAppBtn" href="veloschulplaner://share/${token}" onclick="openInApp('${token}'); return true;">
                                 In App öffnen
                             </a>
                         </div>
                     </div>
                 </div>
+
+                <script>
+                    function openInApp(token) {
+                        const isAndroid = /Android/i.test(navigator.userAgent);
+                        if (isAndroid) {
+                            // Android Intent URI als bevorzugter Weg für moderne Mobil-Browser
+                            const intentUri = "intent://share/" + token + "#Intent;scheme=veloschulplaner;package=de.kjltowinkler.msapp;end";
+                            window.location.href = intentUri;
+                        } else {
+                            window.location.href = "veloschulplaner://share/" + token;
+                        }
+                    }
+                </script>
             </body>
             </html>
         """.trimIndent()

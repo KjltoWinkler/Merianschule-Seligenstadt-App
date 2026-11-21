@@ -118,7 +118,7 @@ object TaskRepository {
                 SELECT t.* FROM tasks t
                 JOIN shared_task_lists stl ON t.list_id = stl.list_id AND t.user_id = stl.owner_id
                 JOIN shared_task_list_members stlm ON stl.list_id = stlm.list_id
-                WHERE stlm.user_id = ? AND t.is_school_task = 0;
+                WHERE stlm.user_id = ? AND (stlm.status = 'ACCEPTED' OR stlm.status IS NULL) AND t.is_school_task = 0;
             """.trimIndent()
             conn.prepareStatement(sharedTasksSql).use { stmt ->
                 stmt.setString(1, userId)
@@ -177,7 +177,7 @@ object TaskRepository {
             JOIN shared_task_lists stl ON stlm.list_id = stl.list_id
             JOIN task_lists tl ON stl.list_id = tl.id AND stl.owner_id = tl.user_id
             JOIN users u ON stl.owner_id = u.id
-            WHERE stlm.user_id = ?;
+            WHERE stlm.user_id = ? AND (stlm.status = 'ACCEPTED' OR stlm.status IS NULL);
         """.trimIndent()
         conn.prepareStatement(sharedSql).use { stmt ->
             stmt.setString(1, userId)
@@ -213,7 +213,21 @@ object TaskRepository {
             sStmt.setString(1, task.listId)
             sStmt.executeQuery().use { sRs ->
                 if (sRs.next()) {
-                    effectiveUserId = sRs.getString("owner_id")
+                    val owner = sRs.getString("owner_id")
+                    if (owner != userId) {
+                        val canEdit = conn.prepareStatement("SELECT role FROM shared_task_list_members WHERE list_id = ? AND user_id = ? AND (status = 'ACCEPTED' OR status IS NULL);").use { mStmt ->
+                            mStmt.setString(1, task.listId)
+                            mStmt.setString(2, userId)
+                            mStmt.executeQuery().use { mRs ->
+                                if (mRs.next()) {
+                                    val r = mRs.getString("role")
+                                    r == "EDITOR" || r == "OWNER"
+                                } else false
+                            }
+                        }
+                        if (!canEdit) error("Keine Schreibberechtigung für diese geteilte Liste")
+                        effectiveUserId = owner
+                    }
                 }
             }
         }
@@ -277,7 +291,7 @@ object TaskRepository {
                 WHERE id = ? AND list_id IN (
                     SELECT stl.list_id FROM shared_task_lists stl
                     JOIN shared_task_list_members stlm ON stl.list_id = stlm.list_id
-                    WHERE stlm.user_id = ? AND stlm.role = 'EDITOR'
+                    WHERE stlm.user_id = ? AND stlm.role = 'EDITOR' AND (stlm.status = 'ACCEPTED' OR stlm.status IS NULL)
                 ) AND (is_school_task = 0 OR id NOT LIKE 'school_task_%');
             """.trimIndent()
             conn.prepareStatement(sharedDelSql).use { stmt ->
@@ -634,8 +648,11 @@ object TaskRepository {
     suspend fun getShareInfo(userId: String, listId: String): SharedTaskListInfo? = DatabaseFactory.query { conn ->
         var ownerId: String? = null
         var listTitle = ""
-        conn.prepareStatement("SELECT user_id, title FROM task_lists WHERE id = ?;").use { stmt ->
+
+        // 1. Zuerst prüfen, ob der anfragende Nutzer der Eigentümer der Liste ist
+        conn.prepareStatement("SELECT user_id, title FROM task_lists WHERE id = ? AND user_id = ?;").use { stmt ->
             stmt.setString(1, listId)
+            stmt.setString(2, userId)
             stmt.executeQuery().use { rs ->
                 if (rs.next()) {
                     ownerId = rs.getString("user_id")
@@ -643,6 +660,39 @@ object TaskRepository {
                 }
             }
         }
+
+        // Falls die Standardliste "my_tasks" für diesen Nutzer noch nicht in der Datenbank existiert, anlegen!
+        if (ownerId == null && listId == "my_tasks") {
+            ownerId = userId
+            listTitle = "Meine Aufgaben"
+            val now = System.currentTimeMillis()
+            conn.prepareStatement("INSERT OR IGNORE INTO task_lists (id, user_id, title, updated_at) VALUES ('my_tasks', ?, 'Meine Aufgaben', ?);").use { stmt ->
+                stmt.setString(1, userId)
+                stmt.setLong(2, now)
+                stmt.executeUpdate()
+            }
+        }
+
+        // 2. Falls nicht Eigentümer, prüfen ob der Nutzer Mitglied einer bereits geteilten Liste ist
+        if (ownerId == null) {
+            conn.prepareStatement("""
+                SELECT stl.owner_id, tl.title 
+                FROM shared_task_lists stl
+                JOIN task_lists tl ON stl.list_id = tl.id AND stl.owner_id = tl.user_id
+                JOIN shared_task_list_members stlm ON stl.list_id = stlm.list_id
+                WHERE stl.list_id = ? AND stlm.user_id = ?;
+            """.trimIndent()).use { stmt ->
+                stmt.setString(1, listId)
+                stmt.setString(2, userId)
+                stmt.executeQuery().use { rs ->
+                    if (rs.next()) {
+                        ownerId = rs.getString("owner_id")
+                        listTitle = if (listId == "my_tasks") "Meine Aufgaben" else DataEncryptionService.decrypt(rs.getString("title"))
+                    }
+                }
+            }
+        }
+
         val effOwnerId = ownerId ?: return@query null
 
         val isOwner = effOwnerId == userId
@@ -705,7 +755,7 @@ object TaskRepository {
 
         val members = mutableListOf<SharedListMember>()
         val memberSql = """
-            SELECT m.user_id, m.role, u.username, u.full_name, u.email, u.class_name, u.avatar_type, u.avatar_color_hex
+            SELECT m.user_id, m.role, m.status, u.username, u.full_name, u.email, u.class_name, u.avatar_type, u.avatar_color_hex, u.avatar_url
             FROM shared_task_list_members m
             JOIN users u ON m.user_id = u.id
             WHERE m.list_id = ?
@@ -724,7 +774,9 @@ object TaskRepository {
                             className = rs.getString("class_name") ?: "",
                             avatarType = rs.getString("avatar_type") ?: "initials",
                             avatarColorHex = rs.getLong("avatar_color_hex"),
-                            role = runCatching { TaskMemberRole.valueOf(rs.getString("role")) }.getOrDefault(TaskMemberRole.VIEWER)
+                            avatarUrl = runCatching { rs.getString("avatar_url") }.getOrNull(),
+                            role = runCatching { TaskMemberRole.valueOf(rs.getString("role")) }.getOrDefault(TaskMemberRole.VIEWER),
+                            status = runCatching { rs.getString("status") }.getOrNull() ?: "ACCEPTED"
                         )
                     )
                 }
@@ -745,18 +797,24 @@ object TaskRepository {
         )
     }
 
+data class ShareSettingsUpdateResult(
+    val updatedInfo: SharedTaskListInfo,
+    val removedUserIds: List<String>,
+    val invitedUserIds: List<String>
+)
+
     suspend fun updateShareSettings(
         userId: String,
         listId: String,
         request: UpdateShareSettingsRequest
-    ): SharedTaskListInfo? {
-        val updated = DatabaseFactory.query { conn ->
+    ): ShareSettingsUpdateResult? {
+        val resultPair = DatabaseFactory.query { conn ->
             val isOwner = conn.prepareStatement("SELECT 1 FROM task_lists WHERE id = ? AND user_id = ?;").use { stmt ->
                 stmt.setString(1, listId)
                 stmt.setString(2, userId)
                 stmt.executeQuery().use { rs -> rs.next() }
             }
-            if (!isOwner) return@query false
+            if (!isOwner) return@query null
 
             val now = System.currentTimeMillis()
             val updateSql = """
@@ -783,6 +841,8 @@ object TaskRepository {
                 }
             }
             val toRemove = currentMemberIds.filter { it !in keepUserIds }
+            val newlyAdded = request.members.map { it.userId }.filter { it !in currentMemberIds && it != userId }
+
             if (toRemove.isNotEmpty()) {
                 conn.prepareStatement("DELETE FROM shared_task_list_members WHERE list_id = ? AND user_id = ?;").use { stmt ->
                     for (uid in toRemove) {
@@ -795,27 +855,126 @@ object TaskRepository {
             }
 
             val upsertMemberSql = """
-                INSERT INTO shared_task_list_members (list_id, user_id, role, added_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO shared_task_list_members (list_id, user_id, role, added_at, status)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(list_id, user_id) DO UPDATE SET
                     role = excluded.role;
             """.trimIndent()
             conn.prepareStatement(upsertMemberSql).use { stmt ->
                 for (m in request.members) {
                     if (m.userId != userId) {
+                        val isNew = m.userId !in currentMemberIds
+                        val initialStatus = if (isNew) "PENDING" else (m.status.ifBlank { "ACCEPTED" })
                         stmt.setString(1, listId)
                         stmt.setString(2, m.userId)
                         stmt.setString(3, m.role.name)
                         stmt.setLong(4, now)
+                        stmt.setString(5, initialStatus)
                         stmt.addBatch()
                     }
                 }
                 stmt.executeBatch()
             }
-            true
+            Pair(toRemove, newlyAdded)
         }
 
-        return if (updated) getShareInfo(userId, listId) else null
+        if (resultPair == null) return null
+        val info = getShareInfo(userId, listId) ?: return null
+        return ShareSettingsUpdateResult(info, resultPair.first, resultPair.second)
+    }
+
+    suspend fun getPendingInvitations(userId: String): List<SharedListInvitation> = DatabaseFactory.query { conn ->
+        val list = mutableListOf<SharedListInvitation>()
+        val sql = """
+            SELECT stlm.list_id, tl.title, stl.owner_id, u.full_name as owner_name, stl.share_token, stlm.role, stlm.added_at
+            FROM shared_task_list_members stlm
+            JOIN shared_task_lists stl ON stlm.list_id = stl.list_id
+            JOIN task_lists tl ON stl.list_id = tl.id AND stl.owner_id = tl.user_id
+            JOIN users u ON stl.owner_id = u.id
+            WHERE stlm.user_id = ? AND stlm.status = 'PENDING'
+            ORDER BY stlm.added_at DESC;
+        """.trimIndent()
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, userId)
+            stmt.executeQuery().use { rs ->
+                while (rs.next()) {
+                    val listId = rs.getString("list_id")
+                    val title = DataEncryptionService.decrypt(rs.getString("title"))
+                    val ownerId = rs.getString("owner_id")
+                    val ownerName = rs.getString("owner_name")
+                    val shareToken = rs.getString("share_token")
+                    val role = runCatching { TaskMemberRole.valueOf(rs.getString("role")) }.getOrDefault(TaskMemberRole.VIEWER)
+                    val addedAt = rs.getLong("added_at")
+
+                    val previewTasks = mutableListOf<TaskItem>()
+                    conn.prepareStatement("SELECT * FROM tasks WHERE list_id = ? AND is_school_task = 0 ORDER BY is_completed ASC, updated_at DESC LIMIT 3;").use { tStmt ->
+                        tStmt.setString(1, listId)
+                        tStmt.executeQuery().use { tRs ->
+                            while (tRs.next()) {
+                                previewTasks.add(mapTask(tRs))
+                            }
+                        }
+                    }
+
+                    list.add(
+                        SharedListInvitation(
+                            listId = listId,
+                            title = title,
+                            ownerId = ownerId,
+                            ownerName = ownerName,
+                            shareToken = shareToken,
+                            role = role,
+                            createdAt = addedAt,
+                            previewTasks = previewTasks
+                        )
+                    )
+                }
+            }
+        }
+        list
+    }
+
+    suspend fun acceptInvitation(userId: String, listId: String): Boolean = DatabaseFactory.query { conn ->
+        val count = conn.prepareStatement("UPDATE shared_task_list_members SET status = 'ACCEPTED' WHERE list_id = ? AND user_id = ? AND status = 'PENDING';").use { stmt ->
+            stmt.setString(1, listId)
+            stmt.setString(2, userId)
+            stmt.executeUpdate()
+        }
+        count > 0
+    }
+
+    suspend fun declineInvitation(userId: String, listId: String): Boolean = DatabaseFactory.query { conn ->
+        val count = conn.prepareStatement("DELETE FROM shared_task_list_members WHERE list_id = ? AND user_id = ? AND status = 'PENDING';").use { stmt ->
+            stmt.setString(1, listId)
+            stmt.setString(2, userId)
+            stmt.executeUpdate()
+        }
+        count > 0
+    }
+
+    suspend fun leaveSharedList(userId: String, listId: String): Boolean = DatabaseFactory.query { conn ->
+        val isOwner = conn.prepareStatement("SELECT 1 FROM shared_task_lists WHERE list_id = ? AND owner_id = ?;").use { stmt ->
+            stmt.setString(1, listId)
+            stmt.setString(2, userId)
+            stmt.executeQuery().use { rs -> rs.next() }
+        }
+        if (isOwner) return@query false
+
+        val count = conn.prepareStatement("DELETE FROM shared_task_list_members WHERE list_id = ? AND user_id = ?;").use { stmt ->
+            stmt.setString(1, listId)
+            stmt.setString(2, userId)
+            stmt.executeUpdate()
+        }
+        count > 0
+    }
+
+    suspend fun getSharedListOwnerId(listId: String): String? = DatabaseFactory.query { conn ->
+        conn.prepareStatement("SELECT owner_id FROM shared_task_lists WHERE list_id = ?;").use { stmt ->
+            stmt.setString(1, listId)
+            stmt.executeQuery().use { rs ->
+                if (rs.next()) rs.getString("owner_id") else null
+            }
+        }
     }
 
     suspend fun getSharedListByToken(token: String, callerUserId: String?): SharedListDetailsDto? = DatabaseFactory.query { conn ->
@@ -966,13 +1125,18 @@ object TaskRepository {
         }
 
         val effectiveRole = if (existingRole != null) {
-            existingRole!!
+            conn.prepareStatement("UPDATE shared_task_list_members SET status = 'ACCEPTED' WHERE list_id = ? AND user_id = ?;").use { stmt ->
+                stmt.setString(1, targetListId)
+                stmt.setString(2, userId)
+                stmt.executeUpdate()
+            }
+            existingRole
         } else {
             if (privacyMode == TaskPrivacyMode.RESTRICTED) {
                 return@query SharedListJoinResponse(false, "Diese Liste ist eingeschränkt. Bitte den Eigentümer um Freigabe.")
             }
             val now = System.currentTimeMillis()
-            conn.prepareStatement("INSERT OR REPLACE INTO shared_task_list_members (list_id, user_id, role, added_at) VALUES (?, ?, ?, ?);").use { stmt ->
+            conn.prepareStatement("INSERT OR REPLACE INTO shared_task_list_members (list_id, user_id, role, added_at, status) VALUES (?, ?, ?, ?, 'ACCEPTED');").use { stmt ->
                 stmt.setString(1, targetListId)
                 stmt.setString(2, userId)
                 stmt.setString(3, linkRole.name)

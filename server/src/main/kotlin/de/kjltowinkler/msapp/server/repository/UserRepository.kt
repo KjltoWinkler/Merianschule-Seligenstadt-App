@@ -23,6 +23,7 @@ data class UserRecord(
     val classTeacher: String,
     val avatarType: String,
     val avatarColorHex: Long,
+    val avatarUrl: String? = null,
     val role: String,
     val hasCustomPassword: Boolean = true,
     val initialPassword: String? = null,
@@ -43,6 +44,7 @@ data class UserRecord(
         classTeacher = classTeacher,
         avatarType = avatarType,
         avatarColorHex = avatarColorHex,
+        avatarUrl = avatarUrl,
         role = role,
         hasCustomPassword = hasCustomPassword,
         initialPassword = if (!hasCustomPassword) initialPassword else null,
@@ -93,6 +95,7 @@ object UserRepository {
             classTeacher = rs.getString("class_teacher"),
             avatarType = rs.getString("avatar_type"),
             avatarColorHex = rs.getLong("avatar_color_hex"),
+            avatarUrl = runCatching { rs.getString("avatar_url") }.getOrNull(),
             role = rs.getString("role"),
             hasCustomPassword = hasCustom,
             initialPassword = initPw,
@@ -153,8 +156,8 @@ object UserRepository {
         val now = System.currentTimeMillis()
 
         val sql = """
-            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, role, has_custom_password, initial_password, is_two_factor_enabled, student_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            INSERT INTO users (id, username, email, password_hash, password_salt, full_name, class_name, school_type, class_teacher, avatar_type, avatar_color_hex, avatar_url, role, has_custom_password, initial_password, is_two_factor_enabled, student_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """.trimIndent()
 
         conn.prepareStatement(sql).use { stmt ->
@@ -169,13 +172,14 @@ object UserRepository {
             stmt.setString(9, request.classTeacher.trim())
             stmt.setString(10, request.avatarType)
             stmt.setLong(11, request.avatarColorHex)
-            stmt.setString(12, role)
-            stmt.setInt(13, if (hasCustomPassword) 1 else 0)
-            stmt.setString(14, encryptedInitialPassword)
-            stmt.setInt(15, if (isTwoFactorEnabled) 1 else 0)
-            stmt.setString(16, finalStudentId)
-            stmt.setLong(17, now)
+            stmt.setString(12, request.avatarUrl)
+            stmt.setString(13, role)
+            stmt.setInt(14, if (hasCustomPassword) 1 else 0)
+            stmt.setString(15, encryptedInitialPassword)
+            stmt.setInt(16, if (isTwoFactorEnabled) 1 else 0)
+            stmt.setString(17, finalStudentId)
             stmt.setLong(18, now)
+            stmt.setLong(19, now)
             stmt.executeUpdate()
         }
 
@@ -200,6 +204,7 @@ object UserRepository {
             classTeacher = request.classTeacher.trim(),
             avatarType = request.avatarType,
             avatarColorHex = request.avatarColorHex,
+            avatarUrl = request.avatarUrl,
             role = role,
             hasCustomPassword = hasCustomPassword,
             initialPassword = if (!hasCustomPassword) effectivePassword else null,
@@ -288,11 +293,12 @@ object UserRepository {
         val newClassTeacher = request.classTeacher ?: current.classTeacher
         val newAvatarType = request.avatarType ?: current.avatarType
         val newAvatarColorHex = request.avatarColorHex ?: current.avatarColorHex
+        val newAvatarUrl = if (request.avatarUrl != null) request.avatarUrl else current.avatarUrl
 
         val sql = """
             UPDATE users SET 
                 full_name = ?, class_name = ?, school_type = ?, 
-                class_teacher = ?, avatar_type = ?, avatar_color_hex = ?, updated_at = ?
+                class_teacher = ?, avatar_type = ?, avatar_color_hex = ?, avatar_url = ?, updated_at = ?
             WHERE id = ?;
         """.trimIndent()
 
@@ -303,8 +309,9 @@ object UserRepository {
             stmt.setString(4, newClassTeacher)
             stmt.setString(5, newAvatarType)
             stmt.setLong(6, newAvatarColorHex)
-            stmt.setLong(7, now)
-            stmt.setString(8, userId)
+            stmt.setString(7, newAvatarUrl)
+            stmt.setLong(8, now)
+            stmt.setString(9, userId)
             stmt.executeUpdate()
         }
 
@@ -319,9 +326,28 @@ object UserRepository {
             classTeacher = newClassTeacher,
             avatarType = newAvatarType,
             avatarColorHex = newAvatarColorHex,
+            avatarUrl = newAvatarUrl,
             role = current.role,
             createdAt = current.createdAt
         )
+    }
+
+    suspend fun updateAvatar(userId: String, avatarType: String, avatarUrl: String?): UserProfileDto? = DatabaseFactory.query { conn ->
+        val current = findByIdSync(conn, userId) ?: return@query null
+        val now = System.currentTimeMillis()
+        val sql = "UPDATE users SET avatar_type = ?, avatar_url = ?, updated_at = ? WHERE id = ?;"
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, avatarType)
+            stmt.setString(2, avatarUrl)
+            stmt.setLong(3, now)
+            stmt.setString(4, userId)
+            stmt.executeUpdate()
+        }
+        current.copy(
+            avatarType = avatarType,
+            avatarUrl = avatarUrl,
+            updatedAt = now
+        ).toDto()
     }
 
     suspend fun updatePassword(userId: String, newPasswordHash: String, newPasswordSalt: String): Boolean = DatabaseFactory.query { conn ->
@@ -381,11 +407,42 @@ object UserRepository {
         }
     }
 
+    suspend fun getSuggestedUsers(currentUserId: String): List<UserSearchResultDto> = DatabaseFactory.query { conn ->
+        val sql = """
+            SELECT id, username, full_name, class_name, avatar_type, avatar_color_hex, avatar_url, role 
+            FROM users 
+            WHERE id != ?
+            ORDER BY full_name ASC 
+            LIMIT 15;
+        """.trimIndent()
+        conn.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, currentUserId)
+            stmt.executeQuery().use { rs ->
+                val list = mutableListOf<UserSearchResultDto>()
+                while (rs.next()) {
+                    list.add(
+                        UserSearchResultDto(
+                            id = rs.getString("id"),
+                            username = rs.getString("username"),
+                            fullName = rs.getString("full_name"),
+                            className = rs.getString("class_name") ?: "",
+                            avatarType = rs.getString("avatar_type") ?: "initials",
+                            avatarColorHex = rs.getLong("avatar_color_hex"),
+                            avatarUrl = runCatching { rs.getString("avatar_url") }.getOrNull(),
+                            role = rs.getString("role") ?: "USER"
+                        )
+                    )
+                }
+                list
+            }
+        }
+    }
+
     suspend fun searchUsers(query: String, currentUserId: String): List<UserSearchResultDto> = DatabaseFactory.query { conn ->
         val trimmed = query.trim().lowercase()
         if (trimmed.isEmpty()) return@query emptyList()
         val sql = """
-            SELECT id, username, full_name, class_name, avatar_type, avatar_color_hex, role 
+            SELECT id, username, full_name, class_name, avatar_type, avatar_color_hex, avatar_url, role 
             FROM users 
             WHERE id != ? AND (
                 LOWER(username) LIKE ? OR 
@@ -414,6 +471,7 @@ object UserRepository {
                             className = rs.getString("class_name") ?: "",
                             avatarType = rs.getString("avatar_type") ?: "initials",
                             avatarColorHex = rs.getLong("avatar_color_hex"),
+                            avatarUrl = runCatching { rs.getString("avatar_url") }.getOrNull(),
                             role = rs.getString("role") ?: "USER"
                         )
                     )

@@ -63,8 +63,25 @@ fun AccountAvatar(
     accountName: String,
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
+    avatarUrl: String? = null,
     modifier: Modifier = Modifier
 ) {
+    if ((avatarType == "custom" || avatarType == "photo" || !avatarUrl.isNullOrBlank()) &&
+        avatarType !in listOf("initials", "mascot_clean", "mascot_char", "app_icon")
+    ) {
+        val bitmap = rememberAvatarBitmap(avatarUrl)
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Profilbild von $accountName",
+                contentScale = ContentScale.Crop,
+                modifier = modifier
+                    .clip(CircleShape)
+            )
+            return
+        }
+    }
+
     when (avatarType) {
         "mascot_clean" -> {
             Image(

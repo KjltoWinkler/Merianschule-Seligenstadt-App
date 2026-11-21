@@ -37,6 +37,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.task.TaskItem
+import de.kjltowinkler.msapp.data.task.TaskMemberRole
 import de.kjltowinkler.msapp.data.task.isOverdue
 import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
@@ -60,6 +61,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -119,7 +121,8 @@ fun TasksScreen(
     highlightTaskId: String? = null,
     onHighlightHandled: () -> Unit = {},
     onAddTaskClicked: ((isStarred: Boolean, targetListId: String, isSchoolTask: Boolean) -> Unit)? = null,
-    onNewListClicked: (() -> Unit)? = null
+    onNewListClicked: (() -> Unit)? = null,
+    onShareListClicked: ((TaskList) -> Unit)? = null
 ) {
     val privateLists = TasksRepository.privateLists
     val tabs: List<TasksTab> = remember(privateLists.toList()) {
@@ -146,6 +149,9 @@ fun TasksScreen(
     var selectedTaskForEdit by remember { mutableStateOf<de.kjltowinkler.msapp.data.task.TaskItem?>(null) }
     var showEditListSheet by remember { mutableStateOf(false) }
     var selectedListForEdit by remember { mutableStateOf<TaskList?>(null) }
+    var showShareSheet by remember { mutableStateOf(false) }
+    var selectedListForShare by remember { mutableStateOf<TaskList?>(null) }
+    var showJoinListDialog by remember { mutableStateOf(false) }
     var showSchoolTasksSheet by remember { mutableStateOf(false) }
     var showStarredTasksSheet by remember { mutableStateOf(false) }
     var showNewListSheet by remember { mutableStateOf(false) }
@@ -212,14 +218,32 @@ fun TasksScreen(
 
     val colorScheme = MaterialTheme.colorScheme
     val haptic = LocalHapticFeedback.current
+    val density = LocalDensity.current
     val tabScrollState = rememberScrollState()
+    var rowViewportWidth by remember { mutableIntStateOf(0) }
+    val buttonWidths = remember { mutableStateMapOf<Int, Int>() }
 
-    // Automatisch zum ausgewählten Button scrollen, wenn die Seite gewechselt wird
-    LaunchedEffect(pagerState.currentPage) {
-        val buttonWidthEstimate = 100
-        tabScrollState.animateScrollTo(
-            (pagerState.currentPage * buttonWidthEstimate).coerceAtLeast(0)
-        )
+    fun calculateTargetScroll(targetIndex: Int): Int {
+        if (rowViewportWidth <= 0 || targetIndex < 0) return 0
+        val spacePx = with(density) { ButtonGroupDefaults.ConnectedSpaceBetween.roundToPx() }
+        val startPaddingPx = with(density) { 10.dp.roundToPx() }
+        val defaultWidthPx = with(density) { 110.dp.roundToPx() }
+        var offset = startPaddingPx
+        for (i in 0 until targetIndex) {
+            offset += (buttonWidths[i] ?: defaultWidthPx) + spacePx
+        }
+        val currentWidth = buttonWidths[targetIndex] ?: defaultWidthPx
+        val buttonCenter = offset + currentWidth / 2
+        val targetScroll = buttonCenter - (rowViewportWidth / 2)
+        return targetScroll.coerceIn(0, tabScrollState.maxValue)
+    }
+
+    // Automatisch zum ausgewählten Button scrollen und diesen mittig zentrieren
+    LaunchedEffect(pagerState.currentPage, rowViewportWidth, tabScrollState.maxValue, buttonWidths.size) {
+        if (rowViewportWidth > 0 && tabScrollState.maxValue > 0) {
+            val targetScroll = calculateTargetScroll(pagerState.currentPage)
+            tabScrollState.animateScrollTo(targetScroll)
+        }
     }
 
     Box(
@@ -237,6 +261,7 @@ fun TasksScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onSizeChanged { rowViewportWidth = it.width }
                     .horizontalScroll(tabScrollState)
                     .padding(start = 10.dp, end = 10.dp, top = 12.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
@@ -244,11 +269,23 @@ fun TasksScreen(
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val tabInteractionSource = remember { MutableInteractionSource() }
-                    Box(modifier = Modifier.wrapContentSize()) {
+                    Box(
+                        modifier = Modifier
+                            .wrapContentSize()
+                            .onSizeChanged { size ->
+                                if (size.width > 0) {
+                                    buttonWidths[index] = size.width
+                                }
+                            }
+                    ) {
                         ToggleButton(
                             checked = pagerState.currentPage == index,
                             onCheckedChange = {
                                 coroutineScope.launch {
+                                    launch {
+                                        val targetScroll = calculateTargetScroll(index)
+                                        tabScrollState.animateScrollTo(targetScroll)
+                                    }
                                     pagerState.animateScrollToPage(index)
                                 }
                             },
@@ -294,6 +331,14 @@ fun TasksScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
+                                        if (tab.list.isShared) {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.ic_groups),
+                                                contentDescription = "Geteilte Liste",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                         Text(
                                             text = tab.list.title,
                                             softWrap = false
@@ -319,6 +364,10 @@ fun TasksScreen(
                                     indication = null,
                                     onClick = {
                                         coroutineScope.launch {
+                                            launch {
+                                                val targetScroll = calculateTargetScroll(index)
+                                                tabScrollState.animateScrollTo(targetScroll)
+                                            }
                                             pagerState.animateScrollToPage(index)
                                         }
                                     },
@@ -428,16 +477,46 @@ fun TasksScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = when (tab) {
-                                        TasksTab.Starred -> "Markiert"
-                                        TasksTab.School -> "Schul-Aufgaben"
-                                        is TasksTab.Private -> tab.list.title
-                                    },
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colorScheme.onSurface
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = when (tab) {
+                                            TasksTab.Starred -> "Markiert"
+                                            TasksTab.School -> "Schul-Aufgaben"
+                                            is TasksTab.Private -> tab.list.title
+                                        },
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colorScheme.onSurface
+                                    )
+                                    if (tab is TasksTab.Private && tab.list.isShared) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = colorScheme.secondaryContainer
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(Res.drawable.ic_groups),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(12.dp),
+                                                    tint = colorScheme.onSecondaryContainer
+                                                )
+                                                Text(
+                                                    text = "Geteilt",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colorScheme.onSecondaryContainer
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -520,7 +599,7 @@ fun TasksScreen(
                                                 is TasksTab.Private -> {
                                                     TaskEmptyState(
                                                         imageDrawable = Res.drawable.tasks_my_empty,
-                                                        title = "Noch keine aufgaben",
+                                                        title = "Noch keine Aufgaben",
                                                         subtitle = "Hier kannst du deine To-dos hinzufügen und diese mit deinen Schulaufgaben verwalten und erledigen."
                                                     )
                                                 }
@@ -533,9 +612,28 @@ fun TasksScreen(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalAlignment = Alignment.CenterHorizontally
                                         ) {
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            when (tab) {
+                                                TasksTab.Starred -> {
+                                                    AllTasksCompletedIllustration(
+                                                        title = "Keine markierten\nAufgaben",
+                                                        subtitle = "Markieren Sie wichtige Aufgaben mit einem Stern, damit Sie sie hier leichter wiederfinden"
+                                                    )
+                                                }
+                                                TasksTab.School -> {
+                                                    AllTasksCompletedIllustration(
+                                                        title = "Keine Schul-\nAufgaben",
+                                                        subtitle = "Hier werden dir deine Hausaufgaben/Aufgaben von deinen Lehrkräfte aus deiner Schule angezeigt"
+                                                    )
+                                                }
+                                                is TasksTab.Private -> {
+                                                    AllTasksCompletedIllustration(
+                                                        title = "Noch keine Aufgaben",
+                                                        subtitle = "Hier kannst du deine To-dos hinzufügen und diese mit deinen Schulaufgaben verwalten und erledigen."
+                                                    )
+                                                }
+                                            }
                                             Spacer(modifier = Modifier.height(10.dp))
-                                            AllTasksCompletedIllustration()
-                                            Spacer(modifier = Modifier.height(8.dp))
                                         }
                                     }
                                     TaskListContentState.HAS_ACTIVE -> {
@@ -1136,11 +1234,21 @@ fun TasksScreen(
             val areAllListStarred = listTasks.isNotEmpty() && listTasks.all { it.isStarred }
             EditListBottomSheet(
                 listTitle = list.title,
+                isShared = list.isShared,
                 areAllCompleted = areAllListCompleted,
                 areAllStarred = areAllListStarred,
                 onDismissRequest = {
                     showEditListSheet = false
                     selectedListForEdit = null
+                },
+                onShareList = {
+                    showEditListSheet = false
+                    if (onShareListClicked != null) {
+                        onShareListClicked(list)
+                    } else {
+                        selectedListForShare = list
+                        showShareSheet = true
+                    }
                 },
                 onReorderLists = {
                     showEditListSheet = false
@@ -1168,7 +1276,7 @@ fun TasksScreen(
                 onDeleteAllTasks = {
                     TasksRepository.deleteAllTasksInList(list.id)
                 },
-                onDeleteList = if (isCustomList) {
+                onDeleteList = if (isCustomList && (list.role == TaskMemberRole.OWNER || !list.isShared)) {
                     {
                         TasksRepository.deletePrivateList(list.id)
                         coroutineScope.launch {
@@ -1176,7 +1284,60 @@ fun TasksScreen(
                             pagerState.animateScrollToPage(newPageIndex)
                         }
                     }
+                } else null,
+                onLeaveList = if (list.isShared && list.role != TaskMemberRole.OWNER) {
+                    {
+                        coroutineScope.launch {
+                            TasksRepository.leaveSharedList(list.id)
+                            val newPageIndex = (pagerState.currentPage - 1).coerceAtLeast(0)
+                            pagerState.animateScrollToPage(newPageIndex)
+                        }
+                    }
                 } else null
+            )
+        }
+
+        // --- VOLLBILD-SCREEN FÜR LISTE TEILEN (GOOGLE DOCS STYLE SHARING) ---
+        AnimatedVisibility(
+            visible = onShareListClicked == null && showShareSheet && selectedListForShare != null,
+            enter = slideInVertically(
+                initialOffsetY = { (it * 0.12f).toInt() },
+                animationSpec = tween(280, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(240)),
+            exit = slideOutVertically(
+                targetOffsetY = { (it * 0.12f).toInt() },
+                animationSpec = tween(220, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(180))
+        ) {
+            selectedListForShare?.let { list ->
+                ShareListScreen(
+                    list = list,
+                    onDismissRequest = {
+                        showShareSheet = false
+                        selectedListForShare = null
+                    },
+                    useMaterialYou = useMaterialYou
+                )
+            }
+        }
+
+        // --- DIALOG FÜR GETEILTER LISTE BEITRETEN ---
+        if (showJoinListDialog) {
+            JoinSharedListDialog(
+                onDismissRequest = { showJoinListDialog = false },
+                onListJoined = { joinedListId ->
+                    coroutineScope.launch {
+                        delay(200)
+                        val targetIndex = tabs.indexOfFirst { tab ->
+                            tab is TasksTab.Private && tab.list.id == joinedListId
+                        }
+                        if (targetIndex >= 0) {
+                            pagerState.animateScrollToPage(targetIndex)
+                            val targetScroll = calculateTargetScroll(targetIndex)
+                            tabScrollState.animateScrollTo(targetScroll)
+                        }
+                    }
+                }
             )
         }
 
@@ -1190,11 +1351,10 @@ fun TasksScreen(
                     coroutineScope.launch {
                         delay(120)
                         val newIndex = tabs.indexOfFirst { (it as? TasksTab.Private)?.list?.id == created.id }
-                        if (newIndex >= 0) {
-                            pagerState.animateScrollToPage(newIndex)
-                        } else {
-                            pagerState.animateScrollToPage(tabs.size.coerceAtLeast(1) - 1)
-                        }
+                        val targetIndex = if (newIndex >= 0) newIndex else (tabs.size.coerceAtLeast(1) - 1)
+                        pagerState.animateScrollToPage(targetIndex)
+                        val targetScroll = calculateTargetScroll(targetIndex)
+                        tabScrollState.animateScrollTo(targetScroll)
                     }
                 }
             )
@@ -1372,7 +1532,10 @@ private fun TaskEmptyState(
  * Wechselt zufällig zwischen `tasks_done_char` (mit Person) und `tasks_done_clean` (ohne Person).
  */
 @Composable
-private fun AllTasksCompletedIllustration() {
+private fun AllTasksCompletedIllustration(
+    title: String,
+    subtitle: String
+) {
     val illustration = remember {
         if (kotlin.random.Random.nextBoolean()) {
             Res.drawable.tasks_done_char
@@ -1381,17 +1544,11 @@ private fun AllTasksCompletedIllustration() {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Image(
-            painter = painterResource(illustration),
-            contentDescription = "Alle Aufgaben erledigt",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.size(260.dp)
-        )
-    }
+    TaskEmptyState(
+        imageDrawable = illustration,
+        title = title,
+        subtitle = subtitle
+    )
 }
 
 @Composable

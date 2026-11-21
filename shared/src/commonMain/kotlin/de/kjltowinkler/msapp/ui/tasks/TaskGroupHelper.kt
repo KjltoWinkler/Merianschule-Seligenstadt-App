@@ -213,14 +213,13 @@ fun groupTasksBySubject(tasks: List<TaskItem>): List<TaskGroup> {
     val withoutSubject = tasks.filter { it.subject.isBlank() }
 
     val groupedBySubject = withSubject.groupBy { it.subject.trim() }
-        .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+        .entries
+        .sortedBy { it.key.lowercase() }
 
     val groups = mutableListOf<TaskGroup>()
 
     for ((subject, subjectTasks) in groupedBySubject) {
-        val sortedTasks = subjectTasks.sortedWith(
-            compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-        )
+        val sortedTasks = subjectTasks.sortedBy { it.title.lowercase() }
         groups.add(
             TaskGroup(
                 title = subject,
@@ -231,9 +230,7 @@ fun groupTasksBySubject(tasks: List<TaskItem>): List<TaskGroup> {
     }
 
     if (withoutSubject.isNotEmpty()) {
-        val sortedWithout = withoutSubject.sortedWith(
-            compareBy(String.CASE_INSENSITIVE_ORDER) { it.title }
-        )
+        val sortedWithout = withoutSubject.sortedBy { it.title.lowercase() }
         groups.add(
             TaskGroup(
                 title = "Ohne Fach",

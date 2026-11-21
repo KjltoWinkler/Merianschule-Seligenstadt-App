@@ -863,13 +863,26 @@ class SharedCommonTest {
         assertEquals("task_due_99", de.kjltowinkler.msapp.util.NavigationEvents.pendingTarget?.highlightId)
         assertEquals("task_due_99", de.kjltowinkler.msapp.util.NavigationEvents.consumePendingHighlight("tasks"))
         assertNull(de.kjltowinkler.msapp.util.NavigationEvents.consumePendingHighlight("tasks"))
+
+        // 3. Share-Link Deep-Link & Parsing
+        assertEquals("tok_abc123", de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken("https://veloschulplaner.de/share/tok_abc123"))
+        assertEquals("tok_abc123", de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken("http://veloschulplaner.de/share/tok_abc123/"))
+        assertEquals("tok_abc123", de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken("veloschulplaner://share/tok_abc123"))
+        assertEquals("tok_abc123", de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken("veloschulplaner:///share/tok_abc123"))
+        assertEquals("tok_abc123", de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken("https://veloschulplaner.de/share/tok_abc123?source=web#preview"))
+        assertEquals("tok_abc123", de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken("tok_abc123"))
+
+        de.kjltowinkler.msapp.util.NavigationEvents.emitShareToken("https://veloschulplaner.de/share/tok_xyz987")
+        assertEquals("tok_xyz987", de.kjltowinkler.msapp.util.NavigationEvents.pendingShareToken)
+        assertEquals("tok_xyz987", de.kjltowinkler.msapp.util.NavigationEvents.consumePendingShareToken())
+        assertNull(de.kjltowinkler.msapp.util.NavigationEvents.pendingShareToken)
     }
 
     @Test
     fun testTimetableMatchingSubstitution() {
         val today = de.kjltowinkler.msapp.data.task.getTodayDate()
-        val dayOfWeek = today.dayOfWeek // 1 (Mon) to 7 (Sun)
-        val timetableDay = when (dayOfWeek) {
+        val testDate = if (today.dayOfWeek in 1..5) today else today.plusDays(if (today.dayOfWeek == 6) 2 else 1)
+        val timetableDay = when (testDate.dayOfWeek) {
             1 -> TimetableDay.MONTAG
             2 -> TimetableDay.DIENSTAG
             3 -> TimetableDay.MITTWOCH
@@ -890,7 +903,7 @@ class SharedCommonTest {
 
         val matchingSub = SubstitutionEntry(
             id = "sub_math_entfall",
-            date = today.toIsoString(),
+            date = testDate.toIsoString(),
             period = "2. Std",
             subject = "Mathematik",
             className = "9aR",
@@ -900,7 +913,7 @@ class SharedCommonTest {
 
         val nonMatchingPeriodSub = SubstitutionEntry(
             id = "sub_other_period",
-            date = today.toIsoString(),
+            date = testDate.toIsoString(),
             period = "5. Std",
             subject = "Mathematik",
             className = "9aR",

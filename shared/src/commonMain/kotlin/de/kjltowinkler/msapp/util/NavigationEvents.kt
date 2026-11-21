@@ -17,6 +17,51 @@ object NavigationEvents {
 
     var pendingTarget: NavigationTarget? = null
 
+    private val _shareTokenFlow = MutableSharedFlow<String>(extraBufferCapacity = 10)
+    val shareTokenFlow = _shareTokenFlow.asSharedFlow()
+
+    var pendingShareToken: String? = null
+
+    fun emitShareToken(tokenOrUrl: String) {
+        val cleanToken = parseShareToken(tokenOrUrl) ?: tokenOrUrl.trim()
+        if (cleanToken.isNotBlank()) {
+            pendingShareToken = cleanToken
+            _shareTokenFlow.tryEmit(cleanToken)
+        }
+    }
+
+    fun consumePendingShareToken(): String? {
+        val t = pendingShareToken
+        pendingShareToken = null
+        return t
+    }
+
+    fun parseShareToken(input: String?): String? {
+        if (input == null) return null
+        val trimmed = input.trim()
+        if (trimmed.isBlank()) return null
+
+        var s = trimmed
+            .substringBefore('?')
+            .substringBefore('#')
+            .trim()
+
+        val schemeIndex = s.indexOf("://")
+        if (schemeIndex != -1) {
+            s = s.substring(schemeIndex + 3)
+        }
+        s = s.trimStart('/')
+
+        s = s.removePrefix("veloschulplaner.de")
+            .removePrefix("api.veloschulplaner.de")
+        s = s.trimStart('/')
+
+        s = s.removePrefix("share")
+        s = s.trim('/')
+
+        return s.ifBlank { null }
+    }
+
     fun emit(route: String, highlightId: String? = null) {
         val target = NavigationTarget(route, highlightId)
         pendingTarget = target

@@ -89,12 +89,15 @@ object BackendApiClient {
         install(WebSockets)
     }
 
+    val httpClient: io.ktor.client.HttpClient get() = client
+
     val clientInstanceId: String = "inst_" + (100000..999999).random()
 
     private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var realTimeJob: Job? = null
 
     private var onTaskUpdateListener: (suspend () -> Unit)? = null
+    var onInvitationReceivedListener: (suspend () -> Unit)? = null
     private var onSubstitutionUpdateListener: (suspend () -> Unit)? = null
     private var onSettingsUpdateListener: (suspend () -> Unit)? = null
     private var onTimetableUpdateListener: ((String?) -> Unit)? = null
@@ -148,6 +151,9 @@ object BackendApiClient {
                                     val isOwnEcho = text.contains("\"origin\":\"$clientInstanceId\"")
                                     if (!isOwnEcho) {
                                         onTaskUpdateListener?.invoke()
+                                        if (text.contains("list_invitation", ignoreCase = true)) {
+                                            onInvitationReceivedListener?.invoke()
+                                        }
                                     }
                                 }
                                 if (text.contains("substitutions_updated", ignoreCase = true)) {
@@ -375,6 +381,44 @@ object BackendApiClient {
         }
     }
 
+    suspend fun uploadAvatar(bytes: ByteArray, mimeType: String): Result<UserProfileDto> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.post("$serverUrl/api/user/avatar") {
+            header("Authorization", "Bearer $token")
+            header("X-Client-Instance", clientInstanceId)
+            contentType(ContentType.parse(mimeType))
+            setBody(bytes)
+        }
+
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            val user = json.decodeFromString<UserProfileDto>(body)
+            currentUser = user
+            PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(user))
+            user
+        } else {
+            error("Avatar-Upload fehlgeschlagen: ${response.status}")
+        }
+    }
+
+    suspend fun deleteAvatar(): Result<UserProfileDto> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.delete("$serverUrl/api/user/avatar") {
+            header("Authorization", "Bearer $token")
+            header("X-Client-Instance", clientInstanceId)
+        }
+
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            val user = json.decodeFromString<UserProfileDto>(body)
+            currentUser = user
+            PlatformStorage.setString(KEY_CURRENT_USER, json.encodeToString(user))
+            user
+        } else {
+            error("Avatar-Löschen fehlgeschlagen: ${response.status}")
+        }
+    }
+
     fun logout() {
         clearSession()
     }
@@ -544,6 +588,19 @@ object BackendApiClient {
         }
     }
 
+    suspend fun getSuggestedUsers(): Result<List<de.kjltowinkler.msapp.data.task.UserSearchResultDto>> = runCatching {
+        val token = authToken ?: error("Nicht angemeldet")
+        val response = client.get("$serverUrl/api/users/suggestions") {
+            header("Authorization", "Bearer $token")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<List<de.kjltowinkler.msapp.data.task.UserSearchResultDto>>(body)
+        } else {
+            emptyList()
+        }
+    }
+
     suspend fun fetchSharedListByToken(token: String): Result<de.kjltowinkler.msapp.data.task.SharedListDetailsDto> = runCatching {
         val reqToken = authToken
         val response = client.get("$serverUrl/api/tasks/share/$token") {
@@ -568,6 +625,61 @@ object BackendApiClient {
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             json.decodeFromString<de.kjltowinkler.msapp.data.task.SharedListJoinResponse>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
+    suspend fun fetchPendingInvitations(): Result<List<de.kjltowinkler.msapp.data.task.SharedListInvitation>> = runCatching {
+        val reqToken = authToken ?: error("Nicht angemeldet.")
+        val response = client.get("$serverUrl/api/tasks/invitations") {
+            header("Authorization", "Bearer $reqToken")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<List<de.kjltowinkler.msapp.data.task.SharedListInvitation>>(body)
+        } else {
+            error("Einladungen konnten nicht geladen werden: $body")
+        }
+    }
+
+    suspend fun acceptInvitation(listId: String): Result<SimpleApiResponse> = runCatching {
+        val reqToken = authToken ?: error("Nicht angemeldet.")
+        val response = client.post("$serverUrl/api/tasks/invitations/$listId/accept") {
+            header("Authorization", "Bearer $reqToken")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<SimpleApiResponse>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
+    suspend fun declineInvitation(listId: String): Result<SimpleApiResponse> = runCatching {
+        val reqToken = authToken ?: error("Nicht angemeldet.")
+        val response = client.post("$serverUrl/api/tasks/invitations/$listId/decline") {
+            header("Authorization", "Bearer $reqToken")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<SimpleApiResponse>(body)
+        } else {
+            val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
+            error(err)
+        }
+    }
+
+    suspend fun leaveSharedList(listId: String): Result<SimpleApiResponse> = runCatching {
+        val reqToken = authToken ?: error("Nicht angemeldet.")
+        val response = client.post("$serverUrl/api/tasks/lists/$listId/leave") {
+            header("Authorization", "Bearer $reqToken")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<SimpleApiResponse>(body)
         } else {
             val err = runCatching { json.decodeFromString<SimpleApiResponse>(body).message }.getOrDefault(body)
             error(err)

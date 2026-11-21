@@ -501,5 +501,43 @@ class ServerTest {
         // Restore original
         de.kjltowinkler.msapp.server.routes.AppUpdateRepository.saveUpdateInfo(original)
     }
+
+    @Test
+    fun testCustomAvatarLifecycle() = runBlocking {
+        val suffix = System.currentTimeMillis()
+        val user = UserRepository.createUser(
+            RegisterRequest("avatar_user_$suffix", "avatar_$suffix@test.de", "Pw123!", "Avatar User", "09AR")
+        )
+        assertEquals("initials", user.avatarType)
+        assertNull(user.avatarUrl)
+
+        // Update to custom avatar URL
+        val customUrl = "/api/user/avatar/${user.id}?v=12345"
+        val updated = UserRepository.updateAvatar(user.id, avatarType = "custom", avatarUrl = customUrl)
+        assertNotNull(updated)
+        assertEquals("custom", updated.avatarType)
+        assertEquals(customUrl, updated.avatarUrl)
+
+        // Verify retrieval via findById
+        val retrieved = UserRepository.findById(user.id)
+        assertNotNull(retrieved)
+        assertEquals("custom", retrieved.avatarType)
+        assertEquals(customUrl, retrieved.avatarUrl)
+        assertEquals(customUrl, retrieved.toDto().avatarUrl)
+
+        // Verify user search includes avatarUrl
+        val searchResults = UserRepository.searchUsers("avatar_user_$suffix", currentUserId = "other_user")
+        assertTrue(searchResults.any { it.id == user.id && it.avatarUrl == customUrl })
+
+        // Reset / Delete avatar
+        val reset = UserRepository.updateAvatar(user.id, avatarType = "initials", avatarUrl = null)
+        assertNotNull(reset)
+        assertEquals("initials", reset.avatarType)
+        assertNull(reset.avatarUrl)
+
+        val retrievedReset = UserRepository.findById(user.id)
+        assertNotNull(retrievedReset)
+        assertNull(retrievedReset.avatarUrl)
+    }
 }
 

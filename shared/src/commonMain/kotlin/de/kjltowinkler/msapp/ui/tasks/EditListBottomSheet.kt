@@ -34,7 +34,9 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun EditListBottomSheet(
     listTitle: String = "Meine Aufgaben",
+    isShared: Boolean = false,
     onDismissRequest: () -> Unit,
+    onShareList: (() -> Unit)? = null,
     onRenameList: (String) -> Unit = {},
     onMarkAllCompleted: () -> Unit = {},
     onMarkAllUncompleted: () -> Unit = {},
@@ -43,6 +45,7 @@ fun EditListBottomSheet(
     onDeleteCompletedTasks: () -> Unit = {},
     onDeleteAllTasks: () -> Unit = {},
     onDeleteList: (() -> Unit)? = null,
+    onLeaveList: (() -> Unit)? = null,
     onReorderLists: () -> Unit = {},
     areAllCompleted: Boolean = false,
     areAllStarred: Boolean = false,
@@ -53,6 +56,7 @@ fun EditListBottomSheet(
     var showDeleteCompletedConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteAllConfirmDialog by remember { mutableStateOf(false) }
     var showDeleteListConfirmDialog by remember { mutableStateOf(false) }
+    var showLeaveListConfirmDialog by remember { mutableStateOf(false) }
 
     val colorScheme = MaterialTheme.colorScheme
 
@@ -266,6 +270,43 @@ fun EditListBottomSheet(
         )
     }
 
+    // Dialog: Liste verlassen
+    if (showLeaveListConfirmDialog && onLeaveList != null) {
+        AlertDialog(
+            onDismissRequest = { showLeaveListConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Liste verlassen?",
+                    fontWeight = FontWeight.Bold,
+                    color = colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Möchtest du die geteilte Liste „$listTitle“ wirklich verlassen? Du hast danach keinen Zugriff mehr darauf.",
+                    color = colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLeaveListConfirmDialog = false
+                        onLeaveList()
+                        onDismissRequest()
+                    }
+                ) {
+                    Text("Verlassen", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveListConfirmDialog = false }) {
+                    Text("Abbrechen", color = colorScheme.onSurfaceVariant)
+                }
+            },
+            containerColor = colorScheme.surfaceContainerHigh
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -309,10 +350,60 @@ fun EditListBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                if (onShareList != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(topBrickShape)
+                            .background(brickBackgroundColor)
+                            .clickable {
+                                onDismissRequest()
+                                onShareList()
+                            }
+                            .defaultMinSize(minHeight = 54.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_share),
+                                contentDescription = null,
+                                tint = actionIconTint,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = "Liste teilen",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colorScheme.onSurface
+                            )
+                        }
+                        if (isShared) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = colorScheme.primaryContainer,
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Geteilt",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(topBrickShape)
+                        .clip(if (onShareList != null) middleBrickShape else topBrickShape)
                         .background(brickBackgroundColor)
                         .clickable { showRenameDialog = true }
                         .defaultMinSize(minHeight = 54.dp)
@@ -474,11 +565,11 @@ fun EditListBottomSheet(
                     )
                 }
 
-                // Aktion 2: Alle Aufgaben löschen (mittlerer Brick wenn onDeleteList != null, sonst unterer)
+                // Aktion 2: Alle Aufgaben löschen (mittlerer Brick wenn onDeleteList != null || onLeaveList != null, sonst unterer)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(if (onDeleteList != null) middleBrickShape else bottomBrickShape)
+                        .clip(if (onDeleteList != null || onLeaveList != null) middleBrickShape else bottomBrickShape)
                         .background(brickBackgroundColor)
                         .clickable { showDeleteAllConfirmDialog = true }
                         .defaultMinSize(minHeight = 54.dp)
@@ -500,8 +591,36 @@ fun EditListBottomSheet(
                     )
                 }
 
-                // Aktion 3: Liste löschen (nur bei benutzerdefinierten Listen, unterer Brick)
-                if (onDeleteList != null) {
+                // Aktion 3: Liste verlassen (bei beigetretenen geteilten Listen)
+                if (onLeaveList != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(bottomBrickShape)
+                            .background(brickBackgroundColor)
+                            .clickable { showLeaveListConfirmDialog = true }
+                            .defaultMinSize(minHeight = 54.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_logout),
+                            contentDescription = null,
+                            tint = destructiveIconTint,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            text = "Liste verlassen",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = destructiveIconTint
+                        )
+                    }
+                }
+
+                // Aktion 4: Liste löschen (nur bei eigenen benutzerdefinierten Listen)
+                if (onDeleteList != null && onLeaveList == null) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

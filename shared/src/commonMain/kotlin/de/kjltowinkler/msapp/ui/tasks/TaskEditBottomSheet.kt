@@ -1,6 +1,9 @@
 package de.kjltowinkler.msapp.ui.tasks
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
@@ -152,6 +156,18 @@ fun TaskEditBottomSheet(
         onUpdateTask(updated)
     }
 
+    // Google Tasks Physics: Schnell herausbeschleunigen, dann sanft und langsam oben einrasten
+    val contentOffsetY = remember { Animatable(100f) }
+    LaunchedEffect(Unit) {
+        contentOffsetY.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(
+                durationMillis = 350,
+                easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+            )
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = {
             saveChanges()
@@ -177,6 +193,7 @@ fun TaskEditBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
+                .graphicsLayer { translationY = contentOffsetY.value }
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
@@ -197,7 +214,7 @@ fun TaskEditBottomSheet(
                         fontFamily = getQuicksandFontFamily(),
                         color = colorScheme.onSurface,
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Normal
                     ),
                     cursorBrush = if (isOfficialSchoolTask) SolidColor(Color.Transparent) else SolidColor(colorScheme.primary),
                     singleLine = false,

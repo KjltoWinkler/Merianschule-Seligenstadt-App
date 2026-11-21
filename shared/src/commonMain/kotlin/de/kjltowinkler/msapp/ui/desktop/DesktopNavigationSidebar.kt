@@ -54,6 +54,7 @@ fun DesktopNavigationSidebar(
     gradeAndSchool: String = "Klasse 9aR • Realschule",
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
+    avatarUrl: String? = null,
     onProfileClicked: () -> Unit = {},
     modifier: Modifier = Modifier,
     substitutionBadgeCount: Int = 0,
@@ -286,6 +287,7 @@ fun DesktopNavigationSidebar(
                     accountName = accountName,
                     avatarType = avatarType,
                     avatarColorHex = avatarColorHex,
+                    avatarUrl = avatarUrl,
                     modifier = Modifier.fillMaxSize()
                 )
             }

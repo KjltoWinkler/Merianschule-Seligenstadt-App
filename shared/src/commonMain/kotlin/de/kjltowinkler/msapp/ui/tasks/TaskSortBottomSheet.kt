@@ -1,5 +1,8 @@
 package de.kjltowinkler.msapp.ui.tasks
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,16 +11,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -144,6 +143,18 @@ fun TaskSortBottomSheet(
         }
     }
 
+    // Google Tasks Physics: Schnell herausbeschleunigen, dann sanft und langsam oben einrasten
+    val contentOffsetY = remember { Animatable(100f) }
+    LaunchedEffect(Unit) {
+        contentOffsetY.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(
+                durationMillis = 350,
+                easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+            )
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = {
             if (!isClosing) {
@@ -169,6 +180,7 @@ fun TaskSortBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
+                .graphicsLayer { translationY = contentOffsetY.value }
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)

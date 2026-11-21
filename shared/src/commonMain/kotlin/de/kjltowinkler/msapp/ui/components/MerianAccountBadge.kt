@@ -37,6 +37,7 @@ fun MerianAccountBadge(
     avatarPainter: Painter? = null,
     avatarType: String = "initials",
     avatarColorHex: Long = getAvatarColorForName(accountName),
+    avatarUrl: String? = null,
     onClick: (() -> Unit)? = null
 ) {
     Surface(
@@ -64,6 +65,7 @@ fun MerianAccountBadge(
                     accountName = accountName,
                     avatarType = avatarType,
                     avatarColorHex = avatarColorHex,
+                    avatarUrl = avatarUrl,
                     modifier = Modifier.size(24.dp)
                 )
             }

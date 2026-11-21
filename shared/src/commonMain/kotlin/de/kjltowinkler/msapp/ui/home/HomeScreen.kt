@@ -1,5 +1,7 @@
 package de.kjltowinkler.msapp.ui.home
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,7 +64,9 @@ fun HomeScreen(
     studentId: String = "",
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
+    avatarUrl: String? = null,
     onAvatarChanged: (avatarType: String, avatarColorHex: Long) -> Unit = { _, _ -> },
+    onAvatarUrlChanged: ((avatarType: String, avatarColorHex: Long, avatarUrl: String?) -> Unit)? = null,
     onProfileClicked: () -> Unit = {},
     onSettingsClicked: () -> Unit = {},
     onLogoutClicked: () -> Unit = {},
@@ -86,6 +90,7 @@ fun HomeScreen(
                 gradeAndSchool = "Klasse $className • $schoolType",
                 avatarType = avatarType,
                 avatarColorHex = avatarColorHex,
+                avatarUrl = avatarUrl,
                 onProfileClicked = handleProfileClick
             )
         } else {
@@ -93,6 +98,7 @@ fun HomeScreen(
                 accountName = accountName,
                 avatarType = avatarType,
                 avatarColorHex = avatarColorHex,
+                avatarUrl = avatarUrl,
                 onProfileClicked = handleProfileClick,
                 useMaterialYou = useMaterialYou
             )
@@ -110,7 +116,9 @@ fun HomeScreen(
             studentId = studentId,
             avatarType = avatarType,
             avatarColorHex = avatarColorHex,
+            avatarUrl = avatarUrl,
             onAvatarChanged = onAvatarChanged,
+            onAvatarUrlChanged = onAvatarUrlChanged,
             onSettingsClicked = {
                 showAccountBottomSheet = false
                 onSettingsClicked()
@@ -130,6 +138,7 @@ fun MobileHomeScreen(
     accountName: String = "Sebastian Wagner",
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
+    avatarUrl: String? = null,
     onProfileClicked: () -> Unit = {},
     useMaterialYou: Boolean = true
 ) {
@@ -214,6 +223,7 @@ fun MobileHomeScreen(
                         accountName = accountName,
                         avatarType = avatarType,
                         avatarColorHex = avatarColorHex,
+                        avatarUrl = avatarUrl,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -233,6 +243,7 @@ fun MobileHomeScreen(
     var isNewTaskSchoolTask by remember { mutableStateOf(false) }
     var newTaskSubject by remember { mutableStateOf("") }
     var showNewListScreen by remember { mutableStateOf(false) }
+    var shareListTarget by remember { mutableStateOf<de.kjltowinkler.msapp.data.task.TaskList?>(null) }
 
     // Hinweis: Die Zurück-Gesten für Unter-Tabs und Suchleiste werden
     // über PredictiveBackContainer mit vorausschauender Animation gesteuert.
@@ -331,7 +342,8 @@ fun MobileHomeScreen(
                     enabled = selectedTab != 0 &&
                         searchBarState.currentValue != SearchBarValue.Expanded &&
                         !showNewTaskBottomSheet &&
-                        !showNewListScreen,
+                        !showNewListScreen &&
+                        shareListTarget == null,
                     onBack = { selectedTab = 0 },
                     maxScaleReduction = 0.08f,
                     modifier = Modifier
@@ -495,6 +507,9 @@ fun MobileHomeScreen(
                                 },
                                 onNewListClicked = {
                                     showNewListScreen = true
+                                },
+                                onShareListClicked = { listToShare ->
+                                    shareListTarget = listToShare
                                 }
                             )
                         }
@@ -590,8 +605,29 @@ fun MobileHomeScreen(
                 onSaveList = { newTitle ->
                     de.kjltowinkler.msapp.data.task.TasksRepository.createPrivateList(newTitle)
                     showNewListScreen = false
-                }
+                },
+                useMaterialYou = useMaterialYou
             )
+        }
+
+        AnimatedVisibility(
+            visible = shareListTarget != null,
+            enter = slideInVertically(
+                initialOffsetY = { (it * 0.12f).toInt() },
+                animationSpec = tween(280, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(240)),
+            exit = slideOutVertically(
+                targetOffsetY = { (it * 0.12f).toInt() },
+                animationSpec = tween(220, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(180))
+        ) {
+            shareListTarget?.let { list ->
+                de.kjltowinkler.msapp.ui.tasks.ShareListScreen(
+                    list = list,
+                    onDismissRequest = { shareListTarget = null },
+                    useMaterialYou = useMaterialYou
+                )
+            }
         }
     }
 }

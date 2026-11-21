@@ -55,7 +55,9 @@ fun AccountBottomSheet(
     studentId: String = "",
     avatarType: String = "initials",
     avatarColorHex: Long = 0xFF395A3CL,
+    avatarUrl: String? = null,
     onAvatarChanged: (avatarType: String, avatarColorHex: Long) -> Unit = { _, _ -> },
+    onAvatarUrlChanged: ((avatarType: String, avatarColorHex: Long, avatarUrl: String?) -> Unit)? = null,
     onFeedbackClicked: () -> Unit = {},
     onHelpFaqClicked: () -> Unit = {},
     onAboutAppClicked: () -> Unit = {},
@@ -198,6 +200,7 @@ fun AccountBottomSheet(
                         accountName = accountName,
                         avatarType = avatarType,
                         avatarColorHex = avatarColorHex,
+                        avatarUrl = avatarUrl,
                         modifier = Modifier.fillMaxSize()
                     )
 
@@ -467,9 +470,14 @@ fun AccountBottomSheet(
             accountName = accountName,
             currentAvatarType = avatarType,
             currentAvatarColorHex = avatarColorHex,
+            currentAvatarUrl = avatarUrl,
             onDismissRequest = { showAvatarPicker = false },
-            onAvatarSelected = { type, colorHex ->
-                onAvatarChanged(type, colorHex)
+            onAvatarSelected = { type, colorHex, newUrl ->
+                if (onAvatarUrlChanged != null) {
+                    onAvatarUrlChanged(type, colorHex, newUrl)
+                } else {
+                    onAvatarChanged(type, colorHex)
+                }
             },
             useMaterialYou = useMaterialYou
         )

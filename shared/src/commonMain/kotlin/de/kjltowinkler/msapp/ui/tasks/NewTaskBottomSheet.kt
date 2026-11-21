@@ -1,6 +1,10 @@
 package de.kjltowinkler.msapp.ui.tasks
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -23,6 +27,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +39,7 @@ import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.getCurrentEpochMillis
 import de.kjltowinkler.msapp.theme.getGoogleSansFlexFontFamily
+import kotlinx.coroutines.launch
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -89,12 +96,39 @@ fun NewTaskBottomSheet(
     }
 
     val colorScheme = MaterialTheme.colorScheme
+    val coroutineScope = rememberCoroutineScope()
+    val enterTransition = remember { Animatable(1f) }
+    var sheetHeightPx by remember { mutableFloatStateOf(0f) }
+
+    // Google Tasks Physics: Schnell herausbeschleunigen, dann sanft und langsam oben einrasten
+    LaunchedEffect(Unit) {
+        enterTransition.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(
+                durationMillis = 350,
+                easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+            )
+        )
+    }
+
+    fun animateDismiss(onFinished: () -> Unit = onDismissRequest) {
+        coroutineScope.launch {
+            keyboardController?.hide()
+            enterTransition.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 200,
+                    easing = FastOutSlowInEasing
+                )
+            )
+            onFinished()
+        }
+    }
 
     PredictiveBackContainer(
         enabled = !showDatePicker && !showTimePicker && !showSubjectPicker,
         onBack = {
-            keyboardController?.hide()
-            onDismissRequest()
+            animateDismiss()
         },
         maxScaleReduction = 0.05f,
         modifier = Modifier.fillMaxSize()
@@ -103,13 +137,12 @@ fun NewTaskBottomSheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = ((1f - backProgress) * 0.5f).coerceAtLeast(0f)))
+                .background(Color.Black.copy(alpha = (((1f - backProgress) * (1f - enterTransition.value) * 0.5f)).coerceAtLeast(0f)))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {
-                    keyboardController?.hide()
-                    onDismissRequest()
+                    animateDismiss()
                 }
         )
 
@@ -127,6 +160,10 @@ fun NewTaskBottomSheet(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
+                .onSizeChanged { sheetHeightPx = it.height.toFloat() }
+                .graphicsLayer {
+                    translationY = if (sheetHeightPx > 0f) enterTransition.value * sheetHeightPx else (enterTransition.value * 500f)
+                }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -146,7 +183,7 @@ fun NewTaskBottomSheet(
                 val titleTextStyle = TextStyle(
                     fontFamily = getGoogleSansFlexFontFamily(),
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Normal,
                     color = colorScheme.onSurface
                 )
                 BasicTextField(
@@ -373,9 +410,9 @@ fun NewTaskBottomSheet(
                                     isSchoolTask = initialIsSchoolTask,
                                     listId = if (initialIsSchoolTask) "my_tasks" else targetListId
                                 )
-                                onSaveTask(newTask)
-                                keyboardController?.hide()
-                                onDismissRequest()
+                                animateDismiss {
+                                    onSaveTask(newTask)
+                                }
                             }
                         },
                         enabled = taskTitle.isNotBlank(),

@@ -12,7 +12,8 @@ data class RegisterRequest(
     val schoolType: String = "Realschule",
     val classTeacher: String = "Hr. Thomas",
     val avatarType: String = "initials",
-    val avatarColorHex: Long = 0xFF395A3CL
+    val avatarColorHex: Long = 0xFF395A3CL,
+    val avatarUrl: String? = null
 )
 
 @Serializable
@@ -37,6 +38,7 @@ data class CheckAccountResponse(
     val classTeacher: String? = null,
     val avatarType: String? = null,
     val avatarColorHex: Long? = null,
+    val avatarUrl: String? = null,
     val studentId: String? = null,
     val hasCustomPassword: Boolean = true,
     val isTwoFactorEnabled: Boolean = false,
@@ -83,6 +85,7 @@ data class UserProfileDto(
     val classTeacher: String,
     val avatarType: String,
     val avatarColorHex: Long,
+    val avatarUrl: String? = null,
     val studentId: String = "",
     val role: String = "USER",
     val hasCustomPassword: Boolean = true,
@@ -106,7 +109,8 @@ data class UpdateProfileRequest(
     val schoolType: String? = null,
     val classTeacher: String? = null,
     val avatarType: String? = null,
-    val avatarColorHex: Long? = null
+    val avatarColorHex: Long? = null,
+    val avatarUrl: String? = null
 )
 
 @Serializable

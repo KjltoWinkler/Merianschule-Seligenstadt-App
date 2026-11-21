@@ -38,6 +38,10 @@ object TasksRepository {
         TaskList(id = "my_tasks", title = "Meine Aufgaben")
     )
 
+    val pendingInvitations = mutableStateListOf<SharedListInvitation>()
+    var activeInvitationDialog by mutableStateOf<SharedListInvitation?>(null)
+    private val notifiedInvitationIds = mutableSetOf<String>()
+
     private val _pendingDeletedTaskIds = mutableSetOf<String>()
     private val _pendingDeletedListIds = mutableSetOf<String>()
     private val _dirtyTaskIds = mutableSetOf<String>()
@@ -380,6 +384,7 @@ object TasksRepository {
                     privateLists.add(0, TaskList(id = "my_tasks", title = "Meine Aufgaben"))
                 }
                 saveToCache()
+                checkPendingInvitations()
                 true
             } else {
                 false
@@ -398,6 +403,10 @@ object TasksRepository {
         if (!BackendApiClient.isLoggedIn) return
         BackendApiClient.startRealtimeTaskUpdates {
             pullFromServer()
+            checkPendingInvitations()
+        }
+        BackendApiClient.onInvitationReceivedListener = {
+            checkPendingInvitations()
         }
     }
 
@@ -411,6 +420,9 @@ object TasksRepository {
         _tasks.clear()
         privateLists.clear()
         privateLists.add(TaskList(id = "my_tasks", title = "Meine Aufgaben"))
+        pendingInvitations.clear()
+        activeInvitationDialog = null
+        notifiedInvitationIds.clear()
         _pendingDeletedTaskIds.clear()
         _pendingDeletedListIds.clear()
         _dirtyTaskIds.clear()
@@ -422,6 +434,62 @@ object TasksRepository {
         PlatformStorage.remove(KEY_PENDING_DEL_LISTS)
         PlatformStorage.remove(KEY_DIRTY_TASKS)
         PlatformStorage.remove(KEY_DIRTY_LISTS)
+    }
+
+    suspend fun checkPendingInvitations(): List<SharedListInvitation> {
+        if (!BackendApiClient.isLoggedIn) return emptyList()
+        val result = BackendApiClient.fetchPendingInvitations()
+        val invs = result.getOrNull() ?: emptyList()
+        pendingInvitations.clear()
+        pendingInvitations.addAll(invs)
+        if (invs.isNotEmpty()) {
+            val first = invs.first()
+            if (activeInvitationDialog == null || activeInvitationDialog?.listId != first.listId) {
+                activeInvitationDialog = first
+            }
+            for (inv in invs) {
+                if (notifiedInvitationIds.add(inv.listId)) {
+                    de.kjltowinkler.msapp.util.PlatformNotifier.sendTaskNotification(
+                        title = "Einladung zu geteilter Liste",
+                        summary = "${inv.ownerName} hat die Liste '${inv.title}' mit dir geteilt"
+                    )
+                }
+            }
+        } else {
+            activeInvitationDialog = null
+        }
+        return invs
+    }
+
+    suspend fun acceptInvitation(invitation: SharedListInvitation): Result<Boolean> = runCatching {
+        val res = BackendApiClient.acceptInvitation(invitation.listId)
+        if (res.isFailure) error(res.exceptionOrNull()?.message ?: "Fehler beim Annehmen")
+        pendingInvitations.removeAll { it.listId == invitation.listId }
+        if (activeInvitationDialog?.listId == invitation.listId) {
+            activeInvitationDialog = pendingInvitations.firstOrNull()
+        }
+        pullFromServer()
+        true
+    }
+
+    suspend fun declineInvitation(invitation: SharedListInvitation): Result<Boolean> = runCatching {
+        val res = BackendApiClient.declineInvitation(invitation.listId)
+        if (res.isFailure) error(res.exceptionOrNull()?.message ?: "Fehler beim Ablehnen")
+        pendingInvitations.removeAll { it.listId == invitation.listId }
+        if (activeInvitationDialog?.listId == invitation.listId) {
+            activeInvitationDialog = pendingInvitations.firstOrNull()
+        }
+        true
+    }
+
+    suspend fun leaveSharedList(listId: String): Result<Boolean> = runCatching {
+        val res = BackendApiClient.leaveSharedList(listId)
+        if (res.isFailure) error(res.exceptionOrNull()?.message ?: "Fehler beim Verlassen")
+        privateLists.removeAll { it.id == listId }
+        _tasks.removeAll { it.listId == listId }
+        saveToCache()
+        pullFromServer()
+        true
     }
 
     fun addTask(task: TaskItem) {
@@ -817,5 +885,76 @@ object TasksRepository {
         }
         saveToCache()
         triggerBackgroundSync()
+    }
+
+    // ==========================================
+    // FREIGABE & GETEILTE LISTEN
+    // ==========================================
+
+    suspend fun getShareInfo(listId: String): Result<SharedTaskListInfo> {
+        if (_dirtyListIds.contains(listId) || privateLists.any { it.id == listId && it.updatedAt == 0L }) {
+            syncWithServer()
+        }
+        return BackendApiClient.fetchShareInfo(listId)
+    }
+
+    suspend fun updateShareSettings(listId: String, request: UpdateShareSettingsRequest): Result<SharedTaskListInfo> {
+        val result = BackendApiClient.updateShareSettings(listId, request)
+        if (result.isSuccess) {
+            val updated = result.getOrNull()
+            if (updated != null) {
+                val index = privateLists.indexOfFirst { it.id == listId }
+                if (index != -1) {
+                    privateLists[index] = privateLists[index].copy(
+                        isShared = true,
+                        shareToken = updated.shareToken
+                    )
+                    saveToCache()
+                }
+            }
+        }
+        return result
+    }
+
+    suspend fun searchUsers(query: String): Result<List<UserSearchResultDto>> {
+        return BackendApiClient.searchUsers(query)
+    }
+
+    suspend fun getSuggestedUsers(): Result<List<UserSearchResultDto>> {
+        return BackendApiClient.getSuggestedUsers()
+    }
+
+    suspend fun joinSharedList(tokenOrUrl: String): Result<SharedListJoinResponse> {
+        val cleanToken = de.kjltowinkler.msapp.util.NavigationEvents.parseShareToken(tokenOrUrl)
+            ?: tokenOrUrl.trim()
+                .removePrefix("https://")
+                .removePrefix("http://")
+                .removePrefix("veloschulplaner.de/share/")
+                .removePrefix("api.veloschulplaner.de/share/")
+                .removePrefix("veloschulplaner://share/")
+                .trim('/')
+        val result = BackendApiClient.joinSharedList(cleanToken)
+        if (result.isSuccess) {
+            val response = result.getOrNull()
+            if (response != null && response.success && response.list != null) {
+                val joined = response.list
+                val index = privateLists.indexOfFirst { it.id == joined.id }
+                if (index != -1) {
+                    privateLists[index] = joined
+                } else {
+                    privateLists.add(joined)
+                }
+                for (task in response.tasks) {
+                    val tIndex = _tasks.indexOfFirst { it.id == task.id }
+                    if (tIndex != -1) {
+                        _tasks[tIndex] = task
+                    } else {
+                        _tasks.add(task)
+                    }
+                }
+                saveToCache()
+            }
+        }
+        return result
     }
 }

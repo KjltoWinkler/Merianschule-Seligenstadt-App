@@ -103,12 +103,15 @@
       color-scheme: dark;
     }
 
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.22) #14171d;
+    }
+
+    body, h1, h2, h3, h4, h5, h6, p, ul, ol, dl, dd, figure, blockquote, fieldset, legend {
+      margin: 0;
+      padding: 0;
     }
 
     ::-webkit-scrollbar {
@@ -1895,7 +1898,7 @@
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <md-filled-button id="btnHeaderPushUpdate" onclick="openPushUpdateConfirmation()" style="--md-filled-button-container-color: #2e7d32; --md-filled-button-label-text-color: #ffffff; font-weight: 600; padding: 0 22px; height: 46px; font-size: 14.5px; box-shadow: 0 3px 12px rgba(46, 125, 50, 0.35);">
+          <md-filled-button id="btnHeaderPushUpdate" onclick="openPushUpdateConfirmation()" style="--md-filled-button-container-color: #2e7d32; --md-filled-button-label-text-color: #ffffff; font-weight: 600; box-shadow: 0 3px 12px rgba(46, 125, 50, 0.35);">
             <md-icon slot="icon">rocket_launch</md-icon>
             Update jetzt an alle Geräte pushen
           </md-filled-button>
@@ -2816,7 +2819,7 @@
           <tr>
             <td data-label="Benutzer">
               <div class="user-name-cell">
-                <div class="avatar-circle" style="background-color: ${color};">${initials}</div>
+                ${user.avatarUrl ? `<img src="${escapeHtml(user.avatarUrl)}" alt="Avatar" class="avatar-circle" style="object-fit:cover;">` : `<div class="avatar-circle" style="background-color: ${color};">${initials}</div>`}
                 <div>
                   <div style="font-weight: 500;">${escapeHtml(user.fullName || user.username)}</div>
                   <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; gap: 6px; margin-top: 2px;">

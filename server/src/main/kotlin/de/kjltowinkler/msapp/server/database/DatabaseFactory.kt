@@ -13,6 +13,7 @@ object DatabaseFactory {
 
     fun init() {
         ServerConfig.ensureDataDirectory()
+        ServerConfig.ensureAvatarsDirectory()
 
         val config = HikariConfig().apply {
             jdbcUrl = "jdbc:sqlite:${ServerConfig.dbPath}"
@@ -45,6 +46,7 @@ object DatabaseFactory {
                         class_teacher TEXT NOT NULL,
                         avatar_type TEXT NOT NULL,
                         avatar_color_hex INTEGER NOT NULL,
+                        avatar_url TEXT,
                         student_id TEXT UNIQUE,
                         role TEXT NOT NULL DEFAULT 'USER',
                         has_custom_password INTEGER NOT NULL DEFAULT 1,
@@ -77,6 +79,10 @@ object DatabaseFactory {
 
                 try {
                     stmt.execute("ALTER TABLE users ADD COLUMN student_id TEXT;")
+                } catch (_: Exception) {}
+
+                try {
+                    stmt.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT;")
                 } catch (_: Exception) {}
 
                 try {
@@ -161,11 +167,16 @@ object DatabaseFactory {
                         user_id TEXT NOT NULL,
                         role TEXT NOT NULL DEFAULT 'VIEWER',
                         added_at INTEGER NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'ACCEPTED',
                         PRIMARY KEY (list_id, user_id),
                         FOREIGN KEY (list_id) REFERENCES shared_task_lists(list_id) ON DELETE CASCADE,
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                     );
                 """.trimIndent())
+
+                try {
+                    stmt.execute("ALTER TABLE shared_task_list_members ADD COLUMN status TEXT NOT NULL DEFAULT 'ACCEPTED';")
+                } catch (_: Exception) {}
 
                 // Bereinige eventuell vorhandene Alt-Sample-Aufgaben (z. B. "sample_1" bis "sample_6")
                 try {

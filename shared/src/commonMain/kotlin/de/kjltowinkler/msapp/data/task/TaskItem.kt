@@ -18,9 +18,10 @@ enum class TaskPrivacyMode {
 
 @Serializable
 enum class TaskMemberRole {
-    OWNER,   // Eigentümer
-    EDITOR,  // Bearbeiter (kann bearbeiten/abhaken/hinzufügen)
-    VIEWER   // Betrachter (kann nur ansehen)
+    OWNER,      // Eigentümer
+    EDITOR,     // Mitarbeiter (kann bearbeiten/abhaken/hinzufügen)
+    COMMENTER,  // Kommentator (kann kommentieren/ansehen)
+    VIEWER      // Betrachter (kann nur ansehen)
 }
 
 @Serializable
@@ -32,13 +33,28 @@ data class SharedListMember(
     val className: String = "",
     val avatarType: String = "initials",
     val avatarColorHex: Long = 0xFF395A3CL,
-    val role: TaskMemberRole = TaskMemberRole.VIEWER
+    val avatarUrl: String? = null,
+    val role: TaskMemberRole = TaskMemberRole.VIEWER,
+    val status: String = "ACCEPTED"
 )
 
 @Serializable
 data class SharedListMemberUpdate(
     val userId: String,
-    val role: TaskMemberRole
+    val role: TaskMemberRole,
+    val status: String = "ACCEPTED"
+)
+
+@Serializable
+data class SharedListInvitation(
+    val listId: String,
+    val title: String,
+    val ownerId: String,
+    val ownerName: String,
+    val shareToken: String,
+    val role: TaskMemberRole = TaskMemberRole.VIEWER,
+    val createdAt: Long = 0L,
+    val previewTasks: List<TaskItem> = emptyList()
 )
 
 @Serializable
@@ -85,6 +101,7 @@ data class UserSearchResultDto(
     val className: String = "",
     val avatarType: String = "initials",
     val avatarColorHex: Long = 0xFF395A3CL,
+    val avatarUrl: String? = null,
     val role: String = "USER"
 )
 
