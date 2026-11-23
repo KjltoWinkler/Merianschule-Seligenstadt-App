@@ -117,7 +117,7 @@ fun DesktopNavigationSidebar(
             ) {
                 Image(
                     painter = painterResource(Res.drawable.app_icon),
-                    contentDescription = "Velo.Schulplaner Logo",
+                    contentDescription = "Notes+ Logo",
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -126,7 +126,7 @@ fun DesktopNavigationSidebar(
 
             Column {
                 Text(
-                    text = "Velo.Schulplaner",
+                    text = "Notes+",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,

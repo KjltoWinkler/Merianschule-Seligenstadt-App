@@ -41,6 +41,7 @@ import de.kjltowinkler.msapp.ui.onboarding.OnboardingWelcomeScreen
 import kotlinx.coroutines.launch
 
 object AppRoutes {
+    const val START = "start"
     const val WELCOME = "welcome"
     const val USERNAME = "username"
     const val ONE_TIME_PASSWORD = "one_time_password"
@@ -61,6 +62,12 @@ object AppRoutes {
     const val SETTINGS = "settings"
     const val SETTINGS_SCHOOL_WAY = "settings_school_way"
     const val SETTINGS_COURSES = "settings_courses"
+
+    // Benachrichtigungen
+    const val NOTIFICATIONS = "notifications"
+
+    // Neuigkeiten
+    const val NEWS = "news"
 }
 
 /**
@@ -235,19 +242,7 @@ fun App() {
                 .background(MaterialTheme.colorScheme.background)
         ) {
             val isDesktop = getPlatform().name.startsWith("Desktop") || maxWidth >= 840.dp
-            val initialRoute = remember {
-                if (BackendApiClient.isLoggedIn) {
-                    if (BackendApiClient.currentUser?.hasCustomPassword == false) {
-                        AppRoutes.NEW_PASSWORD
-                    } else {
-                        AppRoutes.HOME
-                    }
-                } else if (isDesktop) {
-                    AppRoutes.USERNAME
-                } else {
-                    AppRoutes.WELCOME
-                }
-            }
+            val initialRoute = AppRoutes.START
 
             // Automatische Sitzungsüberprüfung beim Start & Update-Check
             LaunchedEffect(Unit) {
@@ -507,6 +502,45 @@ fun App() {
                             }
                         }
                     }
+                }
+
+                composable(
+                    route = AppRoutes.START,
+                    enterTransition = { fadeIn(animationSpec = tween(durationMillis = 200)) },
+                    exitTransition = { fadeOut(animationSpec = tween(durationMillis = 350)) }
+                ) {
+                    de.kjltowinkler.msapp.ui.start.AppStartScreen(
+                        onFinished = {
+                            if (navController.currentDestination?.route == AppRoutes.START) {
+                                val targetRoute = if (BackendApiClient.isLoggedIn) {
+                                    if (BackendApiClient.currentUser?.hasCustomPassword == false) {
+                                        AppRoutes.NEW_PASSWORD
+                                    } else {
+                                        AppRoutes.HOME
+                                    }
+                                } else if (isDesktop) {
+                                    AppRoutes.USERNAME
+                                } else {
+                                    AppRoutes.WELCOME
+                                }
+                                navController.navigate(targetRoute) {
+                                    popUpTo(AppRoutes.START) { inclusive = true }
+                                }
+
+                                val pendingNav = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_navigate_to")
+                                val pendingHighlight = de.kjltowinkler.msapp.data.storage.PlatformStorage.getString("pending_highlight_id")
+                                if (pendingNav != null && BackendApiClient.isLoggedIn) {
+                                    de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_navigate_to")
+                                    de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_highlight_id")
+                                    if (pendingNav == "settings") {
+                                        navController.navigate(AppRoutes.SETTINGS)
+                                    } else {
+                                        de.kjltowinkler.msapp.util.NavigationEvents.emit(pendingNav, pendingHighlight)
+                                    }
+                                }
+                            }
+                        }
+                    )
                 }
 
                 composable(AppRoutes.WELCOME) {
@@ -999,6 +1033,9 @@ fun App() {
                     onSettingsClicked = {
                         navController.navigate(AppRoutes.SETTINGS)
                     },
+                    onNotificationsClicked = {
+                        navController.navigate(AppRoutes.NOTIFICATIONS)
+                    },
                     onLogoutClicked = {
                         BackendApiClient.logout()
                         twoFactorTempToken = null
@@ -1072,6 +1109,25 @@ fun App() {
                         navController.popBackStack()
                     },
                     useMaterialYou = isDynamicColor
+                )
+            }
+
+            // --- BENACHRICHTIGUNGEN ---
+            composable(AppRoutes.NOTIFICATIONS) {
+                de.kjltowinkler.msapp.ui.notifications.NotificationsScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    },
+                    useMaterialYou = isDynamicColor
+                )
+            }
+
+            // --- NEUIGKEITEN & DAS IST NEU ---
+            composable(AppRoutes.NEWS) {
+                de.kjltowinkler.msapp.ui.news.NeuigkeitenScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }

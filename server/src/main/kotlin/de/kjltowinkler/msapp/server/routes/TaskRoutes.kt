@@ -353,7 +353,7 @@ fun Route.taskRoutes() {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${title} - Velo.Schulplaner</title>
+                <title>${title} - Notes+</title>
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
                 <style>
@@ -451,7 +451,7 @@ fun Route.taskRoutes() {
                 <div class="container">
                     <div class="card">
                         <div class="brand">
-                            <span class="brand-tag">Velo.Schulplaner</span>
+                            <span class="brand-tag">Notes+</span>
                         </div>
                         <h1 class="title">${title}</h1>
                         <div class="meta">

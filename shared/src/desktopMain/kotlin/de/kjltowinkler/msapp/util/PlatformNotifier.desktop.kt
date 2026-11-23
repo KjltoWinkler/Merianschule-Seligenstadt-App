@@ -10,7 +10,7 @@ actual object PlatformNotifier {
             if (SystemTray.isSupported()) {
                 val tray = SystemTray.getSystemTray()
                 val image = Toolkit.getDefaultToolkit().createImage("")
-                val trayIcon = TrayIcon(image, "Velo.Schulplaner")
+                val trayIcon = TrayIcon(image, "Notes+")
                 trayIcon.isImageAutoSize = true
                 trayIcon.addActionListener {
                     NavigationEvents.emit("substitution", entryId)
@@ -35,7 +35,7 @@ actual object PlatformNotifier {
             if (SystemTray.isSupported()) {
                 val tray = SystemTray.getSystemTray()
                 val image = Toolkit.getDefaultToolkit().createImage("")
-                val trayIcon = TrayIcon(image, "Velo.Schulplaner")
+                val trayIcon = TrayIcon(image, "Notes+")
                 trayIcon.isImageAutoSize = true
                 trayIcon.addActionListener {
                     NavigationEvents.emit("tasks", taskId)
@@ -65,7 +65,7 @@ actual object PlatformNotifier {
             if (SystemTray.isSupported()) {
                 val tray = SystemTray.getSystemTray()
                 val image = Toolkit.getDefaultToolkit().createImage("")
-                val trayIcon = TrayIcon(image, "Velo.Schulplaner")
+                val trayIcon = TrayIcon(image, "Notes+")
                 trayIcon.isImageAutoSize = true
                 trayIcon.addActionListener {
                     NavigationEvents.emit("timetable")

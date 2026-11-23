@@ -54,6 +54,7 @@ fun DesktopStartseiteDashboard(
         value = if (loaded.isNotEmpty()) loaded else de.kjltowinkler.msapp.data.substitution.SubstitutionRepository.defaultEntries
     }
     val todaySubstitutions = substitutions.filter { it.date == "2026-10-12" || it.isNew }.take(3)
+    var selectedNewsItem by remember { mutableStateOf<de.kjltowinkler.msapp.data.news.NewsItem?>(null) }
 
     LazyColumn(
         modifier = modifier
@@ -151,6 +152,25 @@ fun DesktopStartseiteDashboard(
                         }
                     }
                 }
+            }
+        }
+
+        // --- 1.5 NEUIGKEITEN & EVENTS KARUSSELL ---
+        item {
+            val newsList by de.kjltowinkler.msapp.data.news.NewsRepository.newsFlow.collectAsState()
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Neuigkeiten & Schul-Events",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = DesktopTextPrimary
+                    ),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                de.kjltowinkler.msapp.ui.home.StartseiteCarousel(
+                    newsItems = newsList,
+                    onItemClick = { item -> selectedNewsItem = item }
+                )
             }
         }
 
@@ -407,6 +427,26 @@ fun DesktopStartseiteDashboard(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    selectedNewsItem?.let { article ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { selectedNewsItem = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp)
+                    .clip(RoundedCornerShape(24.dp))
+            ) {
+                de.kjltowinkler.msapp.ui.news.NewsArticleScreen(
+                    item = article,
+                    onBackClicked = { selectedNewsItem = null },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }

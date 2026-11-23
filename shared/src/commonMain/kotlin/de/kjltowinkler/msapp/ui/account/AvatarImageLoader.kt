@@ -41,7 +41,8 @@ object AvatarImageLoader {
         if (cached != null) return cached
 
         return try {
-            val fullUrl = if (url.startsWith("http://") || url.startsWith("https://")) {
+            val isExternal = url.startsWith("http://") || url.startsWith("https://")
+            val fullUrl = if (isExternal) {
                 url
             } else {
                 val base = BackendApiClient.serverUrl.trimEnd('/')
@@ -49,9 +50,13 @@ object AvatarImageLoader {
                 "$base$path"
             }
 
+            val isBackend = fullUrl.startsWith(BackendApiClient.serverUrl)
+
             val response = BackendApiClient.httpClient.get(fullUrl) {
-                BackendApiClient.authToken?.let { token ->
-                    header("Authorization", "Bearer $token")
+                if (isBackend) {
+                    BackendApiClient.authToken?.let { token ->
+                        header("Authorization", "Bearer $token")
+                    }
                 }
             }
 

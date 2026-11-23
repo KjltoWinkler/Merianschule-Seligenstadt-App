@@ -1,7 +1,9 @@
 package de.kjltowinkler.msapp.theme
 
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
 @Composable
 actual fun AppTheme(
@@ -15,9 +17,15 @@ actual fun AppTheme(
         if (darkTheme) FigmaDarkColorScheme else FigmaLightColorScheme
     }
 
+    val typography = getAppTypography()
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = getAppTypography(),
-        content = content
-    )
+        typography = typography
+    ) {
+        CompositionLocalProvider(
+            LocalTextStyle provides typography.bodyMedium
+        ) {
+            content()
+        }
+    }
 }

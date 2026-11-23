@@ -770,4 +770,49 @@ object BackendApiClient {
             error("App-Update-Informationen konnten nicht abgerufen werden (HTTP ${response.status.value}): $body")
         }
     }
+
+    // ==========================================
+    // NEWS & EVENTS ENDPOINTS
+    // ==========================================
+
+    suspend fun getNews(): List<de.kjltowinkler.msapp.data.news.NewsItem> {
+        val response = client.get("$serverUrl/api/news") {
+            header(io.ktor.http.HttpHeaders.CacheControl, "no-cache")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            return json.decodeFromString<List<de.kjltowinkler.msapp.data.news.NewsItem>>(body)
+        } else {
+            error("Neuigkeiten konnten nicht geladen werden (HTTP ${response.status.value}): $body")
+        }
+    }
+
+    suspend fun createNews(request: de.kjltowinkler.msapp.data.news.CreateNewsRequest, adminKey: String? = null): de.kjltowinkler.msapp.data.news.NewsItem {
+        val response = client.post("$serverUrl/api/admin/news") {
+            if (adminKey != null) {
+                header("X-Admin-Key", adminKey)
+            } else if (authToken != null) {
+                header(io.ktor.http.HttpHeaders.Authorization, "Bearer $authToken")
+            }
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(request))
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.Created || response.status == HttpStatusCode.OK) {
+            return json.decodeFromString<de.kjltowinkler.msapp.data.news.NewsItem>(body)
+        } else {
+            error("Neuigkeit konnte nicht erstellt werden: $body")
+        }
+    }
+
+    suspend fun deleteNews(id: String, adminKey: String? = null): Boolean {
+        val response = client.delete("$serverUrl/api/admin/news/$id") {
+            if (adminKey != null) {
+                header("X-Admin-Key", adminKey)
+            } else if (authToken != null) {
+                header(io.ktor.http.HttpHeaders.Authorization, "Bearer $authToken")
+            }
+        }
+        return response.status == HttpStatusCode.OK
+    }
 }

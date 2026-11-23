@@ -168,6 +168,12 @@ object SubstitutionSyncManager {
                         details = diffUser.detailLines,
                         entryId = targetEntryId
                     )
+                    de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                        title = diffUser.title,
+                        message = if (diffUser.detailLines.isNotEmpty()) diffUser.detailLines.joinToString("\n") else diffUser.summary,
+                        type = de.kjltowinkler.msapp.data.notifications.NotificationType.SUBSTITUTION,
+                        targetId = targetEntryId
+                    )
                 } else if (diffGlobal.hasChanges) {
                     val count = diffGlobal.addedEntries.size + diffGlobal.modifiedEntries.size
                     val title = "Vertretungsplan aktualisiert"
@@ -180,6 +186,12 @@ object SubstitutionSyncManager {
                         summary = summary,
                         details = details,
                         entryId = targetEntryId
+                    )
+                    de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                        title = title,
+                        message = if (details.isNotEmpty()) details.joinToString("\n") else summary,
+                        type = de.kjltowinkler.msapp.data.notifications.NotificationType.SUBSTITUTION,
+                        targetId = targetEntryId
                     )
                 }
             }

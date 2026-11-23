@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
@@ -487,8 +488,11 @@ fun TasksScreen(
                                             TasksTab.School -> "Schul-Aufgaben"
                                             is TasksTab.Private -> tab.list.title
                                         },
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSynthesis = FontSynthesis.None
+                                        ),
                                         color = colorScheme.onSurface
                                     )
                                     if (tab is TasksTab.Private && tab.list.isShared) {
@@ -509,8 +513,11 @@ fun TasksScreen(
                                                 )
                                                 Text(
                                                     text = "Geteilt",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSynthesis = FontSynthesis.None
+                                                    ),
                                                     color = colorScheme.onSecondaryContainer
                                                 )
                                             }
@@ -1469,8 +1476,11 @@ private fun TaskCountBadge(
     ) {
         Text(
             text = count.toString(),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontSynthesis = FontSynthesis.None
+            ),
             color = textColor,
             textAlign = TextAlign.Center,
             lineHeight = 11.sp,
@@ -1506,22 +1516,28 @@ private fun TaskEmptyState(
 
         Text(
             text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            lineHeight = 26.sp
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontSynthesis = FontSynthesis.None,
+                textAlign = TextAlign.Center,
+                lineHeight = 26.sp
+            ),
+            color = colorScheme.onSurface
         )
 
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
             text = subtitle,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Normal,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                fontSynthesis = FontSynthesis.None,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            ),
             color = colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            lineHeight = 20.sp,
             modifier = Modifier.fillMaxWidth(0.92f)
         )
     }

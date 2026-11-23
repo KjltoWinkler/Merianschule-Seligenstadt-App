@@ -27,7 +27,7 @@ dependencies {
     // Compose Tooling & Preview
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
-    debugImplementation(libs.wear.compose.ui.tooling)
+    implementation(libs.wear.compose.ui.tooling)
 }
 
 android {

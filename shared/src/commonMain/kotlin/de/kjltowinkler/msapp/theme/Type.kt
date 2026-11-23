@@ -14,24 +14,24 @@ import org.jetbrains.compose.resources.Font
 
 @Composable
 fun getQuicksandFontFamily(): FontFamily {
-    return FontFamily(
-        Font(Res.font.quicksand, weight = FontWeight.Normal),
-        Font(Res.font.quicksand, weight = FontWeight.Medium),
-        Font(Res.font.quicksand, weight = FontWeight.SemiBold),
-        Font(Res.font.quicksand, weight = FontWeight.Bold)
-    )
+    // Standardize on Google Sans Flex to match Google Workspace elegance
+    // and avoid bubbly, distorted weight-scaling on accessibility bolding
+    return getGoogleSansFlexFontFamily()
 }
 
 @Composable
 fun getGoogleSansFlexFontFamily(): FontFamily {
     return FontFamily(
-        Font(Res.font.google_sans_flex, weight = FontWeight.Normal)
+        Font(Res.font.google_sans_flex, weight = FontWeight.Light),
+        Font(Res.font.google_sans_flex, weight = FontWeight.Normal),
+        Font(Res.font.google_sans_flex, weight = FontWeight.Medium),
+        Font(Res.font.google_sans_flex, weight = FontWeight.SemiBold),
+        Font(Res.font.google_sans_flex, weight = FontWeight.Bold)
     )
 }
 
 @Composable
 fun getAppTypography(): Typography {
-    val quicksand = getQuicksandFontFamily()
     val googleSans = getGoogleSansFlexFontFamily()
 
     return Typography(
@@ -57,22 +57,25 @@ fun getAppTypography(): Typography {
             lineHeight = 44.sp
         ),
         headlineLarge = TextStyle(
-            fontFamily = quicksand,
-            fontWeight = FontWeight.Bold,
+            fontFamily = googleSans,
+            fontWeight = FontWeight.Medium,
+            fontSynthesis = FontSynthesis.None,
             fontSize = 32.sp,
             lineHeight = 40.sp,
             letterSpacing = 0.sp
         ),
         headlineMedium = TextStyle(
-            fontFamily = quicksand,
-            fontWeight = FontWeight.Bold,
+            fontFamily = googleSans,
+            fontWeight = FontWeight.Medium,
+            fontSynthesis = FontSynthesis.None,
             fontSize = 28.sp,
             lineHeight = 36.sp,
             letterSpacing = 0.sp
         ),
         headlineSmall = TextStyle(
-            fontFamily = quicksand,
-            fontWeight = FontWeight.Bold,
+            fontFamily = googleSans,
+            fontWeight = FontWeight.Medium,
+            fontSynthesis = FontSynthesis.None,
             fontSize = 24.sp,
             lineHeight = 32.sp
         ),
@@ -86,7 +89,7 @@ fun getAppTypography(): Typography {
         ),
         titleMedium = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontSynthesis = FontSynthesis.None,
             fontSize = 16.sp,
             lineHeight = 24.sp,
@@ -94,7 +97,7 @@ fun getAppTypography(): Typography {
         ),
         titleSmall = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontSynthesis = FontSynthesis.None,
             fontSize = 14.sp,
             lineHeight = 20.sp
@@ -124,7 +127,7 @@ fun getAppTypography(): Typography {
         ),
         labelLarge = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontSynthesis = FontSynthesis.None,
             fontSize = 14.sp,
             lineHeight = 20.sp,
@@ -132,7 +135,7 @@ fun getAppTypography(): Typography {
         ),
         labelMedium = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontSynthesis = FontSynthesis.None,
             fontSize = 12.sp,
             lineHeight = 16.sp,
@@ -140,7 +143,7 @@ fun getAppTypography(): Typography {
         ),
         labelSmall = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.Medium,
             fontSynthesis = FontSynthesis.None,
             fontSize = 11.sp,
             lineHeight = 16.sp

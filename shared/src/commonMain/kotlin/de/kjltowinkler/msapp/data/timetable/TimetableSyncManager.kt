@@ -129,6 +129,11 @@ object TimetableSyncManager {
                     "Tippe hier, um deinen neuen Stundenplan zu öffnen."
                 )
             )
+            de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                title = "Neuer Stundenplan verfügbar! 📅",
+                message = "Der Stundenplan für Klasse $userClass wurde aktualisiert.\n$validPeriod",
+                type = de.kjltowinkler.msapp.data.notifications.NotificationType.TIMETABLE
+            )
         }
 
         return@withContext (isNewerTimestamp || isContentChanged)

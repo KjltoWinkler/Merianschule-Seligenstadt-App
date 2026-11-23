@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Velo.Schulplaner</string>
-    <string name="widget_name">Velo.Schulplaner Übersicht</string>
+    <string name="app_name">Notes+</string>
+    <string name="widget_name">Notes+ Übersicht</string>
     <string name="widget_description">Zeigt die nächste Schulstunde und den aktuellen Schulweg-Countdown mit Material You Farben.</string>
 </resources>

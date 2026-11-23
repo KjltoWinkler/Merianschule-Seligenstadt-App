@@ -35,11 +35,13 @@ enum class WearAppState {
 }
 
 class MainActivity : ComponentActivity() {
-    private var currentScreenState = mutableStateOf(WearAppState.PROMPT)
+    private var currentScreenState = mutableStateOf(WearAppState.HOME)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        de.kjltowinkler.msapp.util.AppContextProvider.init(this)
+        de.kjltowinkler.msapp.data.backend.BackendApiClient.loadSavedSession()
         updateScreenFromIntent(intent)
         setContent {
             WearAppTheme {
@@ -72,20 +74,20 @@ fun WearApp(
     AppScaffold(
         modifier = Modifier.fillMaxSize(),
         timeText = {
-            // TimeText nur auf dem Homescreen anzeigen, damit Onboarding-Screens exakt wie im Figma-Design frei bleiben
+            // TimeText auf dem Homescreen anzeigen
             if (appState == WearAppState.HOME) {
                 TimeText()
             }
         }
     ) {
-        Box(
-            modifier = Modifier
+        val contentModifier = if (appState != WearAppState.HOME) {
+            Modifier
                 .fillMaxSize()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {
-                    // Tap auf Screen wechselt manuell durch die Screens
+                    // Tap wechselt manuell durch die Onboarding-Screens
                     onStateChange(
                         when (appState) {
                             WearAppState.PROMPT -> WearAppState.CHECK_PHONE
@@ -97,7 +99,11 @@ fun WearApp(
                         }
                     )
                 }
-        ) {
+        } else {
+            Modifier.fillMaxSize()
+        }
+
+        Box(modifier = contentModifier) {
             when (appState) {
                 WearAppState.PROMPT -> {
                     OnboardingPromptScreen(
@@ -124,7 +130,16 @@ fun WearApp(
                 }
 
                 WearAppState.HOME -> {
-                    WearHomeScreen()
+                    WearHomeScreen(
+                        onAccountClick = {
+                            // Bei Klick auf Account z. B. Onboarding/Koppeln aufrufen
+                            onStateChange(WearAppState.PROMPT)
+                        },
+                        onTimetableClick = { /* Später: Navigation Stundenplan */ },
+                        onSubstitutionClick = { /* Später: Navigation Vertretungsplan */ },
+                        onTasksClick = { /* Später: Navigation Aufgaben */ },
+                        onSettingsClick = { /* Später: Navigation Einstellungen */ }
+                    )
                 }
             }
         }

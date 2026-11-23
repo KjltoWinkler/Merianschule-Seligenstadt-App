@@ -48,10 +48,16 @@ fun screenCardContainerColor(): Color {
 fun DesktopTheme(
     content: @Composable () -> Unit
 ) {
+    val typography = getAppTypography()
     MaterialTheme(
         colorScheme = DesktopDarkColorScheme,
-        typography = getAppTypography(),
-        content = content
+        typography = typography,
+        content = {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.material3.LocalTextStyle provides typography.bodyMedium,
+                content = content
+            )
+        }
     )
 }
 

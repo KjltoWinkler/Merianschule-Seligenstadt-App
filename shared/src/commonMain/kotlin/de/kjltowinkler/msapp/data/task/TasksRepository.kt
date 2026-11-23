@@ -450,8 +450,14 @@ object TasksRepository {
             for (inv in invs) {
                 if (notifiedInvitationIds.add(inv.listId)) {
                     de.kjltowinkler.msapp.util.PlatformNotifier.sendTaskNotification(
-                        title = "Einladung zu geteilter Liste",
-                        summary = "${inv.ownerName} hat die Liste '${inv.title}' mit dir geteilt"
+                        title = "Einladung zu einer Liste",
+                        summary = "${inv.ownerName} hat dich zu seiner Liste “${inv.title}” eingeladen."
+                    )
+                    de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                        title = "Einladung zu einer Liste",
+                        message = "${inv.ownerName} hat dich zu seiner Liste “${inv.title}” eingeladen.",
+                        type = de.kjltowinkler.msapp.data.notifications.NotificationType.INVITATION,
+                        targetId = inv.listId
                     )
                 }
             }

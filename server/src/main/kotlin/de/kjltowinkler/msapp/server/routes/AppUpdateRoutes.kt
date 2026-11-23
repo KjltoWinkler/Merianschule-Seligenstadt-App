@@ -100,7 +100,7 @@ object AppUpdateRepository {
         versionCode = 1,
         versionName = "1.0.0",
         downloadUrl = "/api/app/download/latest.apk",
-        releaseNotes = "• Velo.Schulplaner - Initiale Version mit Stundenplan, Vertretungsplan und Aufgaben",
+        releaseNotes = "• Notes+ - Initiale Version mit Stundenplan, Vertretungsplan und Aufgaben",
         fileSizeBytes = 0L,
         publishedAt = System.currentTimeMillis()
     )
@@ -151,7 +151,7 @@ fun Route.appUpdateRoutes() {
             }
 
             val info = AppUpdateRepository.getUpdateInfo()
-            val filename = "VeloSchulplaner-${info.versionName}.apk"
+            val filename = "NotesPlus-${info.versionName}.apk"
 
             call.response.header(HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
             call.response.header(HttpHeaders.Pragma, "no-cache")

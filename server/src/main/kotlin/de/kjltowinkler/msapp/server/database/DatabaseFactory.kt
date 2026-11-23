@@ -14,6 +14,7 @@ object DatabaseFactory {
     fun init() {
         ServerConfig.ensureDataDirectory()
         ServerConfig.ensureAvatarsDirectory()
+        ServerConfig.ensureNewsImagesDirectory()
 
         val config = HikariConfig().apply {
             jdbcUrl = "jdbc:sqlite:${ServerConfig.dbPath}"
@@ -263,7 +264,27 @@ object DatabaseFactory {
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                     );
                 """.trimIndent())
+
+                stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS news_items (
+                        id TEXT PRIMARY KEY,
+                        title TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        image_url TEXT,
+                        type TEXT NOT NULL DEFAULT 'NEWS',
+                        date_text TEXT NOT NULL DEFAULT '',
+                        timestamp INTEGER NOT NULL DEFAULT 0,
+                        author TEXT NOT NULL DEFAULT 'Schulleitung',
+                        is_featured INTEGER NOT NULL DEFAULT 1,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    );
+                """.trimIndent())
             }
+        }
+
+        kotlinx.coroutines.runBlocking {
+            de.kjltowinkler.msapp.server.repository.NewsServerRepository.seedInitialNewsIfEmpty()
         }
     }
 

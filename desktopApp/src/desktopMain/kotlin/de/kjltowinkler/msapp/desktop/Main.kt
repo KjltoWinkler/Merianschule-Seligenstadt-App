@@ -11,7 +11,7 @@ import de.kjltowinkler.msapp.App
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Velo.Schulplaner",
+        title = "Notes+",
         icon = painterResource("icons/icon.png"),
         state = WindowState(size = DpSize(1440.dp, 900.dp))
     ) {

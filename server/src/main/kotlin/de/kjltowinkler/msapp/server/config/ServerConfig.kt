@@ -18,6 +18,7 @@ object ServerConfig {
     val dataDir: String = System.getProperty("DATA_DIR") ?: System.getenv("DATA_DIR") ?: "data"
     val dbPath: String = System.getProperty("DB_PATH") ?: System.getenv("DB_PATH") ?: "$dataDir/merianschule.db"
     val avatarsDir: String get() = "$dataDir/avatars"
+    val newsImagesDir: String get() = "$dataDir/news_images"
 
     fun ensureDataDirectory() {
         val dir = File(dataDir)
@@ -29,6 +30,14 @@ object ServerConfig {
     fun ensureAvatarsDirectory() {
         ensureDataDirectory()
         val dir = File(avatarsDir)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+    }
+
+    fun ensureNewsImagesDirectory() {
+        ensureDataDirectory()
+        val dir = File(newsImagesDir)
         if (!dir.exists()) {
             dir.mkdirs()
         }

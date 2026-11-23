@@ -9,7 +9,30 @@ import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val config = android.content.res.Configuration(newBase.resources.configuration)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            config.fontWeightAdjustment = 0
+        }
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
+    override fun applyOverrideConfiguration(overrideConfiguration: android.content.res.Configuration?) {
+        if (overrideConfiguration != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            overrideConfiguration.fontWeightAdjustment = 0
+        }
+        super.applyOverrideConfiguration(overrideConfiguration)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Android 12+ (API 31+): System-Splashscreen sofort entfernen, sobald Compose zeichnet
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            splashScreen.setOnExitAnimationListener { splashScreenView ->
+                splashScreenView.remove()
+            }
+        }
+
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 

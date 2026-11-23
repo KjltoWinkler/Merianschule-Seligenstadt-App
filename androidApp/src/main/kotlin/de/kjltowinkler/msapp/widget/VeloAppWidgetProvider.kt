@@ -20,7 +20,7 @@ import de.kjltowinkler.msapp.data.timetable.getInitialTimetableDay
 import java.util.Calendar
 
 /**
- * AppWidgetProvider für das kombinierte Velo.Schulplaner Android-Homescreen-Widget.
+ * AppWidgetProvider für das kombinierte Notes+ Android-Homescreen-Widget.
  * Unterstützt dynamische Material You Farben (Android 12+), nächste Unterrichtsstunde
  * und Echtzeit-Schulweg-Countdown.
  */

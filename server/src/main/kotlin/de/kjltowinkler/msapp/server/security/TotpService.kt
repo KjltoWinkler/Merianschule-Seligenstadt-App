@@ -35,7 +35,7 @@ object TotpService {
      * Erstellt eine standardkonforme otpauth:// URL für Authenticator-Apps.
      */
     fun generateOtpAuthUri(
-        issuer: String = "Velo.Schulplaner",
+        issuer: String = "Notes+",
         accountName: String,
         secret: String
     ): String {

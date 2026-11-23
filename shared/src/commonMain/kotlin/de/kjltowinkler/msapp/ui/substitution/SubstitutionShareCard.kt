@@ -156,7 +156,7 @@ fun SubstitutionShareCard(
                     }
                     Column {
                         Text(
-                            text = "Velo.Schulplaner",
+                            text = "Notes+",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFE4EDE0),
@@ -412,7 +412,7 @@ fun SubstitutionShareCard(
                     color = Color(0xFF758573)
                 )
                 Text(
-                    text = "Erstellt mit Velo.Schulplaner",
+                    text = "Erstellt mit Notes+",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF758573)

@@ -100,6 +100,12 @@ object TaskNotificationManager {
                     details.add("Status: Nicht erledigt (dringend)")
 
                     PlatformNotifier.sendTaskNotification(title, summary, details, taskId = task.id)
+                    de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                        title = title,
+                        message = summary,
+                        type = de.kjltowinkler.msapp.data.notifications.NotificationType.TASK,
+                        targetId = task.id
+                    )
                     PlatformStorage.setString(overdueKey, nowMillis.toString())
                 }
             }
@@ -130,6 +136,12 @@ object TaskNotificationManager {
                     if (task.description.isNotBlank()) details.add(task.description)
 
                     PlatformNotifier.sendTaskNotification(title, summary, details, taskId = task.id)
+                    de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                        title = title,
+                        message = summary,
+                        type = de.kjltowinkler.msapp.data.notifications.NotificationType.TASK,
+                        targetId = task.id
+                    )
                     PlatformStorage.setString(upcomingKey, nowMillis.toString())
                 }
             }

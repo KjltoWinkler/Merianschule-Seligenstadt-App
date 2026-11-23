@@ -38,7 +38,7 @@ import org.jetbrains.compose.resources.painterResource
 fun DesktopTwoFactorConnectScreen(
     accountName: String = "Sebastian Wagner",
     avatarPainter: Painter? = null,
-    totpUri: String = "otpauth://totp/Velo.Schulplaner:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Velo.Schulplaner",
+    totpUri: String = "otpauth://totp/Notes+:$accountName?secret=ABCD%20EFGH%201234%205678&issuer=Notes+",
     backupCode: String = "ABCD EFGH 1234 5678",
     isLoading: Boolean = false,
     showAccountBadge: Boolean = false,

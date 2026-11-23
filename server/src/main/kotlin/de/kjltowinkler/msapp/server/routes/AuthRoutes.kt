@@ -216,7 +216,7 @@ fun Route.authRoutes() {
 
                 val secret = de.kjltowinkler.msapp.server.security.TotpService.generateSecret()
                 val otpauthUri = de.kjltowinkler.msapp.server.security.TotpService.generateOtpAuthUri(
-                    issuer = "Velo.Schulplaner",
+                    issuer = "Notes+",
                     accountName = user.username,
                     secret = secret
                 )

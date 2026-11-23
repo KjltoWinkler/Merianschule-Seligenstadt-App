@@ -32,7 +32,7 @@ import org.slf4j.event.Level
 
 fun main() {
     println("==================================================")
-    println("  Velo.Schulplaner - Backend Server  ")
+    println("  Notes+ - Backend Server  ")
     println("==================================================")
     println("Port: ${ServerConfig.port}")
     println("Data Directory: ${ServerConfig.dataDir}")
@@ -152,7 +152,7 @@ data class HealthStatusResponse(
     routing {
         get("/") {
             call.respond(RootInfoResponse(
-                service = "Velo.Schulplaner Backend",
+                service = "Notes+ Backend",
                 status = "UP",
                 version = "1.0.0",
                 docs = "/api/admin/stats"
@@ -168,6 +168,7 @@ data class HealthStatusResponse(
         taskRoutes()
         substitutionRoutes()
         timetableRoutes()
+        newsRoutes()
         adminRoutes()
         adminWebPanel()
         appUpdateRoutes()

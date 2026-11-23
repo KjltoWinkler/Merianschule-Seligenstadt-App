@@ -61,7 +61,7 @@ fun OnboardingPairingScreen() {
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.merianschule_logo),
-                    contentDescription = "Velo.Schulplaner Logo",
+                    contentDescription = "Notes+ Logo",
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -70,7 +70,7 @@ fun OnboardingPairingScreen() {
 
             // Anweisungstext (Google Sans Flex Medium, saubere Zeilenhöhe exakt nach Figma)
             Text(
-                text = "Füge auf deinem\nSmartphone diese\nSmartwatch als\nGerät für den\nVelo.Schulplaner\nhinzu.",
+                text = "Füge auf deinem\nSmartphone diese\nSmartwatch als\nGerät für\nNotes+\nhinzu.",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
