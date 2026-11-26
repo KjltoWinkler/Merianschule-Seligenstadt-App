@@ -160,7 +160,7 @@ fun AvatarPickerDialog(
                     text = "Profilbild auswählen",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = onSurfaceColor
                     )
                 )

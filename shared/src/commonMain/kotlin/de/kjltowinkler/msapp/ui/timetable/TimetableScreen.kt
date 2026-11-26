@@ -526,7 +526,7 @@ fun TimetableLessonCard(
             Text(
                 text = TimetableRepository.resolveSubjectName(lesson.subject),
                 style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = if (isCancellation) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                     fontSize = 22.sp,
                     textDecoration = if (isCancellation) TextDecoration.LineThrough else TextDecoration.None

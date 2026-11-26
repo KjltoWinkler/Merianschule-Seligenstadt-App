@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         de.kjltowinkler.msapp.util.AppContextProvider.init(this)
+        de.kjltowinkler.msapp.data.wear.PlatformWearPairing.startListening()
         de.kjltowinkler.msapp.worker.SubstitutionWorkScheduler.schedulePeriodicSync(this)
 
         handleNavigationIntent(intent)

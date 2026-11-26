@@ -5,28 +5,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontSynthesis
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import merianschuleseligenstadtapp.shared.generated.resources.Res
-import merianschuleseligenstadtapp.shared.generated.resources.quicksand
 import merianschuleseligenstadtapp.shared.generated.resources.google_sans_flex
 import org.jetbrains.compose.resources.Font
 
 @Composable
+private fun googleSansRoundedFont(weight: FontWeight, axisWeight: Int) = Font(
+    resource = Res.font.google_sans_flex,
+    weight = weight,
+    variationSettings = FontVariation.Settings(
+        FontVariation.weight(axisWeight),
+        FontVariation.Setting("ROND", 100f)
+    )
+)
+
+@Composable
 fun getQuicksandFontFamily(): FontFamily {
-    // Standardize on Google Sans Flex to match Google Workspace elegance
-    // and avoid bubbly, distorted weight-scaling on accessibility bolding
     return getGoogleSansFlexFontFamily()
 }
 
 @Composable
 fun getGoogleSansFlexFontFamily(): FontFamily {
     return FontFamily(
-        Font(Res.font.google_sans_flex, weight = FontWeight.Light),
-        Font(Res.font.google_sans_flex, weight = FontWeight.Normal),
-        Font(Res.font.google_sans_flex, weight = FontWeight.Medium),
-        Font(Res.font.google_sans_flex, weight = FontWeight.SemiBold),
-        Font(Res.font.google_sans_flex, weight = FontWeight.Bold)
+        googleSansRoundedFont(FontWeight.Light, axisWeight = 250),
+        googleSansRoundedFont(FontWeight.Normal, axisWeight = 330),
+        googleSansRoundedFont(FontWeight.Medium, axisWeight = 420),
+        googleSansRoundedFont(FontWeight.SemiBold, axisWeight = 500),
+        googleSansRoundedFont(FontWeight.Bold, axisWeight = 600)
     )
 }
 

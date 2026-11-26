@@ -16,8 +16,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
+import de.kjltowinkler.msapp.theme.FigmaBackgroundDark
+import de.kjltowinkler.msapp.theme.FigmaOnBackgroundDark
 import de.kjltowinkler.msapp.ui.components.handCursor
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
@@ -25,6 +28,9 @@ import org.jetbrains.compose.resources.painterResource
 /**
  * Skeleton-Screen (Platzhalter-Ladeansicht) für die Seite mit allen Artikeln
  * gemäß Figma-Design: `FigmaDesigns/mobile/Artikel skeleton screen.png`
+ *
+ * Unterstützt dynamische Material You Farben (`useMaterialYou = true`) sowie
+ * die exakten Figma-Farben als Fallback (`useMaterialYou = false`).
  *
  * Beinhaltet:
  * - TopAppBar mit abgerundetem Zurück-Button und Titel-Platzhalter
@@ -38,9 +44,29 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ArticlesSkeletonScreen(
     onBackClicked: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    useMaterialYou: Boolean = true
 ) {
-    val shimmerBrush = rememberArticlesShimmerBrush()
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val shimmerBrush = rememberArticlesShimmerBrush(useMaterialYou = useMaterialYou)
+
+    val backgroundColor = if (useMaterialYou) {
+        MaterialTheme.colorScheme.background
+    } else {
+        if (isDark) FigmaBackgroundDark else MaterialTheme.colorScheme.background
+    }
+
+    val backButtonColor = if (useMaterialYou) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    } else {
+        Color.Black.copy(alpha = 0.35f)
+    }
+
+    val backIconTint = if (useMaterialYou) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        if (isDark) FigmaOnBackgroundDark else MaterialTheme.colorScheme.onSurface
+    }
 
     Scaffold(
         topBar = {
@@ -57,7 +83,7 @@ fun ArticlesSkeletonScreen(
                 navigationIcon = {
                     Surface(
                         shape = CircleShape,
-                        color = Color.Black.copy(alpha = 0.35f),
+                        color = backButtonColor,
                         modifier = Modifier
                             .padding(start = 8.dp)
                             .size(40.dp)
@@ -71,18 +97,18 @@ fun ArticlesSkeletonScreen(
                             Icon(
                                 painter = painterResource(Res.drawable.ic_arrow_back),
                                 contentDescription = "Zurück",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = backIconTint
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background
+                    containerColor = backgroundColor,
+                    scrolledContainerColor = backgroundColor
                 )
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = backgroundColor,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Column(
@@ -166,25 +192,29 @@ fun ArticlesSkeletonScreen(
 }
 
 /**
- * Erzeugt einen weichen, harmonischen Shimmer-Farbverlauf abgestimmt auf das Figma-Design
- * und das Material 3 Theme.
+ * Erzeugt einen weichen, harmonischen Shimmer-Farbverlauf abgestimmt auf Material You
+ * (wenn `useMaterialYou = true`) oder auf die exakten Figma-Farben (`useMaterialYou = false`).
  */
 @Composable
-fun rememberArticlesShimmerBrush(): Brush {
+fun rememberArticlesShimmerBrush(
+    useMaterialYou: Boolean = true
+): Brush {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
-    // Basisfarbe exakt nach Figma #2C332E im Dark Mode
-    val baseColor = if (isDark) {
-        Color(0xFF2C332E)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+    val baseColor = when {
+        useMaterialYou -> MaterialTheme.colorScheme.surfaceContainerHighest
+        isDark -> Color(0xFF2C332E) // Exakte Figma-Farbe #2c332e
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
 
-    // Leichte Aufhellung für die vorbeiziehende Shimmer-Welle
-    val highlightColor = if (isDark) {
-        Color(0xFF3B463E)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f)
+    val highlightColor = when {
+        useMaterialYou -> lerp(
+            baseColor,
+            MaterialTheme.colorScheme.primary,
+            if (isDark) 0.12f else 0.10f
+        )
+        isDark -> Color(0xFF3B463E)
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.85f)
     }
 
     val transition = rememberInfiniteTransition(label = "articles_skeleton_shimmer")

@@ -53,6 +53,7 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.play.services.wearable)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

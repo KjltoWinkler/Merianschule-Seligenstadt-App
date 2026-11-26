@@ -62,7 +62,7 @@ fun NewsArticleScreen(
                     Text(
                         text = "Beitrag",
                         fontFamily = getQuicksandFontFamily(),
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         fontSize = 18.sp
                     )
                 },
@@ -246,7 +246,7 @@ fun NewsArticleScreen(
                     text = item.title,
                     fontFamily = getQuicksandFontFamily(),
                     fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
                     lineHeight = 32.sp
                 )

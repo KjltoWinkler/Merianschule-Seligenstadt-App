@@ -98,7 +98,7 @@ fun SchoolTasksBottomSheet(
                 text = "Schul-Aufgaben Optionen",
                 fontFamily = getQuicksandFontFamily(),
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Normal,
                 color = colorScheme.onSurface
             )
 

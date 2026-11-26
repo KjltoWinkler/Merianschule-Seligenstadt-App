@@ -508,7 +508,7 @@ fun MobileHomeScreen(
                                             text = "Das ist neu",
                                             fontFamily = getQuicksandFontFamily(),
                                             fontSize = 18.sp,
-                                            fontWeight = FontWeight.Bold,
+                                            fontWeight = FontWeight.Normal,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         TextButton(
@@ -771,7 +771,8 @@ fun MobileHomeScreen(
             ) {
                 de.kjltowinkler.msapp.ui.news.NeuigkeitenScreen(
                     onBackClicked = { showNeuigkeitenScreen = false },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    useMaterialYou = useMaterialYou
                 )
             }
         }
@@ -819,7 +820,7 @@ fun MobileHomeScreen(
                     Text(
                         text = "Neu erstellen",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )

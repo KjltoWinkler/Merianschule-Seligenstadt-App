@@ -141,7 +141,7 @@ fun ReorderListsBottomSheet(
                 text = "Listen neu anordnen",
                 fontFamily = getQuicksandFontFamily(),
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Normal,
                 color = textColor
             )
 

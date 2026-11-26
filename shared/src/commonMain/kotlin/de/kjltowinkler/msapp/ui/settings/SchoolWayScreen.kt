@@ -153,7 +153,7 @@ fun SchoolWayScreen(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontFamily = getQuicksandFontFamily(),
                         fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = textPrimary
                     ),
                     modifier = Modifier.weight(1f)

@@ -10,6 +10,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontSynthesis
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.CurvedTextStyle
@@ -19,11 +20,24 @@ import androidx.wear.compose.material3.Typography
 import androidx.wear.compose.material3.dynamicColorScheme
 import de.kjltowinkler.msapp.wear.R
 
-val RobotoFlex = FontFamily(
-    Font(R.font.roboto_flex, weight = FontWeight.Normal),
-    Font(R.font.roboto_flex, weight = FontWeight.Medium),
-    Font(R.font.roboto_flex, weight = FontWeight.Bold)
+private fun googleSansRoundedWearFont(weight: FontWeight, axisWeight: Int) = Font(
+    resId = R.font.google_sans_flex,
+    weight = weight,
+    variationSettings = FontVariation.Settings(
+        FontVariation.weight(axisWeight),
+        FontVariation.Setting("ROND", 100f)
+    )
 )
+
+val GoogleSansRounded = FontFamily(
+    googleSansRoundedWearFont(FontWeight.Light, axisWeight = 250),
+    googleSansRoundedWearFont(FontWeight.Normal, axisWeight = 330),
+    googleSansRoundedWearFont(FontWeight.Medium, axisWeight = 420),
+    googleSansRoundedWearFont(FontWeight.SemiBold, axisWeight = 500),
+    googleSansRoundedWearFont(FontWeight.Bold, axisWeight = 600)
+)
+
+val RobotoFlex = GoogleSansRounded
 
 // Merianschule Material You Green Farbschema für Wear OS (AMOLED-optimiert)
 val WearMaterialYouGreenScheme = ColorScheme(

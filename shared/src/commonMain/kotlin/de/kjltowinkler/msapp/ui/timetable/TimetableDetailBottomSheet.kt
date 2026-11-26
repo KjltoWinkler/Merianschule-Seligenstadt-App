@@ -136,7 +136,7 @@ fun TimetableDetailBottomSheet(
                     text = TimetableRepository.resolveSubjectName(lesson.subject),
                     fontFamily = getQuicksandFontFamily(),
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = textPrimaryColor
                 )
 

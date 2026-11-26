@@ -12,18 +12,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.TimeText
+import androidx.wear.compose.navigation.SwipeDismissableNavHost
+import androidx.wear.compose.navigation.composable
+import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import de.kjltowinkler.msapp.data.backend.BackendApiClient
+import de.kjltowinkler.msapp.data.task.TasksRepository
+import de.kjltowinkler.msapp.data.wear.PlatformWearPairing
 import de.kjltowinkler.msapp.wear.presentation.screens.FailureConfirmationScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.OnboardingPairingScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.OnboardingPromptScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.OpenOnPhoneScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.SuccessConfirmationScreen
+import de.kjltowinkler.msapp.wear.presentation.screens.WearCreateTaskScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.WearHomeScreen
+import de.kjltowinkler.msapp.wear.presentation.screens.WearTasksScreen
 import de.kjltowinkler.msapp.wear.presentation.theme.WearAppTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class WearAppState {
     PROMPT,          // Screen 1: onboarding#1.png
@@ -41,7 +51,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         de.kjltowinkler.msapp.util.AppContextProvider.init(this)
-        de.kjltowinkler.msapp.data.backend.BackendApiClient.loadSavedSession()
+        BackendApiClient.loadSavedSession()
+        PlatformWearPairing.startListening()
+        if (BackendApiClient.isLoggedIn) {
+            TasksRepository.startRealtimeSync()
+        }
         updateScreenFromIntent(intent)
         setContent {
             WearAppTheme {
@@ -71,6 +85,38 @@ fun WearApp(
     appState: WearAppState,
     onStateChange: (WearAppState) -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
+    // Eingehende Session vom Smartphone empfangen und automatisch speichern
+    LaunchedEffect(Unit) {
+        PlatformWearPairing.incomingPairSession.collect { payload ->
+            BackendApiClient.saveSession(payload.token, payload.user)
+            TasksRepository.startRealtimeSync()
+            launch { TasksRepository.reloadAndSync() }
+            PlatformWearPairing.sendPairAckToPhone()
+            onStateChange(WearAppState.SUCCESS)
+        }
+    }
+
+    // Timeout für Warten auf Smartphone-Kopplung & Auto-Weiterleitung bei Erfolg
+    LaunchedEffect(appState) {
+        when (appState) {
+            WearAppState.CHECK_PHONE -> {
+                delay(1500)
+                onStateChange(WearAppState.PAIRING_WAIT)
+            }
+            WearAppState.PAIRING_WAIT -> {
+                delay(45_000)
+                onStateChange(WearAppState.FAILURE)
+            }
+            WearAppState.SUCCESS -> {
+                delay(2000)
+                onStateChange(WearAppState.HOME)
+            }
+            else -> Unit
+        }
+    }
+
     AppScaffold(
         modifier = Modifier.fillMaxSize(),
         timeText = {
@@ -80,22 +126,18 @@ fun WearApp(
             }
         }
     ) {
-        val contentModifier = if (appState != WearAppState.HOME) {
+        val contentModifier = if (appState == WearAppState.SUCCESS || appState == WearAppState.FAILURE) {
             Modifier
                 .fillMaxSize()
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) {
-                    // Tap wechselt manuell durch die Onboarding-Screens
                     onStateChange(
                         when (appState) {
-                            WearAppState.PROMPT -> WearAppState.CHECK_PHONE
-                            WearAppState.CHECK_PHONE -> WearAppState.PAIRING_WAIT
-                            WearAppState.PAIRING_WAIT -> WearAppState.SUCCESS
-                            WearAppState.SUCCESS -> WearAppState.FAILURE
-                            WearAppState.FAILURE -> WearAppState.HOME
-                            WearAppState.HOME -> WearAppState.PROMPT
+                            WearAppState.SUCCESS -> WearAppState.HOME
+                            WearAppState.FAILURE -> WearAppState.PROMPT
+                            else -> appState
                         }
                     )
                 }
@@ -109,6 +151,12 @@ fun WearApp(
                     OnboardingPromptScreen(
                         onConfirm = {
                             onStateChange(WearAppState.CHECK_PHONE)
+                            coroutineScope.launch {
+                                val res = PlatformWearPairing.requestPairingFromPhone()
+                                if (res.isFailure) {
+                                    onStateChange(WearAppState.FAILURE)
+                                }
+                            }
                         }
                     )
                 }
@@ -130,16 +178,45 @@ fun WearApp(
                 }
 
                 WearAppState.HOME -> {
-                    WearHomeScreen(
-                        onAccountClick = {
-                            // Bei Klick auf Account z. B. Onboarding/Koppeln aufrufen
-                            onStateChange(WearAppState.PROMPT)
-                        },
-                        onTimetableClick = { /* Später: Navigation Stundenplan */ },
-                        onSubstitutionClick = { /* Später: Navigation Vertretungsplan */ },
-                        onTasksClick = { /* Später: Navigation Aufgaben */ },
-                        onSettingsClick = { /* Später: Navigation Einstellungen */ }
-                    )
+                    val navController = rememberSwipeDismissableNavController()
+                    SwipeDismissableNavHost(
+                        navController = navController,
+                        startDestination = "home"
+                    ) {
+                        composable("home") {
+                            WearHomeScreen(
+                                onAccountClick = {
+                                    // Bei Klick auf Account z. B. Onboarding/Koppeln aufrufen
+                                    onStateChange(WearAppState.PROMPT)
+                                },
+                                onTimetableClick = { /* Später: Navigation Stundenplan */ },
+                                onSubstitutionClick = { /* Später: Navigation Vertretungsplan */ },
+                                onTasksClick = {
+                                    navController.navigate("tasks")
+                                },
+                                onSettingsClick = { /* Später: Navigation Einstellungen */ }
+                            )
+                        }
+                        composable("tasks") {
+                            WearTasksScreen(
+                                onCreateTaskClick = { listId ->
+                                    navController.navigate("create_task/$listId")
+                                },
+                                onLoginRequiredClick = {
+                                    onStateChange(WearAppState.PROMPT)
+                                }
+                            )
+                        }
+                        composable("create_task/{listId}") { backStackEntry ->
+                            val listId = backStackEntry.arguments?.getString("listId") ?: "my_tasks"
+                            WearCreateTaskScreen(
+                                initialListId = listId,
+                                onTaskCreated = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

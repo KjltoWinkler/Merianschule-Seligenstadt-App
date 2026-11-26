@@ -51,7 +51,8 @@ import org.jetbrains.compose.resources.painterResource
 fun NeuigkeitenScreen(
     onBackClicked: () -> Unit,
     modifier: Modifier = Modifier,
-    forceSkeleton: Boolean = false
+    forceSkeleton: Boolean = false,
+    useMaterialYou: Boolean = true
 ) {
     val newsList by NewsRepository.newsFlow.collectAsState()
     val isLoading by NewsRepository.isLoading.collectAsState()
@@ -73,7 +74,8 @@ fun NeuigkeitenScreen(
         if (isSkeleton) {
             ArticlesSkeletonScreen(
                 onBackClicked = onBackClicked,
-                modifier = modifier
+                modifier = modifier,
+                useMaterialYou = useMaterialYou
             )
         } else {
             val isTeacherOrAdmin = remember {
@@ -215,7 +217,7 @@ fun NeuigkeitenScreen(
                                 Text(
                                     text = "Weitere Neuigkeiten",
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -367,11 +369,12 @@ private fun FeaturedNewsCard(
             .handCursor()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Bild oben
+            // Bild oben (alle 4 Ecken abgerundet entsprechend Design)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(190.dp)
+                    .clip(cardShape)
             ) {
                 NewsImageView(
                     imageUrl = item.imageUrl,
@@ -389,7 +392,7 @@ private fun FeaturedNewsCard(
             ) {
                 Text(
                     text = item.title,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 17.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -464,7 +467,7 @@ private fun CompactNewsCard(
             ) {
                 Text(
                     text = item.title,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -560,7 +563,7 @@ fun NewsDetailBottomSheet(
             Text(
                 text = item.title,
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Normal,
                 color = MaterialTheme.colorScheme.onSurface,
                 lineHeight = 28.sp
             )
@@ -626,7 +629,7 @@ fun CreateNewsDialog(
         title = {
             Text(
                 text = "Neuen Beitrag verfassen",
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Normal,
                 fontSize = 18.sp
             )
         },

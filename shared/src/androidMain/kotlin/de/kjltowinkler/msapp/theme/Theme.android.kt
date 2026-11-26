@@ -9,7 +9,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.text.font.createFontFamilyResolver
 
 @Composable
 actual fun AppTheme(
@@ -28,9 +30,9 @@ actual fun AppTheme(
     // Moderating it to +100 ensures the font is clearly, beautifully bold without
     // distorting character shapes, exactly like native Google Workspace apps.
     val (context, configuration) = remember(rawContext, rawConfig) {
-        if (!isInspection && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && rawConfig.fontWeightAdjustment > 100) {
+        if (!isInspection && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && rawConfig.fontWeightAdjustment > 0) {
             val adjustedConfig = android.content.res.Configuration(rawConfig).apply {
-                fontWeightAdjustment = 100
+                fontWeightAdjustment = 0
             }
             val adjustedCtx = rawContext.createConfigurationContext(adjustedConfig)
             adjustedCtx to adjustedConfig
@@ -53,10 +55,14 @@ actual fun AppTheme(
     }
 
     val typography = getAppTypography()
+    val fontFamilyResolver = remember(context) {
+        createFontFamilyResolver(context)
+    }
 
     CompositionLocalProvider(
         LocalContext provides context,
         LocalConfiguration provides configuration,
+        LocalFontFamilyResolver provides fontFamilyResolver,
         androidx.compose.material3.LocalTextStyle provides typography.bodyMedium
     ) {
         MaterialTheme(

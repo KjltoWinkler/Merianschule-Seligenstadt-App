@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -127,7 +128,7 @@ fun NotificationsScreen(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontFamily = getQuicksandFontFamily(),
                         fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = textPrimary
                     ),
                     modifier = Modifier.weight(1f)
@@ -346,26 +347,38 @@ private fun SwipeableNotificationItem(
             enableDismissFromStartToEnd = false,
             enableDismissFromEndToStart = true,
             backgroundContent = {
-                // Grüner Pill-Button mit Archiv-Icon exakt wie in Figma (Farbe #6DD58C, Icon #0A3818)
+                val direction = dismissState.dismissDirection
+                val alignment = when (direction) {
+                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                    else -> Alignment.Center
+                }
+
+                // Dynamisches Icon-Verhalten wie in Gmail (analog zum Vertretungsplan)
+                val progress = dismissState.progress
+                val iconScale = (progress * 1.25f).coerceIn(0.6f, 1.15f)
+                val iconAlpha = (progress * 2.5f).coerceIn(0f, 1f)
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterEnd
+                        .padding(horizontal = 16.dp)
+                        .clip(shape)
+                        .background(Color(0xFF6DD58C))
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = alignment
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(108.dp)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(32.dp))
-                            .background(Color(0xFF6DD58C)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    if (direction != SwipeToDismissBoxValue.Settled) {
                         Icon(
                             painter = painterResource(Res.drawable.ic_archive),
                             contentDescription = "Archivieren",
                             tint = Color(0xFF0A3818),
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier
+                                .size(24.dp)
+                                .graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                    alpha = iconAlpha
+                                }
                         )
                     }
                 }

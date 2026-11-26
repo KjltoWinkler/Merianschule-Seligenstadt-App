@@ -100,7 +100,7 @@ fun NewListScreen(
                 Text(
                     text = "Neue Liste erstellen",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     fontFamily = getQuicksandFontFamily(),
                     color = textPrimary
                 )

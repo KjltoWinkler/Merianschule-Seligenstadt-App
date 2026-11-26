@@ -191,7 +191,7 @@ fun TaskSortBottomSheet(
                 text = "Sortieren nach",
                 fontFamily = getQuicksandFontFamily(),
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Normal,
                 color = textColor
             )
 

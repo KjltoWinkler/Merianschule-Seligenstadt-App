@@ -63,6 +63,10 @@ object AppRoutes {
     const val SETTINGS_SCHOOL_WAY = "settings_school_way"
     const val SETTINGS_COURSES = "settings_courses"
 
+    // Smartwatch-Pairing
+    const val PAIR_SMARTWATCH_PROCEED = "pair_smartwatch_proceed"
+    const val PAIR_SMARTWATCH_PAIRING = "pair_smartwatch_pairing"
+
     // Benachrichtigungen
     const val NOTIFICATIONS = "notifications"
 
@@ -293,6 +297,12 @@ fun App() {
                         if (target.route == "settings" && BackendApiClient.isLoggedIn) {
                             try {
                                 navController.navigate(AppRoutes.SETTINGS)
+                            } catch (_: Throwable) {}
+                        } else if (target.route == AppRoutes.PAIR_SMARTWATCH_PROCEED && BackendApiClient.isLoggedIn) {
+                            try {
+                                if (navController.currentDestination?.route != AppRoutes.PAIR_SMARTWATCH_PROCEED) {
+                                    navController.navigate(AppRoutes.PAIR_SMARTWATCH_PROCEED)
+                                }
                             } catch (_: Throwable) {}
                         } else if ((target.route == "substitution" || target.route == "tasks" || target.route == "home") && BackendApiClient.isLoggedIn) {
                             try {
@@ -1076,6 +1086,9 @@ fun App() {
                     onCoursesClicked = {
                         navController.navigate(AppRoutes.SETTINGS_COURSES)
                     },
+                    onPairSmartwatchClicked = {
+                        navController.navigate(AppRoutes.PAIR_SMARTWATCH_PROCEED)
+                    },
                     isTwoFactorEnabled = currentAccount.isTwoFactorEnabled,
                     onNavigateTo2FaSetup = {
                         isSettingUpTwoFactorFromSettings = true
@@ -1112,6 +1125,29 @@ fun App() {
                 )
             }
 
+            // --- SMARTWATCH PAIRING ---
+            composable(AppRoutes.PAIR_SMARTWATCH_PROCEED) {
+                de.kjltowinkler.msapp.ui.wear.PairSmartwatchProceedScreen(
+                    onProceedClicked = {
+                        navController.navigate(AppRoutes.PAIR_SMARTWATCH_PAIRING)
+                    },
+                    onBackClicked = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable(AppRoutes.PAIR_SMARTWATCH_PAIRING) {
+                de.kjltowinkler.msapp.ui.wear.PairSmartwatchPairingScreen(
+                    onFinished = {
+                        navController.popBackStack(AppRoutes.PAIR_SMARTWATCH_PROCEED, inclusive = true)
+                    },
+                    onBackClicked = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
             // --- BENACHRICHTIGUNGEN ---
             composable(AppRoutes.NOTIFICATIONS) {
                 de.kjltowinkler.msapp.ui.notifications.NotificationsScreen(
@@ -1127,7 +1163,8 @@ fun App() {
                 de.kjltowinkler.msapp.ui.news.NeuigkeitenScreen(
                     onBackClicked = {
                         navController.popBackStack()
-                    }
+                    },
+                    useMaterialYou = isDynamicColor
                 )
             }
         }

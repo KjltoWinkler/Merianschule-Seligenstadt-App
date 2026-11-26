@@ -44,6 +44,7 @@ fun SettingsScreen(
     onPredictiveBackChanged: (Boolean) -> Unit = {},
     onSchoolWayClicked: () -> Unit = {},
     onCoursesClicked: () -> Unit = {},
+    onPairSmartwatchClicked: () -> Unit = {},
     isTwoFactorEnabled: Boolean = false,
     onNavigateTo2FaSetup: () -> Unit = {},
     onDisable2Fa: () -> Unit = {}
@@ -122,7 +123,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontFamily = getQuicksandFontFamily(),
                         fontSize = 26.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = textPrimary
                     )
                 )
@@ -151,6 +152,16 @@ fun SettingsScreen(
                         titleColor = textPrimary,
                         subtitleColor = textSecondary,
                         onClick = onCoursesClicked
+                    )
+
+                    HorizontalDivider(thickness = 1.dp, color = dividerHorizontal)
+
+                    SettingsItemRow(
+                        title = "Smartwatch verbinden",
+                        subtitle = "Notes+ App mit deiner Wear OS Uhr koppeln",
+                        titleColor = textPrimary,
+                        subtitleColor = textSecondary,
+                        onClick = onPairSmartwatchClicked
                     )
                 }
             }

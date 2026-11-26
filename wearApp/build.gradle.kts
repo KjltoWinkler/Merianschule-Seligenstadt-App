@@ -16,6 +16,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.play.services.wearable)
 
     // Wear OS Compose M3
     implementation(libs.wear.compose.material3)

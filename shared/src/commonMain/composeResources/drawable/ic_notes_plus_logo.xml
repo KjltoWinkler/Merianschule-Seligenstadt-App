@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Drei abgerundete Balken links + drei Kreise rechts (Notes+ Smartwatch Logo) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,12a4,4 0 0,1 4,-4h11a4,4 0 0,1 0,8H14a4,4 0 0,1 -4,-4z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,12m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,24a4,4 0 0,1 4,-4h11a4,4 0 0,1 0,8H14a4,4 0 0,1 -4,-4z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,24m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M10,36a4,4 0 0,1 4,-4h11a4,4 0 0,1 0,8H14a4,4 0 0,1 -4,-4z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M34,36m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+</vector>

@@ -104,7 +104,7 @@ fun SubstitutionItemCard(
                     text = headerTitle,
                     fontFamily = getQuicksandFontFamily(),
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

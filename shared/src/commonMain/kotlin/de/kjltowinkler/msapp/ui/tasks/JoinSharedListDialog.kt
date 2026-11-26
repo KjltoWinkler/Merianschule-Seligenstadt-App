@@ -46,7 +46,7 @@ fun JoinSharedListDialog(
                 )
                 Text(
                     text = "Geteilter Liste beitreten",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     fontFamily = getQuicksandFontFamily(),
                     fontSize = 18.sp
                 )

@@ -163,7 +163,7 @@ fun SubstitutionDetailBottomSheet(
                         text = headerTitle,
                         fontFamily = getQuicksandFontFamily(),
                         fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = textPrimaryColor
                     )
 

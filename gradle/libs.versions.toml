@@ -23,6 +23,7 @@ hikaricp = "6.0.0"
 wear-compose = "1.7.1"
 wear-tooling-preview = "1.0.0"
 androidx-work = "2.10.0"
+play-services-wearable = "19.0.0"
 
 [libraries]
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -68,6 +69,7 @@ wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation",
 wear-compose-navigation = { module = "androidx.wear.compose:compose-navigation", version.ref = "wear-compose" }
 wear-compose-ui-tooling = { module = "androidx.wear.compose:compose-ui-tooling", version.ref = "wear-compose" }
 wear-tooling-preview = { module = "androidx.wear:wear-tooling-preview", version.ref = "wear-tooling-preview" }
+play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "play-services-wearable" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

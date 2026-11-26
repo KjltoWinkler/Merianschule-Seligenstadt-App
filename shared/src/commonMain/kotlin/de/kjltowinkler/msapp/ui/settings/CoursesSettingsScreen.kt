@@ -107,7 +107,7 @@ fun CoursesSettingsScreen(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontFamily = getQuicksandFontFamily(),
                         fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Normal,
                         color = textPrimary
                     )
                 )
