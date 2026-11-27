@@ -896,6 +896,26 @@
     m-tab {
       white-space: nowrap;
       flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    m-tab .mtrl-tab,
+    m-tab .mtrl-tab:hover,
+    m-tab .mtrl-tab:focus,
+    m-tab .mtrl-tab:focus-visible,
+    m-tab .mtrl-tab:active {
+      background-color: transparent !important;
+      box-shadow: none !important;
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+    m-tab .mtrl-tab::before,
+    m-tab .mtrl-tab::after {
+      content: none !important;
+      display: none !important;
+    }
+    m-tab .mtrl-ripple,
+    m-tab .mtrl-ripple-wave {
+      display: none !important;
     }
 
     /* ==================================================== */

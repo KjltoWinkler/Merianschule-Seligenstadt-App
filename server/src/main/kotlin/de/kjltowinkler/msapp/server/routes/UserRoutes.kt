@@ -313,7 +313,7 @@ fun Route.userRoutes() {
                 else -> ContentType.Image.JPEG
             }
 
-            call.response.header(HttpHeaders.CacheControl, "public, max-age=86400, must-revalidate")
+            call.response.header(HttpHeaders.CacheControl, "private, max-age=86400, must-revalidate")
             call.response.header(HttpHeaders.ETag, "\"${file.lastModified()}\"")
             call.response.header("X-Content-Type-Options", "nosniff")
             call.respondFile(file)

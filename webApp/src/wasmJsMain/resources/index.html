@@ -15,7 +15,7 @@
         })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#121316">
+    <meta name="theme-color" content="#131314">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -36,7 +36,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #121316;
+            background-color: #131314;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             touch-action: manipulation;
             user-select: none;
@@ -59,7 +59,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #121316;
+            background-color: #131314;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -73,51 +73,81 @@
             pointer-events: none;
         }
 
-        .m3-progress-indicator {
-            width: 48px;
-            height: 48px;
-            display: inline-block;
+        .splash-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .m3-linear-progress {
             position: relative;
+            width: 164px;
+            height: 4px;
+            margin-top: 32px;
+            border-radius: 999px;
+            background-color: #36343B;
+            overflow: hidden;
         }
 
-        .m3-progress-indicator svg {
-            width: 100%;
-            height: 100%;
-            animation: m3-rotate 2s linear infinite;
+        .m3-linear-bar {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            border-radius: 999px;
+            background-color: #C8BFFF;
+            will-change: left, right;
         }
 
-        .m3-track {
-            fill: none;
-            stroke: rgba(169, 202, 232, 0.15);
-            stroke-width: 4px;
+        .m3-linear-bar.primary {
+            animation: m3-indeterminate-1 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
         }
 
-        .m3-arc {
-            fill: none;
-            stroke: #A9CAE8;
-            stroke-width: 4px;
-            stroke-linecap: round;
-            animation: m3-dash 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        .m3-linear-bar.secondary {
+            animation: m3-indeterminate-2 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) infinite;
+            animation-delay: 1.15s;
         }
 
-        @keyframes m3-rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes m3-dash {
+        @keyframes m3-indeterminate-1 {
             0% {
-                stroke-dasharray: 1px, 200px;
-                stroke-dashoffset: 0;
+                left: -35%;
+                right: 100%;
             }
-            50% {
-                stroke-dasharray: 89px, 200px;
-                stroke-dashoffset: -25px;
+            60% {
+                left: 100%;
+                right: -90%;
             }
             100% {
-                stroke-dasharray: 1px, 200px;
-                stroke-dashoffset: -119.4px;
+                left: 100%;
+                right: -90%;
             }
+        }
+
+        @keyframes m3-indeterminate-2 {
+            0% {
+                left: -200%;
+                right: 100%;
+            }
+            60% {
+                left: 107%;
+                right: -8%;
+            }
+            100% {
+                left: 107%;
+                right: -8%;
+            }
+        }
+
+        .splash-brand-footer {
+            position: absolute;
+            bottom: calc(36px + env(safe-area-inset-bottom, 0px));
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 20px;
+            color: #C4C7C5;
+            letter-spacing: 0.2px;
         }
 
         /* Error Banner Card */
@@ -215,13 +245,41 @@
 </head>
 <body>
     <div id="splash-screen">
-        <img src="icon.png" alt="Notes+" style="width: 72px; height: 72px; margin-bottom: 16px; border-radius: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
-        <div style="color: #DFE9DE; font-size: 18px; font-weight: 600; margin-bottom: 24px; letter-spacing: 0.2px;">Notes+</div>
-        <div class="m3-progress-indicator" role="progressbar" aria-label="Wird geladen...">
-            <svg viewBox="0 0 48 48">
-                <circle class="m3-track" cx="24" cy="24" r="19"></circle>
-                <circle class="m3-arc" cx="24" cy="24" r="19"></circle>
+        <div class="splash-center">
+            <svg width="132" height="118" viewBox="0 0 132 118" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Notes Plus">
+                <defs>
+                    <linearGradient id="pillGrad1" x1="0" y1="0" x2="92.5" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#585C97"/>
+                        <stop offset="100%" stop-color="#969DFC"/>
+                    </linearGradient>
+                    <linearGradient id="pillGrad2" x1="0" y1="0" x2="92.5" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#424296"/>
+                        <stop offset="100%" stop-color="#7171FD"/>
+                    </linearGradient>
+                    <linearGradient id="pillGrad3" x1="0" y1="0" x2="92.5" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#2F267A"/>
+                        <stop offset="100%" stop-color="#5848E0"/>
+                    </linearGradient>
+                </defs>
+                <!-- Zeile 1 -->
+                <rect x="0" y="0" width="92.5" height="39.33" rx="19.665" fill="url(#pillGrad1)"/>
+                <circle cx="112.33" cy="19.665" r="19.665" fill="#5848E2"/>
+                <!-- Zeile 2 -->
+                <rect x="0" y="39.33" width="92.5" height="39.33" rx="19.665" fill="url(#pillGrad2)"/>
+                <circle cx="112.33" cy="58.995" r="19.665" fill="#7271FE"/>
+                <!-- Zeile 3 -->
+                <rect x="0" y="78.66" width="92.5" height="39.34" rx="19.67" fill="url(#pillGrad3)"/>
+                <rect x="15.25" y="93.33" width="62" height="10" rx="5" fill="#B1ACFF"/>
+                <circle cx="112.33" cy="98.33" r="19.665" fill="#B7BFFF"/>
+                <circle cx="112.33" cy="98.33" r="9.7" fill="#FFFFFF"/>
             </svg>
+            <div class="m3-linear-progress" role="progressbar" aria-label="Wird geladen...">
+                <div class="m3-linear-bar primary"></div>
+                <div class="m3-linear-bar secondary"></div>
+            </div>
+        </div>
+        <div class="splash-brand-footer">
+            <strong style="font-weight: 700;">Notes</strong> <span style="font-weight: 400;">Plus</span>
         </div>
     </div>
     

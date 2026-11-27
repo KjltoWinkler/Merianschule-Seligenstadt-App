@@ -470,7 +470,8 @@ object SubstitutionRepository {
             val jsonString = bytes.decodeToString()
             val parsed = parseJsonEntries(jsonString)
             if (parsed.isNotEmpty()) parsed else defaultEntries
-        } catch (_: Exception) {
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             defaultEntries
         }
         val normalizedFallback = expandAndNormalizeEntries(fallback)

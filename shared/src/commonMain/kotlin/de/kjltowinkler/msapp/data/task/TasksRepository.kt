@@ -231,7 +231,8 @@ object TasksRepository {
                 lastSyncError = result.exceptionOrNull()?.message
                 false
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             lastSyncError = e.message
             false
         } finally {
@@ -322,7 +323,8 @@ object TasksRepository {
                     lastSyncError = result.exceptionOrNull()?.message
                     false
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 lastSyncError = e.message
                 false
             } finally {
@@ -438,33 +440,38 @@ object TasksRepository {
 
     suspend fun checkPendingInvitations(): List<SharedListInvitation> {
         if (!BackendApiClient.isLoggedIn) return emptyList()
-        val result = BackendApiClient.fetchPendingInvitations()
-        val invs = result.getOrNull() ?: emptyList()
-        pendingInvitations.clear()
-        pendingInvitations.addAll(invs)
-        if (invs.isNotEmpty()) {
-            val first = invs.first()
-            if (activeInvitationDialog == null || activeInvitationDialog?.listId != first.listId) {
-                activeInvitationDialog = first
-            }
-            for (inv in invs) {
-                if (notifiedInvitationIds.add(inv.listId)) {
-                    de.kjltowinkler.msapp.util.PlatformNotifier.sendTaskNotification(
-                        title = "Einladung zu einer Liste",
-                        summary = "${inv.ownerName} hat dich zu seiner Liste “${inv.title}” eingeladen."
-                    )
-                    de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
-                        title = "Einladung zu einer Liste",
-                        message = "${inv.ownerName} hat dich zu seiner Liste “${inv.title}” eingeladen.",
-                        type = de.kjltowinkler.msapp.data.notifications.NotificationType.INVITATION,
-                        targetId = inv.listId
-                    )
+        return try {
+            val result = BackendApiClient.fetchPendingInvitations()
+            val invs = result.getOrNull() ?: emptyList()
+            pendingInvitations.clear()
+            pendingInvitations.addAll(invs)
+            if (invs.isNotEmpty()) {
+                val first = invs.first()
+                if (activeInvitationDialog == null || activeInvitationDialog?.listId != first.listId) {
+                    activeInvitationDialog = first
                 }
+                for (inv in invs) {
+                    if (notifiedInvitationIds.add(inv.listId)) {
+                        de.kjltowinkler.msapp.util.PlatformNotifier.sendTaskNotification(
+                            title = "Einladung zu einer Liste",
+                            summary = "${inv.ownerName} hat dich zu seiner Liste “${inv.title}” eingeladen."
+                        )
+                        de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                            title = "Einladung zu einer Liste",
+                            message = "${inv.ownerName} hat dich zu seiner Liste “${inv.title}” eingeladen.",
+                            type = de.kjltowinkler.msapp.data.notifications.NotificationType.INVITATION,
+                            targetId = inv.listId
+                        )
+                    }
+                }
+            } else {
+                activeInvitationDialog = null
             }
-        } else {
-            activeInvitationDialog = null
+            invs
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            emptyList()
         }
-        return invs
     }
 
     suspend fun acceptInvitation(invitation: SharedListInvitation): Result<Boolean> = runCatching {

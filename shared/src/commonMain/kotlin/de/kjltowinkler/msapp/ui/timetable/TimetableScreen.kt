@@ -96,22 +96,12 @@ fun TimetableScreen(
         }
     }
 
-    val isFabExpanded by remember {
-        derivedStateOf {
-            val currentListState = listStates.getOrNull(currentRealPage)
-            currentListState?.let {
-                it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset <= 10
-            } ?: true
-        }
-    }
-
     var isRefreshing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
 
     // Sheet-States
     var selectedTeacherInfo by remember { mutableStateOf<TeacherInfo?>(null) }
     var selectedLessonForDetail by remember { mutableStateOf<TimetableLesson?>(null) }
-    var showNewEntrySheet by remember { mutableStateOf(false) }
 
     // Automatisch zum ausgewählten Button scrollen und diesen mittig zentrieren
     LaunchedEffect(currentRealPage, buttonWidths.size, rowViewportWidth, tabScrollState.maxValue) {
@@ -139,18 +129,6 @@ fun TimetableScreen(
         MaterialTheme.colorScheme.primary
     } else {
         FigmaLinkGreen
-    }
-
-    val fabContainerColor = if (useMaterialYou) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        FigmaPrimaryDark
-    }
-
-    val fabContentColor = if (useMaterialYou) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        Color.White
     }
 
     val dividerColor = if (useMaterialYou) {
@@ -351,33 +329,6 @@ fun TimetableScreen(
                 }
             }
         }
-
-// --- 3. EXTENDED FLOATING ACTION BUTTON (FAB) unten rechts mit Material You ---
-        ExtendedFloatingActionButton(
-            onClick = { showNewEntrySheet = true },
-            expanded = isFabExpanded,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 18.dp, bottom = 18.dp)
-                .handCursor(),
-            shape = RoundedCornerShape(16.dp),
-            containerColor = fabContainerColor,
-            contentColor = fabContentColor,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 2.dp),
-            icon = {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_add),
-                    contentDescription = "Hinzufügen",
-                    modifier = Modifier.size(24.dp)
-                )
-            },
-            text = {
-                Text(
-                    text = "Hinzufügen",
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-        )
     }
     }
 
@@ -413,16 +364,6 @@ fun TimetableScreen(
                     de.kjltowinkler.msapp.util.NavigationEvents.emit("substitution", entry.id)
                 }
             },
-            useMaterialYou = useMaterialYou
-        )
-    }
-
-    if (showNewEntrySheet) {
-        val currentDay = days[currentRealPage]
-        NewTimetableEntryBottomSheet(
-            initialDay = currentDay,
-            onDismissRequest = { showNewEntrySheet = false },
-            onEntryAdded = { _, _ -> },
             useMaterialYou = useMaterialYou
         )
     }

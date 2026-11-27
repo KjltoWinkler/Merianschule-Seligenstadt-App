@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.task.SimpleDate
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.getTodayDate
+import de.kjltowinkler.msapp.data.timetable.TimetableRepository
+import de.kjltowinkler.msapp.data.timetable.findNextLesson
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
 import kotlinx.coroutines.launch
 import merianschuleseligenstadtapp.shared.generated.resources.*
@@ -745,6 +747,13 @@ fun TaskEditBottomSheet(
 
     // --- DIALOGS (Datum & Zeit) ---
     if (showDatePicker && !isOfficialSchoolTask) {
+        val nextLesson = remember(subject) {
+            findNextLesson(subject = subject)
+        }
+        val isNextLessonSelected = nextLesson != null &&
+            dueDate == nextLesson.date.formattedCompletedGerman() &&
+            dueTime == nextLesson.startTimeFormatted
+
         TaskDatePickerDialog(
             selectedDate = null,
             onDateSelected = { date ->
@@ -760,9 +769,26 @@ fun TaskEditBottomSheet(
                     }
                     deadlineDate = combinedDeadline
                     saveChanges(newDueDate = formatted, newDeadline = combinedDeadline)
+                } else {
+                    dueDate = ""
+                    deadlineDate = ""
+                    saveChanges(newDueDate = "", newDeadline = "")
                 }
             },
-            onDismissRequest = { showDatePicker = false }
+            onDismissRequest = { showDatePicker = false },
+            nextLessonAvailable = nextLesson != null,
+            isNextLessonSelected = isNextLessonSelected,
+            onSelectNextLesson = {
+                nextLesson?.let { lesson ->
+                    val formatted = lesson.date.formattedCompletedGerman()
+                    val timeStr = lesson.startTimeFormatted
+                    dueDate = formatted
+                    dueTime = timeStr
+                    val combinedDeadline = "$formatted • $timeStr Uhr"
+                    deadlineDate = combinedDeadline
+                    saveChanges(newDueDate = formatted, newDueTime = timeStr, newDeadline = combinedDeadline)
+                }
+            }
         )
     }
 

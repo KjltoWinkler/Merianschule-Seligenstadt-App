@@ -385,7 +385,8 @@ fun SubstitutionPlanScreen(
                     )
                 }
                 minTimeJob.await()
-            } catch (_: Exception) {
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
             } finally {
                 isRefreshing = false
             }

@@ -155,7 +155,8 @@ object SchulportalClient {
             savedPassword = password
 
             return Result.success(true)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return Result.failure(e)
         } finally {
             client.close()
@@ -207,7 +208,8 @@ object SchulportalClient {
             lastUpdated = SchulportalHtmlParser.extractLastUpdated(html)
             val entries = SchulportalHtmlParser.parseHtml(html)
             return Result.success(entries)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             return Result.failure(e)
         } finally {
             client.close()

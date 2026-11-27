@@ -68,7 +68,13 @@ object WordPressApiClient {
     }
 
     suspend fun fetchPosts(perPage: Int = 20): List<NewsItem> {
-        val response = BackendApiClient.httpClient.get("$BASE_URL?_embed&per_page=$perPage")
+        val response = try {
+            BackendApiClient.httpClient.get("$BASE_URL?_embed&per_page=$perPage")
+        } catch (e: Throwable) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            val proxyUrl = "${BackendApiClient.serverUrl.trimEnd('/')}/api/news/wp-posts?per_page=$perPage"
+            BackendApiClient.httpClient.get(proxyUrl)
+        }
         if (response.status != HttpStatusCode.OK) {
             throw IllegalStateException("WordPress API returned ${response.status}")
         }

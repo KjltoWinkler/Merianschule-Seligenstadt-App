@@ -59,84 +59,89 @@ object TimetableSyncManager {
         notifyIfChanged: Boolean = true,
         targetClass: String? = null
     ): Boolean = withContext(Dispatchers.Default) {
-        val userClass = TimetableRepository.getEffectiveUserClass(targetClass ?: "09AR")
+        try {
+            val userClass = TimetableRepository.getEffectiveUserClass(targetClass ?: "09AR")
 
-        // Falls das Update für eine andere Klasse bestimmt war (z. B. 08AR != 09AR), ignorieren
-        if (targetClass != null && !isClassMatching(targetClass, userClass)) {
-            return@withContext false
-        }
-
-        val cleanClassKey = userClass.lowercase().replace(" ", "")
-        val lastUpdateKey = "$KEY_LAST_TIMETABLE_UPDATE_PREFIX$cleanClassKey"
-        val lastHashKey = "$KEY_LAST_TIMETABLE_HASH_PREFIX$cleanClassKey"
-
-        val previousTimestamp = PlatformStorage.getString(lastUpdateKey)?.toLongOrNull() ?: 0L
-        val previousHash = PlatformStorage.getString(lastHashKey) ?: ""
-
-        val fetchRes = BackendApiClient.fetchTimetable(userClass)
-        var dto = fetchRes.getOrNull()
-
-        // Fallback für führende Nullen (z. B. 09AR <-> 9AR)
-        if (dto == null || dto.days.isEmpty()) {
-            val altClass = when {
-                userClass.startsWith("0") && userClass.length > 1 && userClass[1].isDigit() -> userClass.substring(1)
-                userClass.isNotEmpty() && userClass[0].isDigit() -> "0$userClass"
-                else -> userClass
+            // Falls das Update für eine andere Klasse bestimmt war (z. B. 08AR != 09AR), ignorieren
+            if (targetClass != null && !isClassMatching(targetClass, userClass)) {
+                return@withContext false
             }
-            if (altClass != userClass) {
-                val altRes = BackendApiClient.fetchTimetable(altClass)
-                if (altRes.isSuccess && altRes.getOrNull()?.days?.isNotEmpty() == true) {
-                    dto = altRes.getOrNull()
+
+            val cleanClassKey = userClass.lowercase().replace(" ", "")
+            val lastUpdateKey = "$KEY_LAST_TIMETABLE_UPDATE_PREFIX$cleanClassKey"
+            val lastHashKey = "$KEY_LAST_TIMETABLE_HASH_PREFIX$cleanClassKey"
+
+            val previousTimestamp = PlatformStorage.getString(lastUpdateKey)?.toLongOrNull() ?: 0L
+            val previousHash = PlatformStorage.getString(lastHashKey) ?: ""
+
+            val fetchRes = BackendApiClient.fetchTimetable(userClass)
+            var dto = fetchRes.getOrNull()
+
+            // Fallback für führende Nullen (z. B. 09AR <-> 9AR)
+            if (dto == null || dto.days.isEmpty()) {
+                val altClass = when {
+                    userClass.startsWith("0") && userClass.length > 1 && userClass[1].isDigit() -> userClass.substring(1)
+                    userClass.isNotEmpty() && userClass[0].isDigit() -> "0$userClass"
+                    else -> userClass
+                }
+                if (altClass != userClass) {
+                    val altRes = BackendApiClient.fetchTimetable(altClass)
+                    if (altRes.isSuccess && altRes.getOrNull()?.days?.isNotEmpty() == true) {
+                        dto = altRes.getOrNull()
+                    }
                 }
             }
-        }
 
-        if (dto == null || dto.days.isEmpty()) {
-            return@withContext false
-        }
+            if (dto == null || dto.days.isEmpty()) {
+                return@withContext false
+            }
 
-        // Berechne einen inhaltlichen Fingerabdruck der Stunden
-        val currentHash = computeTimetableHash(dto)
-        val isNewerTimestamp = dto.lastUpdated > 0L && dto.lastUpdated > previousTimestamp
-        val isContentChanged = previousHash.isNotBlank() && currentHash != previousHash
+            // Berechne einen inhaltlichen Fingerabdruck der Stunden
+            val currentHash = computeTimetableHash(dto)
+            val isNewerTimestamp = dto.lastUpdated > 0L && dto.lastUpdated > previousTimestamp
+            val isContentChanged = previousHash.isNotBlank() && currentHash != previousHash
 
-        // Aktualisiere das lokale Repository und den Cache
-        TimetableRepository.applyTimetableDto(dto)
-        try {
-            val jsonStr = kotlinx.serialization.json.Json.encodeToString(ClassTimetableDto.serializer(), dto)
-            val classKey = "cached_timetable_dto_$cleanClassKey"
-            PlatformStorage.setString(classKey, jsonStr)
-            PlatformStorage.setString("cached_timetable_dto", jsonStr)
-        } catch (_: Throwable) {}
+            // Aktualisiere das lokale Repository und den Cache
+            TimetableRepository.applyTimetableDto(dto)
+            try {
+                val jsonStr = kotlinx.serialization.json.Json.encodeToString(ClassTimetableDto.serializer(), dto)
+                val classKey = "cached_timetable_dto_$cleanClassKey"
+                PlatformStorage.setString(classKey, jsonStr)
+                PlatformStorage.setString("cached_timetable_dto", jsonStr)
+            } catch (_: Throwable) {}
 
-        PlatformStorage.setString(lastUpdateKey, dto.lastUpdated.toString())
-        PlatformStorage.setString(lastHashKey, currentHash)
+            PlatformStorage.setString(lastUpdateKey, dto.lastUpdated.toString())
+            PlatformStorage.setString(lastHashKey, currentHash)
 
-        _timetableUpdatedEvents.tryEmit(userClass)
+            _timetableUpdatedEvents.tryEmit(userClass)
 
-        // Benachrichtigen, wenn ein Update vorliegt:
-        // Entweder neuer Zeitstempel oder geänderter Inhalt
-        val shouldNotify = notifyIfChanged && (previousTimestamp > 0L || previousHash.isNotBlank()) && (isNewerTimestamp || isContentChanged)
+            // Benachrichtigen, wenn ein Update vorliegt:
+            // Entweder neuer Zeitstempel oder geänderter Inhalt
+            val shouldNotify = notifyIfChanged && (previousTimestamp > 0L || previousHash.isNotBlank()) && (isNewerTimestamp || isContentChanged)
 
-        if (shouldNotify) {
-            val validPeriod = if (dto.validFor.isNotBlank()) "Gültig ab: ${dto.validFor}" else "Aktuelles Schuljahr"
-            PlatformNotifier.sendTimetableNotification(
-                title = "Neuer Stundenplan verfügbar! 📅",
-                summary = "Der Stundenplan für Klasse $userClass wurde aktualisiert.",
-                details = listOf(
-                    "Klasse: $userClass",
-                    validPeriod,
-                    "Tippe hier, um deinen neuen Stundenplan zu öffnen."
+            if (shouldNotify) {
+                val validPeriod = if (dto.validFor.isNotBlank()) "Gültig ab: ${dto.validFor}" else "Aktuelles Schuljahr"
+                PlatformNotifier.sendTimetableNotification(
+                    title = "Neuer Stundenplan verfügbar! 📅",
+                    summary = "Der Stundenplan für Klasse $userClass wurde aktualisiert.",
+                    details = listOf(
+                        "Klasse: $userClass",
+                        validPeriod,
+                        "Tippe hier, um deinen neuen Stundenplan zu öffnen."
+                    )
                 )
-            )
-            de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
-                title = "Neuer Stundenplan verfügbar! 📅",
-                message = "Der Stundenplan für Klasse $userClass wurde aktualisiert.\n$validPeriod",
-                type = de.kjltowinkler.msapp.data.notifications.NotificationType.TIMETABLE
-            )
-        }
+                de.kjltowinkler.msapp.data.notifications.NotificationRepository.addNotification(
+                    title = "Neuer Stundenplan verfügbar! 📅",
+                    message = "Der Stundenplan für Klasse $userClass wurde aktualisiert.\n$validPeriod",
+                    type = de.kjltowinkler.msapp.data.notifications.NotificationType.TIMETABLE
+                )
+            }
 
-        return@withContext (isNewerTimestamp || isContentChanged)
+            return@withContext (isNewerTimestamp || isContentChanged)
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+            false
+        }
     }
 
     private fun isClassMatching(classA: String, classB: String): Boolean {

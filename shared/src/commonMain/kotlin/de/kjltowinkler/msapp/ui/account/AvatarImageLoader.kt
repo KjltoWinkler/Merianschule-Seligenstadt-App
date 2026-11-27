@@ -12,6 +12,8 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.encodeURLParameter
+import kotlinx.coroutines.CancellationException
 import org.jetbrains.compose.resources.decodeToImageBitmap
 
 /**
@@ -51,12 +53,23 @@ object AvatarImageLoader {
             }
 
             val isBackend = fullUrl.startsWith(BackendApiClient.serverUrl)
+            val isPublicAvatar = fullUrl.contains("/api/user/avatar/")
 
-            val response = BackendApiClient.httpClient.get(fullUrl) {
-                if (isBackend) {
-                    BackendApiClient.authToken?.let { token ->
-                        header("Authorization", "Bearer $token")
+            val response = try {
+                BackendApiClient.httpClient.get(fullUrl) {
+                    if (isBackend && !isPublicAvatar) {
+                        BackendApiClient.authToken?.let { token ->
+                            header("Authorization", "Bearer $token")
+                        }
                     }
+                }
+            } catch (e: Throwable) {
+                if (e is CancellationException) throw e
+                if (fullUrl.startsWith("https://merianschule-seligenstadt.de/")) {
+                    val proxyUrl = "${BackendApiClient.serverUrl.trimEnd('/')}/api/news/proxy-image?url=${fullUrl.encodeURLParameter()}"
+                    BackendApiClient.httpClient.get(proxyUrl)
+                } else {
+                    throw e
                 }
             }
 
@@ -68,7 +81,8 @@ object AvatarImageLoader {
             } else {
                 null
             }
-        } catch (_: Throwable) {
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
             null
         }
     }

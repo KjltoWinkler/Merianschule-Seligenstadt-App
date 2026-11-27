@@ -170,6 +170,15 @@ fun TasksScreen(
     var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
     var activeBursts by remember { mutableStateOf(listOf<ConfettiBurst>()) }
     var burstCounter by remember { mutableStateOf(0L) }
+    var undoTask by remember { mutableStateOf<TaskItem?>(null) }
+    var undoBannerTrigger by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(undoTask?.id, undoBannerTrigger) {
+        if (undoTask != null) {
+            kotlinx.coroutines.delay(4000)
+            undoTask = null
+        }
+    }
 
     var isRefreshing by remember { mutableStateOf(false) }
     val pullToRefreshState = rememberPullToRefreshState()
@@ -461,8 +470,8 @@ fun TasksScreen(
                     val activeTasks = remember(currentTabTasks, currentSortOption) {
                         currentTabTasks.filter { !it.isCompleted }.sortedByOption(currentSortOption)
                     }
-                    val completedTasks = remember(currentTabTasks, currentSortOption) {
-                        currentTabTasks.filter { it.isCompleted }.sortedByOption(currentSortOption)
+                    val completedTasks = remember(currentTabTasks) {
+                        currentTabTasks.filter { it.isCompleted }.sortedByDescending { it.updatedAt }
                     }
 
                     val contentState = when {
@@ -849,6 +858,8 @@ fun TasksScreen(
                                                             coroutineScope.launch {
                                                                 delay(140)
                                                                 TasksRepository.toggleCompleted(task.id)
+                                                                undoTask = task
+                                                                undoBannerTrigger++
                                                             }
                                                         },
                                                         onToggleStarred = { TasksRepository.toggleStarred(task.id) },
@@ -1105,6 +1116,57 @@ fun TasksScreen(
                     }
                 )
             )
+        }
+
+        AnimatedVisibility(
+            visible = undoTask != null,
+            enter = slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(220, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(180)),
+            exit = slideOutVertically(
+                targetOffsetY = { it / 2 },
+                animationSpec = tween(180, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(150)),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, end = 88.dp, bottom = 18.dp)
+        ) {
+            undoTask?.let { completedTask ->
+                Surface(
+                    shape = CircleShape,
+                    color = colorScheme.inverseSurface,
+                    contentColor = colorScheme.inverseOnSurface,
+                    shadowElevation = 6.dp
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
+                    ) {
+                        Text(
+                            text = "Erledigt: ${completedTask.title}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Text(
+                            text = "Rückgängig",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = colorScheme.inversePrimary,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable {
+                                    TasksRepository.toggleCompleted(completedTask.id)
+                                    undoTask = null
+                                }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .handCursor()
+                        )
+                    }
+                }
+            }
         }
 
         FloatingActionButtonMenu(

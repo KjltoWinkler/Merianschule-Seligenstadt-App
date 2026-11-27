@@ -386,41 +386,7 @@ fun NewTaskBottomSheet(
                             }
                         }
 
-                        // Icon 5: Bis zur nächsten Stunde (Event Upcoming)
-                        de.kjltowinkler.msapp.ui.components.WithTooltip("Bis zur nächsten Stunde") {
-                            IconButton(
-                                onClick = {
-                                    nextLesson?.let { lesson ->
-                                        if (isNextLessonSelected) {
-                                            selectedDate = null
-                                            selectedHour = null
-                                            selectedMinute = null
-                                        } else {
-                                            selectedDate = lesson.date
-                                            selectedHour = lesson.startHour
-                                            selectedMinute = lesson.startMinute
-                                        }
-                                    }
-                                },
-                                enabled = nextLesson != null,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .handCursor(nextLesson != null)
-                            ) {
-                                Icon(
-                                    painter = painterResource(Res.drawable.ic_event_upcoming),
-                                    contentDescription = "Bis zur nächsten Stunde",
-                                    tint = when {
-                                        isNextLessonSelected -> colorScheme.primary
-                                        nextLesson != null -> colorScheme.onSurfaceVariant
-                                        else -> colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                                    },
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-
-                        // Icon 6: Stern / Markieren
+                        // Icon 5: Stern / Markieren
                         de.kjltowinkler.msapp.ui.components.WithTooltip("Als wichtig markieren") {
                             IconButton(
                                 onClick = { isStarred = !isStarred },
@@ -496,7 +462,16 @@ fun NewTaskBottomSheet(
         TaskDatePickerDialog(
             selectedDate = selectedDate,
             onDateSelected = { selectedDate = it },
-            onDismissRequest = { showDatePicker = false }
+            onDismissRequest = { showDatePicker = false },
+            nextLessonAvailable = nextLesson != null,
+            isNextLessonSelected = isNextLessonSelected,
+            onSelectNextLesson = {
+                nextLesson?.let { lesson ->
+                    selectedDate = lesson.date
+                    selectedHour = lesson.startHour
+                    selectedMinute = lesson.startMinute
+                }
+            }
         )
     }
 
