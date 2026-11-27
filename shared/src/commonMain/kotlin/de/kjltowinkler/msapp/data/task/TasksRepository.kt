@@ -389,7 +389,7 @@ object TasksRepository {
             } else {
                 false
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             false
         } finally {
             syncMutex.unlock()

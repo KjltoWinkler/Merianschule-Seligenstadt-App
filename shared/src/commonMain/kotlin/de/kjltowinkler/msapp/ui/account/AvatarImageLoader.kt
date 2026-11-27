@@ -68,7 +68,7 @@ object AvatarImageLoader {
             } else {
                 null
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             null
         }
     }

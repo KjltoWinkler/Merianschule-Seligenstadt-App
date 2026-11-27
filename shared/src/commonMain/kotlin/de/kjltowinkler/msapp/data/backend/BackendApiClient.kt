@@ -172,7 +172,7 @@ object BackendApiClient {
                             }
                         }
                     }
-                } catch (_: Exception) {
+                } catch (_: Throwable) {
                     // Automatische Wiederverbindung bei Verbindungsverlust (z.B. Wechsel WLAN/Mobilfunk)
                 }
                 delay(3000)

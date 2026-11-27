@@ -221,7 +221,7 @@ object CourseRepository {
             CoroutineScope(Dispatchers.Default).launch {
                 try {
                     de.kjltowinkler.msapp.data.backend.BackendApiClient.syncUserCourses(courses.toList())
-                } catch (_: Exception) {}
+                } catch (_: Throwable) {}
             }
         }
     }

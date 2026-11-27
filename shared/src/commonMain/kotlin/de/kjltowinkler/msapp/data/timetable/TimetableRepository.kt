@@ -728,7 +728,7 @@ object TimetableRepository {
                 }
             }
             false
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             false
         }
     }
@@ -916,7 +916,7 @@ object TimetableRepository {
                 }
                 false
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             if (!isLoaded && timetableMap.isEmpty() && userClass.equals("09AR", ignoreCase = true)) {
                 applyDefaultMockLessons()
             }

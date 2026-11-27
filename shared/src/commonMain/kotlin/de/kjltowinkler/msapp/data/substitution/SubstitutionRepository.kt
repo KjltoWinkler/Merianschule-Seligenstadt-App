@@ -398,7 +398,7 @@ object SubstitutionRepository {
                         return currentWeek
                     }
                 }
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 // Bei Fehler mit Backend weitermachen
             }
         }
@@ -421,7 +421,7 @@ object SubstitutionRepository {
                 }
                 return currentWeek
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             // Backend offline oder nicht erreichbar -> Fallback
         }
 
