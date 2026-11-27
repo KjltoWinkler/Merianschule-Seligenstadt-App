@@ -62,7 +62,7 @@ jobs:
           SERVER_CODE=$(curl -s --max-time 10 "https://api.veloschulplaner.de/api/app/version" | grep -oE '"versionCode"\s*:\s*[0-9]+' | head -n1 | grep -oE '[0-9]+' || echo "0")
           if [ -z "$SERVER_CODE" ]; then SERVER_CODE=0; fi
 
-          LOCAL_CODE=$(grep -oE 'versionCode\s*=\s*[0-9]+' androidApp/build.gradle.kts | head -n1 | grep -oE '[0-9]+' || echo "1")
+          LOCAL_CODE=$(grep -E 'versionCode\s*=' androidApp/build.gradle.kts | head -n1 | grep -oE '[0-9]+' | tail -n1 || echo "1")
           if [ -z "$LOCAL_CODE" ]; then LOCAL_CODE=1; fi
 
           if [ "$SERVER_CODE" -ge "$LOCAL_CODE" ]; then
