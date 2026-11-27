@@ -9,6 +9,8 @@ data class NavigationTarget(
 )
 
 object NavigationEvents {
+    const val SETTINGS_AUTO_UPDATE = "auto_update"
+
     private val _targetFlow = MutableSharedFlow<NavigationTarget>(extraBufferCapacity = 10)
     val targetFlow = _targetFlow.asSharedFlow()
 

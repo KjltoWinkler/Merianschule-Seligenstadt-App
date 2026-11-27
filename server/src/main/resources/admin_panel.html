@@ -893,29 +893,37 @@
     m-tabs::-webkit-scrollbar {
       display: none;
     }
-    m-tab {
+    m-tab,
+    .mtrl-tab {
       white-space: nowrap;
       flex-shrink: 0;
       -webkit-tap-highlight-color: transparent;
     }
-    m-tab .mtrl-tab,
-    m-tab .mtrl-tab:hover,
-    m-tab .mtrl-tab:focus,
-    m-tab .mtrl-tab:focus-visible,
-    m-tab .mtrl-tab:active {
+    m-tab,
+    .mtrl-tab,
+    .mtrl-button.mtrl-tab,
+    .mtrl-tab:hover,
+    .mtrl-tab:focus,
+    .mtrl-tab:focus-visible,
+    .mtrl-tab:active {
+      background: transparent !important;
       background-color: transparent !important;
+      background-image: none !important;
       box-shadow: none !important;
       outline: none !important;
       -webkit-tap-highlight-color: transparent;
     }
-    m-tab .mtrl-tab::before,
-    m-tab .mtrl-tab::after {
-      content: none !important;
-      display: none !important;
-    }
+    m-tab::before,
+    m-tab::after,
+    .mtrl-tab::before,
+    .mtrl-tab::after,
+    .mtrl-tab .mtrl-ripple,
+    .mtrl-tab .mtrl-ripple-wave,
     m-tab .mtrl-ripple,
     m-tab .mtrl-ripple-wave {
+      content: none !important;
       display: none !important;
+      opacity: 0 !important;
     }
 
     /* ==================================================== */
@@ -2516,6 +2524,39 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Tab switching
       const tabs = document.getElementById('mainTabs');
+      const stripTabClickEffect = () => {
+        if (!tabs || !tabs.shadowRoot || tabs.shadowRoot.getElementById('no-tab-ripple-style')) return;
+        const style = document.createElement('style');
+        style.id = 'no-tab-ripple-style';
+        style.textContent = `
+          .mtrl-tab,
+          .mtrl-button.mtrl-tab,
+          .mtrl-tab:hover,
+          .mtrl-tab:focus,
+          .mtrl-tab:focus-visible,
+          .mtrl-tab:active {
+            background: transparent !important;
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+          }
+          .mtrl-tab::before,
+          .mtrl-tab::after,
+          .mtrl-tab .mtrl-ripple,
+          .mtrl-tab .mtrl-ripple-wave {
+            content: none !important;
+            display: none !important;
+            opacity: 0 !important;
+          }
+        `;
+        tabs.shadowRoot.appendChild(style);
+      };
+      if (window.customElements && customElements.whenDefined) {
+        customElements.whenDefined('m-tabs').then(() => requestAnimationFrame(stripTabClickEffect));
+      }
+      stripTabClickEffect();
       tabs.addEventListener('change', (e) => {
         const val = (e.detail && e.detail.value) || tabs.value || 'users';
         document.getElementById('panelUsers').classList.toggle('hidden', val !== 'users');

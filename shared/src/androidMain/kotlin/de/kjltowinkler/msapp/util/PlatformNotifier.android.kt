@@ -265,6 +265,7 @@ actual object PlatformNotifier {
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra("navigate_to", "settings")
+                putExtra("highlight_id", NavigationEvents.SETTINGS_AUTO_UPDATE)
             }
             val pendingIntent = if (launchIntent != null) {
                 val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)

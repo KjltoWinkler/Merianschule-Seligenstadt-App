@@ -26,9 +26,11 @@ import de.kjltowinkler.msapp.data.task.TaskNotificationManager
 import de.kjltowinkler.msapp.data.update.AppUpdateManager
 import de.kjltowinkler.msapp.data.update.UpdateCheckStatus
 import de.kjltowinkler.msapp.data.update.UpdateDownloadStatus
+import de.kjltowinkler.msapp.util.NavigationEvents
 import de.kjltowinkler.msapp.util.PlatformAppUpdater
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.ui.components.handCursor
+import kotlinx.coroutines.flow.first
  
 @Composable
 fun SettingsScreen(
@@ -67,9 +69,74 @@ fun SettingsScreen(
     val checkStatus by AppUpdateManager.checkStatus
     val downloadStatus by AppUpdateManager.downloadStatus
     var showPermissionDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    var pendingAutoUpdate by remember { mutableStateOf(false) }
+    var scrollToUpdateTrigger by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
-        AppUpdateManager.checkForUpdates()
+        val autoUpdateRequested =
+            NavigationEvents.consumePendingHighlight("settings") == NavigationEvents.SETTINGS_AUTO_UPDATE
+        if (autoUpdateRequested) {
+            pendingAutoUpdate = true
+            scrollToUpdateTrigger++
+            if (AppUpdateManager.checkStatus.value !is UpdateCheckStatus.UpdateAvailable &&
+                AppUpdateManager.checkStatus.value !is UpdateCheckStatus.Checking
+            ) {
+                AppUpdateManager.checkForUpdates()
+            }
+        } else {
+            AppUpdateManager.checkForUpdates()
+        }
+
+        NavigationEvents.targetFlow.collect { target ->
+            if (target.route == "settings" && target.highlightId == NavigationEvents.SETTINGS_AUTO_UPDATE) {
+                NavigationEvents.consumePendingHighlight("settings")
+                pendingAutoUpdate = true
+                scrollToUpdateTrigger++
+                if (AppUpdateManager.checkStatus.value !is UpdateCheckStatus.UpdateAvailable &&
+                    AppUpdateManager.checkStatus.value !is UpdateCheckStatus.Checking
+                ) {
+                    AppUpdateManager.checkForUpdates()
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(scrollToUpdateTrigger) {
+        if (scrollToUpdateTrigger > 0) {
+            snapshotFlow { scrollState.maxValue }.first { it > 0 }
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
+    LaunchedEffect(pendingAutoUpdate, checkStatus, downloadStatus) {
+        if (!pendingAutoUpdate) return@LaunchedEffect
+        val currentDownload = downloadStatus
+        val currentCheck = checkStatus
+        when {
+            currentDownload is UpdateDownloadStatus.Downloading -> {
+                pendingAutoUpdate = false
+            }
+            currentDownload is UpdateDownloadStatus.ReadyToInstall -> {
+                pendingAutoUpdate = false
+                if (!PlatformAppUpdater.canInstallUnknownApps()) {
+                    showPermissionDialog = true
+                } else {
+                    AppUpdateManager.installApk(currentDownload.localPath)
+                }
+            }
+            currentCheck is UpdateCheckStatus.UpdateAvailable -> {
+                pendingAutoUpdate = false
+                if (!PlatformAppUpdater.canInstallUnknownApps()) {
+                    showPermissionDialog = true
+                } else {
+                    AppUpdateManager.startDownloadAndInstall(currentCheck.updateInfo)
+                }
+            }
+            currentCheck is UpdateCheckStatus.UpToDate || currentCheck is UpdateCheckStatus.Error -> {
+                pendingAutoUpdate = false
+            }
+        }
     }
 
     // Dynamische Material You Farbwerte aus dem aktiven MaterialTheme
@@ -90,7 +157,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             // --- TOP BAR ---

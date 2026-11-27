@@ -11,6 +11,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
@@ -19,7 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Velocity
 import de.kjltowinkler.msapp.ui.components.handCursor
 import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
 import de.kjltowinkler.msapp.util.PlatformNetworkMonitor
@@ -97,7 +103,28 @@ fun TimetableScreen(
     }
 
     var isRefreshing by remember { mutableStateOf(false) }
-    val pullToRefreshState = rememberPullToRefreshState()
+
+    val triggerRefresh: () -> Unit = {
+        if (!isRefreshing) {
+            isRefreshing = true
+            coroutineScope.launch {
+                if (!PlatformNetworkMonitor.isOnline.value) {
+                    AppSnackbarManager.showOfflineActionMessage("Stundenplan-Aktualisierung")
+                }
+                try {
+                    val minTimeJob = async { delay(400) }
+                    de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.checkForUpdates(
+                        forceRefresh = true,
+                        notifyIfChanged = false
+                    )
+                    TimetableRepository.loadFromServer()
+                    minTimeJob.await()
+                } finally {
+                    isRefreshing = false
+                }
+            }
+        }
+    }
 
     // Sheet-States
     var selectedTeacherInfo by remember { mutableStateOf<TeacherInfo?>(null) }
@@ -190,69 +217,67 @@ fun TimetableScreen(
                 }
             }
 
-            // --- 2. PULL TO REFRESH & HORIZONTAL PAGER FÜR WOCHENTAGE ---
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    coroutineScope.launch {
-                        if (!PlatformNetworkMonitor.isOnline.value) {
-                            AppSnackbarManager.showOfflineActionMessage("Stundenplan-Aktualisierung")
-                        }
-                        try {
-                            val minTimeJob = async { delay(400) }
-                            val targetDay = getInitialTimetableDay()
-                            val targetIndex = days.indexOf(targetDay).coerceAtLeast(0)
-                            if (currentRealPage != targetIndex) {
-                                pagerState.animateScrollToPage(
-                                    de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
-                                        pagerState.currentPage,
-                                        targetIndex,
-                                        days.size
-                                    )
-                                )
-                            } else {
-                                val targetScroll = calculateTargetScroll(targetIndex)
-                                tabScrollState.animateScrollTo(targetScroll)
-                            }
-                            de.kjltowinkler.msapp.data.timetable.TimetableSyncManager.checkForUpdates(
-                                forceRefresh = true,
-                                notifyIfChanged = false
-                            )
-                            TimetableRepository.loadFromServer()
-                            minTimeJob.await()
-                        } finally {
-                            isRefreshing = false
+            // --- 2. HORIZONTAL PAGER FÜR WOCHENTAGE MIT PRO-SEITE PULL-TO-REFRESH ---
+            val blockPullToRefreshWhileSwiping = remember(pagerState) {
+                object : NestedScrollConnection {
+                    override fun onPostScroll(
+                        consumed: Offset,
+                        available: Offset,
+                        source: NestedScrollSource
+                    ): Offset {
+                        return if (pagerState.isScrollInProgress && available.y > 0f) {
+                            Offset(0f, available.y)
+                        } else {
+                            Offset.Zero
                         }
                     }
-                },
-                state = pullToRefreshState,
+
+                    override suspend fun onPostFling(
+                        consumed: Velocity,
+                        available: Velocity
+                    ): Velocity {
+                        return if (pagerState.isScrollInProgress && available.y > 0f) {
+                            Velocity(0f, available.y)
+                        } else {
+                            Velocity.Zero
+                        }
+                    }
+                }
+            }
+
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                indicator = {
-                    PullToRefreshDefaults.Indicator(
-                        state = pullToRefreshState,
-                        isRefreshing = isRefreshing,
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            ) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 1
-                ) { virtualPage ->
-                    val page = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(virtualPage, days.size)
-                    val day = days[page]
-                    val lessons = TimetableRepository.getLessonsForDay(day)
+                beyondViewportPageCount = 1
+            ) { virtualPage ->
+                val page = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(virtualPage, days.size)
+                val day = days[page]
+                val lessons = TimetableRepository.getLessonsForDay(day)
+                val pagePullToRefreshState = rememberPullToRefreshState()
 
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = triggerRefresh,
+                    state = pagePullToRefreshState,
+                    modifier = Modifier.fillMaxSize(),
+                    indicator = {
+                        PullToRefreshDefaults.Indicator(
+                            state = pagePullToRefreshState,
+                            isRefreshing = isRefreshing,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                ) {
                     if (lessons.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .nestedScroll(blockPullToRefreshWhileSwiping)
+                                .verticalScroll(rememberScrollState())
                                 .padding(24.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -285,6 +310,7 @@ fun TimetableScreen(
                             state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
+                                .nestedScroll(blockPullToRefreshWhileSwiping)
                                 .padding(horizontal = 14.dp),
                             contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp)
                         ) {
@@ -313,15 +339,17 @@ fun TimetableScreen(
                                     }
                                 )
 
-                                // Trenner / Wechselpause zur nächsten Stunde
-                                if (lesson.breakLabel != null) {
-                                    TimetableBreakDivider(
-                                        breakLabel = lesson.breakLabel,
-                                        dividerColor = dividerColor,
-                                        modifier = Modifier.padding(vertical = 12.dp)
-                                    )
-                                } else if (index < lessons.lastIndex) {
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                // Trenner / Wechselpause zur nächsten Stunde (nur zwischen zwei Stunden, nie nach der letzten Stunde)
+                                if (index < lessons.lastIndex) {
+                                    if (!lesson.breakLabel.isNullOrBlank()) {
+                                        TimetableBreakDivider(
+                                            breakLabel = lesson.breakLabel,
+                                            dividerColor = dividerColor,
+                                            modifier = Modifier.padding(vertical = 12.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
                                 }
                             }
                         }

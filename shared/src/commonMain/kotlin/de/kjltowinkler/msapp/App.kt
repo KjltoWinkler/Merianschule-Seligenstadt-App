@@ -266,7 +266,13 @@ fun App() {
                     de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_navigate_to")
                     de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_highlight_id")
                     if (pendingNav == "settings" && BackendApiClient.isLoggedIn) {
-                        navController.navigate(AppRoutes.SETTINGS)
+                        if (!pendingHighlight.isNullOrBlank()) {
+                            de.kjltowinkler.msapp.util.NavigationEvents.pendingTarget =
+                                de.kjltowinkler.msapp.util.NavigationTarget("settings", pendingHighlight)
+                        }
+                        if (navController.currentDestination?.route != AppRoutes.SETTINGS) {
+                            navController.navigate(AppRoutes.SETTINGS)
+                        }
                     } else {
                         de.kjltowinkler.msapp.util.NavigationEvents.emit(pendingNav, pendingHighlight)
                     }
@@ -297,7 +303,9 @@ fun App() {
                     de.kjltowinkler.msapp.util.NavigationEvents.targetFlow.collect { target ->
                         if (target.route == "settings" && BackendApiClient.isLoggedIn) {
                             try {
-                                navController.navigate(AppRoutes.SETTINGS)
+                                if (navController.currentDestination?.route != AppRoutes.SETTINGS) {
+                                    navController.navigate(AppRoutes.SETTINGS)
+                                }
                             } catch (_: Throwable) {}
                         } else if (target.route == AppRoutes.PAIR_SMARTWATCH_PROCEED && BackendApiClient.isLoggedIn) {
                             try {
@@ -544,7 +552,13 @@ fun App() {
                                     de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_navigate_to")
                                     de.kjltowinkler.msapp.data.storage.PlatformStorage.remove("pending_highlight_id")
                                     if (pendingNav == "settings") {
-                                        navController.navigate(AppRoutes.SETTINGS)
+                                        if (!pendingHighlight.isNullOrBlank()) {
+                                            de.kjltowinkler.msapp.util.NavigationEvents.pendingTarget =
+                                                de.kjltowinkler.msapp.util.NavigationTarget("settings", pendingHighlight)
+                                        }
+                                        if (navController.currentDestination?.route != AppRoutes.SETTINGS) {
+                                            navController.navigate(AppRoutes.SETTINGS)
+                                        }
                                     } else {
                                         de.kjltowinkler.msapp.util.NavigationEvents.emit(pendingNav, pendingHighlight)
                                     }

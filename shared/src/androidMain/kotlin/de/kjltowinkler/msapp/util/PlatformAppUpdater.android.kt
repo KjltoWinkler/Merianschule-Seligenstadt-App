@@ -12,7 +12,8 @@ import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.update.AppUpdateInfo
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.get
+import io.ktor.client.engine.cio.endpoint
+import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import io.ktor.http.contentLength
@@ -116,31 +117,43 @@ actual object PlatformAppUpdater {
             val separator = if (rawUrl.contains("?")) "&" else "?"
             val fullUrl = "$rawUrl${separator}t=${System.currentTimeMillis()}"
 
-            val client = HttpClient(CIO)
-            val response = client.get(fullUrl)
-            if (!response.status.isSuccess()) {
-                throw IllegalStateException("Download fehlgeschlagen (HTTP ${response.status.value})")
-            }
-
-            val totalBytes = response.contentLength() ?: updateInfo.fileSizeBytes
-            val channel = response.bodyAsChannel()
-            val inputStream = channel.toInputStream()
-            var downloadedBytes = 0L
-
-            FileOutputStream(destinationFile).use { fos ->
-                val buffer = ByteArray(32 * 1024)
-                var read = inputStream.read(buffer)
-                while (read >= 0) {
-                    fos.write(buffer, 0, read)
-                    downloadedBytes += read
-                    val percent = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
-                    onProgress(percent, downloadedBytes, totalBytes)
-                    read = inputStream.read(buffer)
+            val client = HttpClient(CIO) {
+                engine {
+                    requestTimeout = 0L // Kein Gesamt-Timeout für große APK-Downloads
+                    endpoint {
+                        connectTimeout = 15_000L
+                        socketTimeout = 30_000L
+                    }
                 }
-                fos.flush()
             }
 
-            onProgress(100, downloadedBytes, if (totalBytes > 0) totalBytes else downloadedBytes)
+            client.use { httpClient ->
+                httpClient.prepareGet(fullUrl).execute { response ->
+                    if (!response.status.isSuccess()) {
+                        throw IllegalStateException("Download fehlgeschlagen (HTTP ${response.status.value})")
+                    }
+
+                    val totalBytes = response.contentLength() ?: updateInfo.fileSizeBytes
+                    val channel = response.bodyAsChannel()
+                    val inputStream = channel.toInputStream()
+                    var downloadedBytes = 0L
+
+                    FileOutputStream(destinationFile).use { fos ->
+                        val buffer = ByteArray(32 * 1024)
+                        var read = inputStream.read(buffer)
+                        while (read >= 0) {
+                            fos.write(buffer, 0, read)
+                            downloadedBytes += read
+                            val percent = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100) else 0
+                            onProgress(percent, downloadedBytes, totalBytes)
+                            read = inputStream.read(buffer)
+                        }
+                        fos.flush()
+                    }
+
+                    onProgress(100, downloadedBytes, if (totalBytes > 0) totalBytes else downloadedBytes)
+                }
+            }
 
             // Integritäts- und Versionsprüfung der heruntergeladenen APK-Datei
             val archiveInfo = context.packageManager.getPackageArchiveInfo(destinationFile.absolutePath, 0)

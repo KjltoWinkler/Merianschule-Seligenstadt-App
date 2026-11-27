@@ -470,20 +470,11 @@ fun MobileHomeScreen(
                                 ) {
                                     val newsList by de.kjltowinkler.msapp.data.news.NewsRepository.newsFlow.collectAsState()
 
-                                    // 1. Das Carousel ganz oben entsprechend FigmaDesigns/mobile/startseite.png
-                                    StartseiteCarousel(
-                                        newsItems = newsList,
-                                        onItemClick = { item -> selectedArticleItem = item },
-                                        modifier = Modifier.padding(top = 10.dp)
-                                    )
-
-                                    Spacer(modifier = Modifier.height(18.dp))
-
-                                    // 2. "Das ist neu" Header mit "Alle anzeigen" Button
+                                    // 1. "Das ist neu" Header mit "Alle anzeigen" Button
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 20.dp),
+                                            .padding(start = 20.dp, end = 20.dp, top = 6.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -513,7 +504,15 @@ fun MobileHomeScreen(
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    // 2. Das Carousel unter dem "Das ist neu" Header
+                                    StartseiteCarousel(
+                                        newsItems = newsList,
+                                        onItemClick = { item -> selectedArticleItem = item }
+                                    )
+
+                                    Spacer(modifier = Modifier.height(16.dp))
 
                                     val updateStatus by de.kjltowinkler.msapp.data.update.AppUpdateManager.checkStatus
                                     if (updateStatus is de.kjltowinkler.msapp.data.update.UpdateCheckStatus.UpdateAvailable) {
@@ -556,7 +555,10 @@ fun MobileHomeScreen(
                                                 Spacer(modifier = Modifier.height(12.dp))
                                                 Button(
                                                     onClick = {
-                                                        de.kjltowinkler.msapp.util.NavigationEvents.emitRoute("settings")
+                                                        de.kjltowinkler.msapp.util.NavigationEvents.emitRoute(
+                                                            "settings",
+                                                            de.kjltowinkler.msapp.util.NavigationEvents.SETTINGS_AUTO_UPDATE
+                                                        )
                                                     },
                                                     colors = ButtonDefaults.buttonColors(
                                                         containerColor = MaterialTheme.colorScheme.primary,
