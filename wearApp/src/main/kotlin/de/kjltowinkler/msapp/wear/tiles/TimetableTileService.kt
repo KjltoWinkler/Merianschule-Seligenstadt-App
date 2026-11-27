@@ -18,6 +18,7 @@ import androidx.wear.tiles.tooling.preview.Preview
 import androidx.wear.tiles.tooling.preview.TilePreviewData
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.google.common.util.concurrent.ListenableFuture
+import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import de.kjltowinkler.msapp.data.substitution.SubstitutionRepository
 import de.kjltowinkler.msapp.data.task.getCurrentTime
@@ -39,11 +40,15 @@ class TimetableTileService : TileService() {
         requestParams: RequestBuilders.TileRequest
     ): ListenableFuture<TileBuilders.Tile> {
         AppContextProvider.init(applicationContext)
-        TimetableRepository.loadFromCache()
+        BackendApiClient.loadSavedSession()
+        if (BackendApiClient.isLoggedIn) {
+            TimetableRepository.loadFromCache()
+        }
 
         val tile = buildTimetableTile(
             context = applicationContext,
-            deviceConfiguration = requestParams.deviceConfiguration
+            deviceConfiguration = requestParams.deviceConfiguration,
+            isLoggedIn = BackendApiClient.isLoggedIn
         )
         return immediateFuture(tile)
     }
@@ -55,8 +60,17 @@ class TimetableTileService : TileService() {
 
 internal fun buildTimetableTile(
     context: Context,
-    deviceConfiguration: androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
+    deviceConfiguration: androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters,
+    isLoggedIn: Boolean = true
 ): TileBuilders.Tile {
+    if (!isLoggedIn) {
+        return buildLoggedOutTile(
+            context = context,
+            deviceConfiguration = deviceConfiguration,
+            title = "Stundenplan",
+            route = "timetable"
+        )
+    }
     val today = getTodayDate()
     val now = getCurrentTime()
     val currentMinutes = now.hour * 60 + now.minute

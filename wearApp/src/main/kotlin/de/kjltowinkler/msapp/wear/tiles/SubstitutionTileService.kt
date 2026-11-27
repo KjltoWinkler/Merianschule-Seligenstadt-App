@@ -18,6 +18,7 @@ import androidx.wear.tiles.tooling.preview.Preview
 import androidx.wear.tiles.tooling.preview.TilePreviewData
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.google.common.util.concurrent.ListenableFuture
+import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.substitution.SubstitutionEntry
 import de.kjltowinkler.msapp.data.substitution.SubstitutionRepository
 import de.kjltowinkler.msapp.data.timetable.TimetableRepository
@@ -33,11 +34,17 @@ class SubstitutionTileService : TileService() {
         requestParams: RequestBuilders.TileRequest
     ): ListenableFuture<TileBuilders.Tile> {
         AppContextProvider.init(applicationContext)
-        val entries = SubstitutionRepository.getInitialOrCachedEntries()
+        BackendApiClient.loadSavedSession()
+        val entries = if (BackendApiClient.isLoggedIn) {
+            SubstitutionRepository.getInitialOrCachedEntries()
+        } else {
+            emptyList()
+        }
         val tile = buildSubstitutionTile(
             context = applicationContext,
             deviceConfiguration = requestParams.deviceConfiguration,
-            entries = entries
+            entries = entries,
+            isLoggedIn = BackendApiClient.isLoggedIn
         )
         return immediateFuture(tile)
     }
@@ -50,8 +57,17 @@ class SubstitutionTileService : TileService() {
 internal fun buildSubstitutionTile(
     context: Context,
     deviceConfiguration: androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters,
-    entries: List<SubstitutionEntry>
+    entries: List<SubstitutionEntry>,
+    isLoggedIn: Boolean = true
 ): TileBuilders.Tile {
+    if (!isLoggedIn) {
+        return buildLoggedOutTile(
+            context = context,
+            deviceConfiguration = deviceConfiguration,
+            title = "Vertretungsplan",
+            route = "substitution"
+        )
+    }
     val userClass = TimetableRepository.getEffectiveUserClass()
     val normalizedClass = userClass.trim().lowercase().removePrefix("0")
     val myEntries = entries.filter { entry ->

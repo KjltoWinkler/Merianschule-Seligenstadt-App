@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
+import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.Card
 import androidx.wear.compose.material3.CardDefaults
 import androidx.wear.compose.material3.FilledTonalButton
@@ -73,7 +74,8 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun WearSettingsScreen(
-    onPairPhoneClick: () -> Unit = {}
+    onPairPhoneClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     val settings = SettingsRepository.settings
@@ -105,6 +107,7 @@ fun WearSettingsScreen(
         onDelayWarningsChange = { SettingsRepository.updateDelayWarnings(it) },
         onDynamicColorChange = { SettingsRepository.updateDynamicColor(it) },
         onPairPhoneClick = onPairPhoneClick,
+        onLogoutClick = onLogoutClick,
         onSyncNowClick = {
             if (!isSyncing) {
                 isSyncing = true
@@ -146,10 +149,12 @@ fun WearSettingsScreenContent(
     onDelayWarningsChange: (Boolean) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onPairPhoneClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
     onSyncNowClick: () -> Unit
 ) {
     val scrollState = rememberTransformingLazyColumnState()
     val transformationSpec = rememberTransformationSpec()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     ScreenScaffold(
         scrollState = scrollState
@@ -420,6 +425,38 @@ fun WearSettingsScreenContent(
                 )
             }
 
+            if (isLoggedIn) {
+                item(key = "btn_logout") {
+                    FilledTonalButton(
+                        onClick = { showLogoutDialog = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_logout),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = "Abmelden",
+                                fontFamily = GoogleSansRounded,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        transformation = SurfaceTransformation(transformationSpec),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .transformedHeight(this, transformationSpec)
+                    )
+                }
+            }
+
             // Gruppe: App-Info
             item(key = "sub_about") {
                 WearSettingsSubheader(
@@ -464,6 +501,15 @@ fun WearSettingsScreenContent(
             }
         }
     }
+
+    WearLogoutConfirmDialog(
+        visible = showLogoutDialog,
+        onDismiss = { showLogoutDialog = false },
+        onConfirm = {
+            showLogoutDialog = false
+            onLogoutClick()
+        }
+    )
 }
 
 @Composable

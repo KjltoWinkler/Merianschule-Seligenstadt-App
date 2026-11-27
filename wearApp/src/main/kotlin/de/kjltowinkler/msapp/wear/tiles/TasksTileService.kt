@@ -18,6 +18,7 @@ import androidx.wear.tiles.tooling.preview.Preview
 import androidx.wear.tiles.tooling.preview.TilePreviewData
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.google.common.util.concurrent.ListenableFuture
+import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TasksRepository
 import de.kjltowinkler.msapp.util.AppContextProvider
@@ -32,14 +33,20 @@ class TasksTileService : TileService() {
         requestParams: RequestBuilders.TileRequest
     ): ListenableFuture<TileBuilders.Tile> {
         AppContextProvider.init(applicationContext)
-        val openTasks = TasksRepository.tasks
-            .filter { !it.isSchoolTask && !it.isCompleted }
-            .sortedByDescending { it.isStarred }
+        BackendApiClient.loadSavedSession()
+        val openTasks = if (BackendApiClient.isLoggedIn) {
+            TasksRepository.tasks
+                .filter { !it.isSchoolTask && !it.isCompleted }
+                .sortedByDescending { it.isStarred }
+        } else {
+            emptyList()
+        }
 
         val tile = buildTasksTile(
             context = applicationContext,
             deviceConfiguration = requestParams.deviceConfiguration,
-            openTasks = openTasks
+            openTasks = openTasks,
+            isLoggedIn = BackendApiClient.isLoggedIn
         )
         return immediateFuture(tile)
     }
@@ -52,8 +59,17 @@ class TasksTileService : TileService() {
 internal fun buildTasksTile(
     context: Context,
     deviceConfiguration: androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters,
-    openTasks: List<TaskItem>
+    openTasks: List<TaskItem>,
+    isLoggedIn: Boolean = true
 ): TileBuilders.Tile {
+    if (!isLoggedIn) {
+        return buildLoggedOutTile(
+            context = context,
+            deviceConfiguration = deviceConfiguration,
+            title = "Aufgaben",
+            route = "tasks"
+        )
+    }
     val openTasksRoute = launchRouteClickable(context, "tasks", "open_tasks")
     val createTaskRoute = launchRouteClickable(context, "create_task/my_tasks", "create_task")
 

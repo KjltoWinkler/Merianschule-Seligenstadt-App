@@ -16,6 +16,8 @@ import kotlinx.serialization.json.Json
  */
 object TimetableRepository {
 
+    private val remoteTeacherDirectory = mutableStateMapOf<String, TeacherInfo>()
+
     // Lehrer-Verzeichnis für Detailinformationen bei Klick auf das Lehrer-Kürzel
     val teacherDirectory: Map<String, TeacherInfo> = mapOf(
         "Rd" to TeacherInfo(
@@ -118,10 +120,10 @@ object TimetableRepository {
         ),
         "Sn" to TeacherInfo(
             code = "Sn",
-            fullName = "Hr. Schneider",
-            email = "schneider@merianschule-seligenstadt.de",
-            subjects = listOf("Physik", "Mathematik"),
-            officeHours = "Fr. 12:15 - 13:00 Uhr"
+            fullName = "Christina Schneider",
+            email = "Christina.Schneider@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
         ),
         "Web" to TeacherInfo(
             code = "Web",
@@ -143,6 +145,90 @@ object TimetableRepository {
             email = "krause@merianschule-seligenstadt.de",
             subjects = listOf("Kunst", "Musik"),
             officeHours = "Fr. 10:20 - 11:00 Uhr"
+        ),
+        "Ble" to TeacherInfo(
+            code = "Ble",
+            fullName = "Dr. Martin Bleuel",
+            email = "Martin.Bleuel@mssof.onmicrosoft.com",
+            subjects = listOf("Chemie", "Physik"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Sna" to TeacherInfo(
+            code = "Sna",
+            fullName = "Emina Schnall",
+            email = "Emina.Schnall@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Cag" to TeacherInfo(
+            code = "Cag",
+            fullName = "Hanna-Sophia Cag-Haffke",
+            email = "Hanna-Sophia.Cag-Haffke@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Löh" to TeacherInfo(
+            code = "Löh",
+            fullName = "Michael Peter Löhr",
+            email = "Michael.Loehr@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Neu" to TeacherInfo(
+            code = "Neu",
+            fullName = "Peter Neuner",
+            email = "Peter.Neuner@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Sel" to TeacherInfo(
+            code = "Sel",
+            fullName = "Bettina Selimi",
+            email = "Bettina.Selimi@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Tör" to TeacherInfo(
+            code = "Tör",
+            fullName = "Katharina Andrea Törner",
+            email = "Katharina.Toerner@mssof.onmicrosoft.com",
+            subjects = listOf("Fachunterricht"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Wag" to TeacherInfo(
+            code = "Wag",
+            fullName = "Hauke Wagner",
+            email = "rektor@merianschule-seligenstadt.de",
+            subjects = listOf("Deutsch", "Biologie"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Jan" to TeacherInfo(
+            code = "Jan",
+            fullName = "Katja Jansen",
+            email = "Katja.Jansen@mssof.onmicrosoft.com",
+            subjects = listOf("Deutsch", "Englisch"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Hen" to TeacherInfo(
+            code = "Hen",
+            fullName = "Frau Henn",
+            email = "henn@merianschule-seligenstadt.de",
+            subjects = listOf("Schulsozialarbeit"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Vra" to TeacherInfo(
+            code = "Vra",
+            fullName = "Frau Vragolic",
+            email = "vragolic@merianschule-seligenstadt.de",
+            subjects = listOf("Schulsozialarbeit"),
+            officeHours = "Nach Vereinbarung"
+        ),
+        "Schä" to TeacherInfo(
+            code = "Schä",
+            fullName = "Herr Schäfer",
+            email = "schaefer@merianschule-seligenstadt.de",
+            subjects = listOf("UBUS-Fachkraft"),
+            officeHours = "Nach Vereinbarung"
         )
     )
 
@@ -161,10 +247,22 @@ object TimetableRepository {
         "Ky" to "Hr. Kaya",
         "Des" to "Fr. Desch",
         "Me" to "Fr. Meyer",
-        "Sn" to "Hr. Schneider",
+        "Sn" to "Fr. Schneider",
         "Web" to "Hr. Weber",
         "Wb" to "Hr. Weber",
         "Kr" to "Fr. Krause",
+        "Ble" to "Hr. Dr. Bleuel",
+        "Sna" to "Fr. Schnall",
+        "Cag" to "Fr. Cag-Haffke",
+        "Löh" to "Hr. Löhr",
+        "Neu" to "Hr. Neuner",
+        "Sel" to "Fr. Selimi",
+        "Tör" to "Fr. Törner",
+        "Wag" to "Hr. Wagner",
+        "Jan" to "Fr. Jansen",
+        "Hen" to "Fr. Henn",
+        "Vra" to "Fr. Vragolic",
+        "Schä" to "Hr. Schäfer",
         // Zusätzliche Nachnamen-Aliase
         "Ridel" to "Fr. Ridel",
         "Riedel" to "Fr. Ridel",
@@ -751,10 +849,18 @@ object TimetableRepository {
     }
 
     /**
-     * Sucht TeacherInfo anhand des Kürzels.
+     * Sucht TeacherInfo anhand des Kürzels (bevorzugt Server-Daten inkl. Profilbild).
      */
     fun getTeacherInfo(code: String): TeacherInfo {
         val trimmed = code.trim()
+        val remoteDirect = remoteTeacherDirectory[trimmed]
+        if (remoteDirect != null) return remoteDirect
+
+        val remoteMatch = remoteTeacherDirectory.entries.firstOrNull {
+            it.key.equals(trimmed, ignoreCase = true)
+        }?.value
+        if (remoteMatch != null) return remoteMatch
+
         val direct = teacherDirectory[trimmed]
         if (direct != null) return direct
 
@@ -872,6 +978,19 @@ object TimetableRepository {
     }
 
     /**
+     * Lädt das Lehrerverzeichnis (inkl. Profilbild-URLs) vom Server.
+     */
+    suspend fun refreshTeacherDirectory() {
+        try {
+            val remote = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTeacherDirectory().getOrNull()
+            if (remote != null && remote.isNotEmpty()) {
+                remoteTeacherDirectory.clear()
+                remoteTeacherDirectory.putAll(remote)
+            }
+        } catch (_: Throwable) {}
+    }
+
+    /**
      * Lädt den aktuellen Stundenplan vom Backend-Server ab.
      */
     suspend fun loadFromServer(className: String = "09AR"): Boolean {
@@ -881,6 +1000,8 @@ object TimetableRepository {
         if (!isLoaded || timetableMap.isEmpty()) {
             loadFromCache(userClass)
         }
+
+        refreshTeacherDirectory()
 
         return try {
             var res = de.kjltowinkler.msapp.data.backend.BackendApiClient.fetchTimetable(userClass)
@@ -1006,5 +1127,6 @@ data class TeacherInfo(
     val fullName: String,
     val email: String,
     val subjects: List<String>,
-    val officeHours: String
+    val officeHours: String,
+    val avatarUrl: String? = null
 )

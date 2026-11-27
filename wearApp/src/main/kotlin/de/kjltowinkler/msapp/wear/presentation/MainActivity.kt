@@ -15,12 +15,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.TimeText
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
+import de.kjltowinkler.msapp.data.courses.CourseRepository
+import de.kjltowinkler.msapp.data.schulportal.SchulportalClient
 import de.kjltowinkler.msapp.data.settings.SettingsRepository
 import de.kjltowinkler.msapp.data.task.TasksRepository
 import de.kjltowinkler.msapp.data.wear.PlatformWearPairing
@@ -37,6 +40,7 @@ import de.kjltowinkler.msapp.wear.presentation.screens.WearSubstitutionScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.WearTasksScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.WearTimetableScreen
 import de.kjltowinkler.msapp.wear.presentation.theme.WearAppTheme
+import de.kjltowinkler.msapp.wear.tiles.requestAllTileUpdates
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -50,7 +54,7 @@ enum class WearAppState {
 }
 
 class MainActivity : ComponentActivity() {
-    private var currentScreenState = mutableStateOf(WearAppState.HOME)
+    private var currentScreenState = mutableStateOf(WearAppState.PROMPT)
     private var pendingRoute = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +64,10 @@ class MainActivity : ComponentActivity() {
         BackendApiClient.loadSavedSession()
         PlatformWearPairing.startListening()
         if (BackendApiClient.isLoggedIn) {
+            currentScreenState.value = WearAppState.HOME
             TasksRepository.startRealtimeSync()
+        } else {
+            currentScreenState.value = WearAppState.PROMPT
         }
         updateScreenFromIntent(intent)
         setContent {
@@ -83,12 +90,21 @@ class MainActivity : ComponentActivity() {
     private fun updateScreenFromIntent(intent: android.content.Intent?) {
         val route = intent?.getStringExtra("route")
         if (!route.isNullOrBlank()) {
-            currentScreenState.value = WearAppState.HOME
+            currentScreenState.value = if (BackendApiClient.isLoggedIn) {
+                WearAppState.HOME
+            } else {
+                WearAppState.PROMPT
+            }
             pendingRoute.value = route
         }
         val screenName = intent?.getStringExtra("screen") ?: return
         try {
-            currentScreenState.value = WearAppState.valueOf(screenName)
+            val target = WearAppState.valueOf(screenName)
+            currentScreenState.value = if (target == WearAppState.HOME && !BackendApiClient.isLoggedIn) {
+                WearAppState.PROMPT
+            } else {
+                target
+            }
         } catch (_: Exception) {}
     }
 }
@@ -101,6 +117,7 @@ fun WearApp(
     onRouteConsumed: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Eingehende Session vom Smartphone empfangen und automatisch speichern
     LaunchedEffect(Unit) {
@@ -109,6 +126,7 @@ fun WearApp(
             TasksRepository.startRealtimeSync()
             launch { TasksRepository.reloadAndSync() }
             PlatformWearPairing.sendPairAckToPhone()
+            requestAllTileUpdates(context)
             onStateChange(WearAppState.SUCCESS)
         }
     }
@@ -127,6 +145,11 @@ fun WearApp(
             WearAppState.SUCCESS -> {
                 delay(2000)
                 onStateChange(WearAppState.HOME)
+            }
+            WearAppState.HOME -> {
+                if (!BackendApiClient.isLoggedIn) {
+                    onStateChange(WearAppState.PROMPT)
+                }
             }
             else -> Unit
         }
@@ -233,6 +256,10 @@ fun WearApp(
                                 },
                                 onAddAccountClick = {
                                     onStateChange(WearAppState.PROMPT)
+                                },
+                                onLogoutClick = {
+                                    performWearLogout(context)
+                                    onStateChange(WearAppState.PROMPT)
                                 }
                             )
                         }
@@ -245,6 +272,10 @@ fun WearApp(
                         composable("settings") {
                             WearSettingsScreen(
                                 onPairPhoneClick = {
+                                    onStateChange(WearAppState.PROMPT)
+                                },
+                                onLogoutClick = {
+                                    performWearLogout(context)
                                     onStateChange(WearAppState.PROMPT)
                                 }
                             )
@@ -273,4 +304,12 @@ fun WearApp(
             }
         }
     }
+}
+
+private fun performWearLogout(context: android.content.Context) {
+    BackendApiClient.logout()
+    TasksRepository.clearAndReset()
+    SchulportalClient.clearCredentials()
+    CourseRepository.setCourses(emptyList())
+    requestAllTileUpdates(context)
 }

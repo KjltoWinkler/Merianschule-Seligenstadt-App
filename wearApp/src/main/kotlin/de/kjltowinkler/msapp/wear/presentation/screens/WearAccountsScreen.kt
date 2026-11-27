@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
+import androidx.wear.compose.material3.AlertDialog
+import androidx.wear.compose.material3.AlertDialogDefaults
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.Icon
@@ -60,7 +65,8 @@ import de.kjltowinkler.msapp.wear.presentation.theme.WearAppTheme
 @Composable
 fun WearAccountsScreen(
     onActiveAccountClick: () -> Unit = {},
-    onAddAccountClick: () -> Unit = {}
+    onAddAccountClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
     val currentUser = BackendApiClient.currentUser
     val isLoggedIn = BackendApiClient.isLoggedIn && currentUser != null
@@ -80,7 +86,8 @@ fun WearAccountsScreen(
         avatarUrl = avatarUrl,
         avatarColorHex = avatarColorHex,
         onActiveAccountClick = onActiveAccountClick,
-        onAddAccountClick = onAddAccountClick
+        onAddAccountClick = onAddAccountClick,
+        onLogoutClick = onLogoutClick
     )
 }
 
@@ -92,10 +99,12 @@ fun WearAccountsScreenContent(
     avatarUrl: String?,
     avatarColorHex: Long,
     onActiveAccountClick: () -> Unit,
-    onAddAccountClick: () -> Unit
+    onAddAccountClick: () -> Unit,
+    onLogoutClick: () -> Unit = {}
 ) {
     val scrollState = rememberTransformingLazyColumnState()
     val transformationSpec = rememberTransformationSpec()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     ScreenScaffold(
         scrollState = scrollState
@@ -282,11 +291,101 @@ fun WearAccountsScreenContent(
                 }
             }
 
+            if (isLoggedIn) {
+                item(key = "logout_button") {
+                    FilledTonalButton(
+                        onClick = { showLogoutDialog = true },
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        transformation = SurfaceTransformation(transformationSpec),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 56.dp)
+                            .transformedHeight(this, transformationSpec)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_logout),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Abmelden",
+                                fontFamily = GoogleSansRounded,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
             item(key = "bottom_spacer") {
                 Spacer(modifier = Modifier.height(14.dp))
             }
         }
     }
+
+    WearLogoutConfirmDialog(
+        visible = showLogoutDialog,
+        onDismiss = { showLogoutDialog = false },
+        onConfirm = {
+            showLogoutDialog = false
+            onLogoutClick()
+        }
+    )
+}
+
+@Composable
+internal fun WearLogoutConfirmDialog(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        visible = visible,
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_logout),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = {
+            Text(
+                text = "Abmelden?",
+                fontFamily = GoogleSansRounded,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                text = "Dein Konto wird auf dieser Uhr abgemeldet.",
+                fontFamily = GoogleSansRounded,
+                textAlign = TextAlign.Center
+            )
+        },
+        confirmButton = {
+            AlertDialogDefaults.ConfirmButton(onClick = onConfirm)
+        },
+        dismissButton = {
+            AlertDialogDefaults.DismissButton(onClick = onDismiss)
+        }
+    )
 }
 
 @WearPreviewDevices

@@ -1,5 +1,6 @@
 package de.kjltowinkler.msapp.ui.timetable
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.kjltowinkler.msapp.data.timetable.TeacherInfo
 import de.kjltowinkler.msapp.theme.getQuicksandFontFamily
+import de.kjltowinkler.msapp.ui.account.rememberAvatarBitmap
 import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import de.kjltowinkler.msapp.ui.components.handCursor
@@ -142,6 +145,7 @@ fun TeacherDetailBottomSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    val teacherBitmap = rememberAvatarBitmap(teacher.avatarUrl)
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -149,13 +153,22 @@ fun TeacherDetailBottomSheet(
                             .background(avatarContainerColor),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = teacher.code.take(2).uppercase(),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = avatarTextColor
+                        if (teacherBitmap != null) {
+                            Image(
+                                bitmap = teacherBitmap,
+                                contentDescription = "Profilbild von ${teacher.fullName}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
-                        )
+                        } else {
+                            Text(
+                                text = teacher.code.take(2).uppercase(),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = avatarTextColor
+                                )
+                            )
+                        }
                     }
 
                     Column {

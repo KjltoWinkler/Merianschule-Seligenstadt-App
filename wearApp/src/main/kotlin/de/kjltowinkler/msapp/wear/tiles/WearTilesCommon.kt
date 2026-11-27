@@ -2,14 +2,22 @@ package de.kjltowinkler.msapp.wear.tiles
 
 import android.content.Context
 import androidx.wear.protolayout.ActionBuilders
+import androidx.wear.protolayout.DeviceParametersBuilders
+import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
 import androidx.wear.protolayout.material3.CardColors
 import androidx.wear.protolayout.material3.MaterialScope
 import androidx.wear.protolayout.material3.Typography
+import androidx.wear.protolayout.material3.materialScope
+import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
+import androidx.wear.protolayout.material3.textDataCard
+import androidx.wear.protolayout.material3.textEdgeButton
 import androidx.wear.protolayout.types.layoutString
+import androidx.wear.tiles.TileBuilders
+import androidx.wear.tiles.TileService
 import com.google.common.util.concurrent.ListenableFuture
 import de.kjltowinkler.msapp.wear.presentation.MainActivity
 import java.util.concurrent.Executor
@@ -95,3 +103,70 @@ internal fun MaterialScope.tileTitleText(title: String) = text(
     color = colorScheme.onSurface,
     maxLines = 1
 )
+
+/**
+ * Gemeinsames Tile-Layout für alle Kacheln, wenn kein Konto angemeldet/gekoppelt ist.
+ */
+internal fun buildLoggedOutTile(
+    context: Context,
+    deviceConfiguration: DeviceParametersBuilders.DeviceParameters,
+    title: String,
+    route: String
+): TileBuilders.Tile {
+    val openLogin = launchRouteClickable(context, route, "login_$route")
+
+    val layout = materialScope(
+        context = context,
+        deviceConfiguration = deviceConfiguration
+    ) {
+        primaryLayout(
+            titleSlot = { tileTitleText(title) },
+            mainSlot = {
+                textDataCard(
+                    onClick = openLogin,
+                    width = expand(),
+                    height = expand(),
+                    title = {
+                        text(
+                            text = "Nicht angemeldet".layoutString,
+                            typography = Typography.TITLE_MEDIUM,
+                            maxLines = 1
+                        )
+                    },
+                    content = {
+                        text(
+                            text = "Mit Smartphone koppeln, um Daten zu sehen".layoutString,
+                            typography = Typography.BODY_SMALL,
+                            maxLines = 2
+                        )
+                    },
+                    colors = tonalCardColors()
+                )
+            },
+            bottomSlot = {
+                textEdgeButton(
+                    onClick = openLogin,
+                    labelContent = {
+                        text("Anmelden".layoutString)
+                    }
+                )
+            }
+        )
+    }
+
+    return TileBuilders.Tile.Builder()
+        .setResourcesVersion(TILE_RESOURCES_VERSION)
+        .setFreshnessIntervalMillis(15 * 60 * 1000L)
+        .setTileTimeline(singleEntryTimeline(layout))
+        .build()
+}
+
+/**
+ * Fordert für alle Wear-OS-Tiles ein sofortiges Update an (z. B. nach Login/Logout).
+ */
+internal fun requestAllTileUpdates(context: Context) {
+    val updater = TileService.getUpdater(context)
+    updater.requestUpdate(TimetableTileService::class.java)
+    updater.requestUpdate(SubstitutionTileService::class.java)
+    updater.requestUpdate(TasksTileService::class.java)
+}

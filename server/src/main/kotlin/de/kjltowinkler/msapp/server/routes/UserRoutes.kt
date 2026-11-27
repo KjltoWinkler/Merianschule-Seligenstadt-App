@@ -37,7 +37,7 @@ import java.io.File
 
 private val json = Json { ignoreUnknownKeys = true }
 
-private fun detectImageExtension(bytes: ByteArray): String? {
+internal fun detectImageExtension(bytes: ByteArray): String? {
     if (bytes.size < 8) return null
     // PNG: 89 50 4E 47 0D 0A 1A 0A
     if (bytes[0] == 0x89.toByte() &&

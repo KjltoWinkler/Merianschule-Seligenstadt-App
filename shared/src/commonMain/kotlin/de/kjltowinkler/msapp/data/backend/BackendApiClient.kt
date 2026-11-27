@@ -727,6 +727,20 @@ object BackendApiClient {
         }
     }
 
+    suspend fun fetchTeacherDirectory(): Result<Map<String, de.kjltowinkler.msapp.data.timetable.TeacherInfo>> = runCatching {
+        val now = de.kjltowinkler.msapp.data.task.getCurrentEpochMillis()
+        val response = client.get("$serverUrl/api/timetable/teachers?_t=$now") {
+            header(io.ktor.http.HttpHeaders.CacheControl, "no-cache, no-store, must-revalidate")
+            header(io.ktor.http.HttpHeaders.Pragma, "no-cache")
+        }
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            json.decodeFromString<Map<String, de.kjltowinkler.msapp.data.timetable.TeacherInfo>>(body)
+        } else {
+            error("Lehrerverzeichnis konnte nicht geladen werden: $body")
+        }
+    }
+
     // ==========================================
     // ADMIN ENDPOINTS
     // ==========================================

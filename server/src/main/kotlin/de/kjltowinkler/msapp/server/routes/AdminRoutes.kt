@@ -16,11 +16,18 @@ import de.kjltowinkler.msapp.server.repository.UserRepository
 import de.kjltowinkler.msapp.server.security.JwtService
 import de.kjltowinkler.msapp.server.security.PasswordHasher
 import de.kjltowinkler.msapp.server.websocket.TaskWebSocketManager
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.request.contentType
 import io.ktor.server.request.header
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveChannel
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.receiveText
+import io.ktor.utils.io.toByteArray
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
@@ -480,6 +487,97 @@ fun Route.adminRoutes() {
                         success = false,
                         message = "KI-Scan fehlgeschlagen: ${e.message}"
                     ))
+                }
+            }
+        }
+
+        // Teacher Avatars
+        route("/teachers") {
+            post("/{code}/avatar") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+                val code = call.parameters["code"]?.trim()
+                if (code.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Lehrerkürzel fehlt."))
+                    return@post
+                }
+
+                val maxSizeBytes = 5 * 1024 * 1024 // 5 MB
+                val contentType = call.request.contentType()
+
+                val (bytes, detectedExt) = if (contentType.match(ContentType.MultiPart.FormData)) {
+                    var uploadedBytes: ByteArray? = null
+                    val multipart = call.receiveMultipart(formFieldLimit = maxSizeBytes.toLong() + 64 * 1024)
+                    multipart.forEachPart { part ->
+                        if (part is PartData.FileItem && uploadedBytes == null) {
+                            uploadedBytes = part.provider().toByteArray()
+                        }
+                        part.dispose()
+                    }
+                    val nonNullBytes = uploadedBytes
+                    if (nonNullBytes == null || nonNullBytes.isEmpty()) {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Keine Bilddatei empfangen."))
+                        return@post
+                    }
+                    val detected = detectImageExtension(nonNullBytes)
+                    if (detected == null) {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültiges Bildformat. Erlaubt sind JPG, PNG und WebP."))
+                        return@post
+                    }
+                    nonNullBytes to detected
+                } else {
+                    val rawBytes = call.receiveChannel().toByteArray()
+                    if (rawBytes.isEmpty()) {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Keine Bilddaten empfangen."))
+                        return@post
+                    }
+                    val detected = detectImageExtension(rawBytes)
+                    if (detected == null) {
+                        call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Ungültiges Bildformat. Erlaubt sind JPG, PNG und WebP."))
+                        return@post
+                    }
+                    rawBytes to detected
+                }
+
+                if (bytes.size > maxSizeBytes) {
+                    call.respond(HttpStatusCode.PayloadTooLarge, SimpleApiResponse(false, "Das Profilbild darf maximal 5 MB groß sein."))
+                    return@post
+                }
+
+                try {
+                    val avatarUrl = TimetableServerRepository.saveTeacherAvatar(code, detectedExt, bytes)
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, avatarUrl))
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Fehler beim Speichern: ${e.message}"))
+                }
+            }
+
+            delete("/{code}/avatar") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@delete
+                }
+                val code = call.parameters["code"]?.trim()
+                if (code.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, SimpleApiResponse(false, "Lehrerkürzel fehlt."))
+                    return@delete
+                }
+                TimetableServerRepository.deleteTeacherAvatar(code)
+                call.respond(HttpStatusCode.OK, SimpleApiResponse(true, "Lehrer-Profilbild entfernt."))
+            }
+
+            post("/sync-website-avatars") {
+                if (!verifyAdminAccess(call)) {
+                    call.respond(HttpStatusCode.Unauthorized, SimpleApiResponse(false, "Admin-Authentifizierung erforderlich."))
+                    return@post
+                }
+                try {
+                    val result = TimetableServerRepository.syncAvatarsFromSchoolWebsite()
+                    call.respond(HttpStatusCode.OK, SimpleApiResponse(true, result))
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.InternalServerError, SimpleApiResponse(false, "Import fehlgeschlagen: ${e.message}"))
                 }
             }
         }

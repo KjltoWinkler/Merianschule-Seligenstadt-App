@@ -1833,6 +1833,31 @@
         </div>
       </m-card>
 
+      <!-- Teacher Avatars Card -->
+      <m-card variant="elevated" class="m3-card" style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="font-size: 18px; display: flex; align-items: center; gap: 8px;">
+              <span class="material-symbols-outlined">badge</span> Lehrer-Profilbilder
+            </h3>
+            <p style="font-size: 13px; color: var(--mtrl-sys-color-on-surface-variant); margin-top: 4px;">
+              Lege Profilbilder für Lehrkräfte fest. Sie werden in der App im Lehrer-Detail-Sheet angezeigt.
+            </p>
+          </div>
+          <div class="toolbar-actions">
+            <m-button variant="tonal" onclick="syncTeacherAvatarsFromWebsite()" icon='<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>'>
+              Von Schulwebsite importieren
+            </m-button>
+            <m-button variant="outlined" onclick="loadTeacherAvatars()" icon='<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 -960 960 960" fill="currentColor" aria-hidden="true"><path d="M480-160q-133 0-226.5-93.5T160-480q0-133 93.5-226.5T480-800q85 0 149 34.5T740-671v-129h60v254H546v-60h168q-38-60-97-97t-137-37q-109 0-184.5 75.5T220-480q0 109 75.5 184.5T480-220q83 0 152-47.5T728-393h62q-29 105-115 169t-195 64Z"/></svg>'>
+              Aktualisieren
+            </m-button>
+          </div>
+        </div>
+        <div id="teacherAvatarsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px;">
+          <div style="padding: 16px; color: var(--mtrl-sys-color-on-surface-variant);">Lade Lehrerverzeichnis...</div>
+        </div>
+      </m-card>
+
     </section>
 
     <!-- Tab 5: Schulaufgaben -->
@@ -2576,6 +2601,7 @@
         if (val === 'timetable') {
           loadGeminiKeyStatus();
           loadTimetableClasses();
+          loadTeacherAvatars();
         }
         if (val === 'schoolTasks') {
           loadSchoolTasks();
@@ -3741,6 +3767,103 @@
         renderTimetableResult(dto);
         document.getElementById('scanClassName').value = dto.className;
         document.getElementById('scanValidFor').value = dto.validFor || '';
+      } catch (err) {
+        showToast('Fehler: ' + err.message, true);
+      }
+    }
+
+    async function loadTeacherAvatars() {
+      const grid = document.getElementById('teacherAvatarsGrid');
+      if (!grid) return;
+      try {
+        const res = await fetch('/api/timetable/teachers');
+        if (!res.ok) throw new Error('Lehrerverzeichnis konnte nicht geladen werden.');
+        const directory = await res.json();
+        const teachers = Object.values(directory).sort((a, b) => a.fullName.localeCompare(b.fullName));
+        if (teachers.length === 0) {
+          grid.innerHTML = '<div style="padding: 16px; color: var(--mtrl-sys-color-on-surface-variant);">Keine Lehrkräfte vorhanden.</div>';
+          return;
+        }
+        grid.innerHTML = teachers.map(t => {
+          const safeCode = escapeHtml(t.code);
+          const safeName = escapeHtml(t.fullName);
+          const safeSubjects = escapeHtml((t.subjects || []).join(', '));
+          const avatarHtml = t.avatarUrl
+            ? `<img src="${escapeHtml(t.avatarUrl)}" alt="${safeName}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--mtrl-sys-color-outline-variant);" />`
+            : `<div style="width: 48px; height: 48px; border-radius: 50%; background: var(--mtrl-sys-color-secondary-container); color: var(--mtrl-sys-color-on-secondary-container); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0;">${escapeHtml(t.code.slice(0, 2).toUpperCase())}</div>`;
+          const deleteBtn = t.avatarUrl
+            ? `<m-button variant="text" onclick="deleteTeacherAvatar('${safeCode}')" style="--mtrl-comp-button-text-label-text-color: var(--mtrl-sys-color-error);">Entfernen</m-button>`
+            : '';
+          return `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: var(--mtrl-sys-color-surface-container); border: 1px solid var(--mtrl-sys-color-outline-variant);">
+              ${avatarHtml}
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeName}</div>
+                <div style="font-size: 12px; color: var(--mtrl-sys-color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeCode}${safeSubjects ? ' • ' + safeSubjects : ''}</div>
+                <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                  <label style="cursor: pointer;">
+                    <input type="file" accept="image/png,image/jpeg,image/webp" style="display: none;" onchange="uploadTeacherAvatar('${safeCode}', this)" />
+                    <span style="display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 999px; background: var(--mtrl-sys-color-primary-container); color: var(--mtrl-sys-color-on-primary-container); font-size: 12px; font-weight: 600;">
+                      ${t.avatarUrl ? 'Ändern' : 'Bild wählen'}
+                    </span>
+                  </label>
+                  ${deleteBtn}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        grid.innerHTML = '<div style="padding: 16px; color: var(--mtrl-sys-color-error);">Fehler: ' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    async function uploadTeacherAvatar(code, inputEl) {
+      const file = inputEl.files && inputEl.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('avatar', file);
+      try {
+        const res = await fetch('/api/admin/teachers/' + encodeURIComponent(code) + '/avatar', {
+          method: 'POST',
+          headers: { 'X-Admin-Key': adminKey || '' },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Upload fehlgeschlagen.');
+        showToast('Profilbild für ' + code + ' gespeichert.');
+        loadTeacherAvatars();
+      } catch (err) {
+        showToast('Fehler: ' + err.message, true);
+      } finally {
+        inputEl.value = '';
+      }
+    }
+
+    async function deleteTeacherAvatar(code) {
+      try {
+        const res = await apiFetch('/api/admin/teachers/' + encodeURIComponent(code) + '/avatar', {
+          method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Löschen fehlgeschlagen.');
+        showToast('Profilbild für ' + code + ' entfernt.');
+        loadTeacherAvatars();
+      } catch (err) {
+        showToast('Fehler: ' + err.message, true);
+      }
+    }
+
+    async function syncTeacherAvatarsFromWebsite() {
+      showToast('Lade Porträts von der Schulwebsite...');
+      try {
+        const res = await apiFetch('/api/admin/teachers/sync-website-avatars', {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Import fehlgeschlagen.');
+        showToast(data.message || 'Import abgeschlossen.');
+        loadTeacherAvatars();
       } catch (err) {
         showToast('Fehler: ' + err.message, true);
       }

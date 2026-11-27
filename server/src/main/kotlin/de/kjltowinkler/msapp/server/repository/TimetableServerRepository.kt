@@ -207,8 +207,145 @@ object TimetableServerRepository {
         deleted
     }
 
+    fun normalizeTeacherAvatarKey(code: String): String {
+        return code.trim()
+            .lowercase()
+            .replace("ä", "ae")
+            .replace("ö", "oe")
+            .replace("ü", "ue")
+            .replace("ß", "ss")
+            .replace(Regex("[^a-z0-9_-]"), "_")
+    }
+
+    fun getBundledTeacherAvatar(code: String): Pair<ByteArray, String>? {
+        val safeCode = normalizeTeacherAvatarKey(code)
+        if (safeCode.isBlank()) return null
+        for (ext in listOf("png", "jpg", "jpeg", "webp")) {
+            val stream = TimetableServerRepository::class.java
+                .getResourceAsStream("/teacher_avatars/teacher_${safeCode}.$ext")
+            if (stream != null) {
+                return stream.use { it.readBytes() } to ext
+            }
+        }
+        return null
+    }
+
+    fun getTeacherAvatarFile(code: String): File? {
+        val safeCode = normalizeTeacherAvatarKey(code)
+        if (safeCode.isBlank()) return null
+        val avatarsDir = File(ServerConfig.avatarsDir)
+        if (!avatarsDir.exists()) return null
+        val candidateFiles = listOf(
+            File(avatarsDir, "teacher_${safeCode}.jpg"),
+            File(avatarsDir, "teacher_${safeCode}.jpeg"),
+            File(avatarsDir, "teacher_${safeCode}.png"),
+            File(avatarsDir, "teacher_${safeCode}.webp")
+        )
+        return candidateFiles.firstOrNull { it.exists() && it.isFile }
+    }
+
+    fun saveTeacherAvatar(code: String, ext: String, bytes: ByteArray): String {
+        ServerConfig.ensureAvatarsDirectory()
+        val safeCode = normalizeTeacherAvatarKey(code)
+        val avatarsDir = File(ServerConfig.avatarsDir)
+        avatarsDir.listFiles { _, name ->
+            name.startsWith("teacher_${safeCode}.")
+        }?.forEach { it.delete() }
+
+        val targetFile = File(avatarsDir, "teacher_${safeCode}.${ext}")
+        targetFile.writeBytes(bytes)
+        return "/api/timetable/teachers/avatar/${safeCode}?v=${targetFile.lastModified()}"
+    }
+
+    fun deleteTeacherAvatar(code: String): Boolean {
+        val safeCode = normalizeTeacherAvatarKey(code)
+        if (safeCode.isBlank()) return false
+        val avatarsDir = File(ServerConfig.avatarsDir)
+        if (!avatarsDir.exists()) return false
+        var deleted = false
+        avatarsDir.listFiles { _, name ->
+            name.startsWith("teacher_${safeCode}.")
+        }?.forEach {
+            if (it.delete()) deleted = true
+        }
+        return deleted
+    }
+
     suspend fun getTeacherDirectory(): Map<String, TeacherInfo> {
-        return TimetableRepository.teacherDirectory
+        return TimetableRepository.teacherDirectory.mapValues { (code, info) ->
+            val safeCode = normalizeTeacherAvatarKey(code)
+            val avatarFile = getTeacherAvatarFile(code)
+            when {
+                avatarFile != null -> info.copy(
+                    avatarUrl = "/api/timetable/teachers/avatar/${safeCode}?v=${avatarFile.lastModified()}"
+                )
+                getBundledTeacherAvatar(code) != null -> info.copy(
+                    avatarUrl = "/api/timetable/teachers/avatar/${safeCode}?v=1"
+                )
+                else -> info
+            }
+        }
+    }
+
+    /**
+     * Lädt https://merianschule-seligenstadt.de/kollegium/, überspringt Platzhalter-Silhouetten
+     * und ordnet echte Porträts per Name den bekannten Lehrkräften zu.
+     */
+    fun syncAvatarsFromSchoolWebsite(): String {
+        val url = java.net.URI("https://merianschule-seligenstadt.de/kollegium/").toURL()
+        val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+            requestMethod = "GET"
+            setRequestProperty("User-Agent", "Mozilla/5.0")
+            connectTimeout = 10_000
+            readTimeout = 15_000
+        }
+        val htmlText = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        val imgRegex = Regex("""src="(https://merianschule-seligenstadt\.de/wp-content/uploads/[^"]+)"[^>]*>""")
+        val tagRegex = Regex("""<[^>]+>""")
+
+        var imported = 0
+        var foundPortraits = 0
+
+        for (match in imgRegex.findAll(htmlText)) {
+            val imgUrl = match.groupValues[1]
+            if (imgUrl.contains("silhouette", ignoreCase = true) ||
+                imgUrl.contains("male-user", ignoreCase = true) ||
+                imgUrl.contains("logo-merianschule", ignoreCase = true)
+            ) {
+                continue
+            }
+            foundPortraits++
+            val endIdx = minOf(htmlText.length, match.range.last + 1500)
+            val snippet = tagRegex.replace(htmlText.substring(match.range.last + 1, endIdx), " ")
+                .replace(Regex("""\s+"""), " ")
+                .trim()
+                .lowercase()
+
+            val matchedEntry = TimetableRepository.teacherDirectory.entries.firstOrNull { (_, info) ->
+                val lastName = info.fullName
+                    .removePrefix("Hr. ")
+                    .removePrefix("Fr. ")
+                    .trim()
+                    .split(" ")
+                    .lastOrNull()
+                    ?.lowercase()
+                    ?: ""
+                lastName.length >= 3 && snippet.contains(lastName)
+            } ?: continue
+
+            val imgConn = (java.net.URI(imgUrl).toURL().openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "Mozilla/5.0")
+                connectTimeout = 10_000
+                readTimeout = 15_000
+            }
+            val bytes = imgConn.inputStream.use { it.readBytes() }
+            val ext = de.kjltowinkler.msapp.server.routes.detectImageExtension(bytes) ?: continue
+            saveTeacherAvatar(matchedEntry.key, ext, bytes)
+            imported++
+        }
+
+        return "$foundPortraits Porträts auf der Schulwebsite gefunden, $imported mit dem Lehrerverzeichnis verknüpft."
     }
 
     suspend fun getCount(): Int = DatabaseFactory.query { conn ->
