@@ -350,7 +350,7 @@ fun ShareListScreen(
                         Text(
                             text = "Freigeben",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             fontFamily = getQuicksandFontFamily(),
                             color = textPrimary,
                             modifier = Modifier.weight(1f)
@@ -668,7 +668,7 @@ fun ShareListScreen(
                                     Text(
                                         text = initials,
                                         fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = badgeText
                                     )
                                 }
@@ -802,7 +802,7 @@ fun ShareListScreen(
                         Text(
                             text = "Vorschläge",
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             fontFamily = getQuicksandFontFamily(),
                             color = textSecondary,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
@@ -1018,7 +1018,7 @@ fun ShareListScreen(
                         Text(
                             text = label,
                             fontSize = 16.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = textColor
                         )
                     }
@@ -1106,7 +1106,7 @@ fun GeneralAccessScreen(
                 Text(
                     text = "Allgemeiner Zugriff",
                     fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     fontFamily = getQuicksandFontFamily(),
                     color = textPrimary,
                     modifier = Modifier.weight(1f)
@@ -1392,7 +1392,7 @@ fun GeneralAccessScreen(
                     Text(
                         text = "Personen mit Zugriff",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = accentGreen,
                         modifier = Modifier.padding(horizontal = 20.dp)
                     )
@@ -1414,7 +1414,7 @@ fun GeneralAccessScreen(
                             Text(
                                 text = "${shareInfo?.ownerName ?: "Du"} (Du)",
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 color = textPrimary
                             )
                             Text(
@@ -1454,7 +1454,7 @@ fun GeneralAccessScreen(
                                 Text(
                                     text = member.fullName,
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Medium,
                                     color = textPrimary
                                 )
                                 Text(
@@ -1608,7 +1608,7 @@ fun GeneralAccessScreen(
                         Text(
                             text = label,
                             fontSize = 16.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                             color = textColor
                         )
                     }

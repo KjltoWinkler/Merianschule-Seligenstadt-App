@@ -48,6 +48,7 @@ import de.kjltowinkler.msapp.ui.components.textCursor
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import de.kjltowinkler.msapp.data.task.TasksRepository
+import de.kjltowinkler.msapp.data.timetable.findNextLesson
 
 /**
  * Bottom-Sheet / Bottom-Bar "Neue Aufgaben" exakt nach Figma: tasks#neu+detail.png
@@ -79,6 +80,12 @@ fun NewTaskBottomSheet(
     var showSubjectPicker by remember { mutableStateOf(false) }
 
     var showDescription by remember { mutableStateOf(false) }
+
+    val nextLesson = remember(selectedSubject) { findNextLesson(subject = selectedSubject) }
+    val isNextLessonSelected = nextLesson != null &&
+        selectedDate == nextLesson.date &&
+        selectedHour == nextLesson.startHour &&
+        selectedMinute == nextLesson.startMinute
 
     val titleFocusRequester = remember { FocusRequester() }
     val detailsFocusRequester = remember { FocusRequester() }
@@ -310,82 +317,126 @@ fun NewTaskBottomSheet(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // Icon 1: Details / Subject (3 waagerechte Striche - blendet "Details hinzufügen" ein/aus)
-                        IconButton(
-                            onClick = {
-                                showDescription = !showDescription
-                            },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .handCursor()
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_subject),
-                                contentDescription = "Details hinzufügen",
-                                tint = if (showDescription) colorScheme.primary else colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        de.kjltowinkler.msapp.ui.components.WithTooltip("Details hinzufügen") {
+                            IconButton(
+                                onClick = {
+                                    showDescription = !showDescription
+                                },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor()
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_subject),
+                                    contentDescription = "Details hinzufügen",
+                                    tint = if (showDescription) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
 
                         // Icon 2: Datum auswählen (Kalender)
-                        IconButton(
-                            onClick = { showDatePicker = true },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .handCursor()
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_calendar_event),
-                                contentDescription = "Datum auswählen",
-                                tint = if (selectedDate != null) colorScheme.primary else colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        de.kjltowinkler.msapp.ui.components.WithTooltip("Datum auswählen") {
+                            IconButton(
+                                onClick = { showDatePicker = true },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor()
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_calendar_event),
+                                    contentDescription = "Datum auswählen",
+                                    tint = if (selectedDate != null) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
 
                         // Icon 3: Uhrzeit auswählen (Uhr / History)
-                        IconButton(
-                            onClick = { showTimePicker = true },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .handCursor()
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_access_time),
-                                contentDescription = "Uhrzeit auswählen",
-                                tint = if (selectedHour != null) colorScheme.primary else colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        de.kjltowinkler.msapp.ui.components.WithTooltip("Uhrzeit auswählen") {
+                            IconButton(
+                                onClick = { showTimePicker = true },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor()
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_access_time),
+                                    contentDescription = "Uhrzeit auswählen",
+                                    tint = if (selectedHour != null) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
 
                         // Icon 4: Fach auswählen (9 Punkte / 3x3 Grid / Apps)
-                        IconButton(
-                            onClick = { showSubjectPicker = true },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .handCursor()
-                        ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_apps),
-                                contentDescription = "Fach auswählen",
-                                tint = if (selectedSubject.isNotBlank()) colorScheme.primary else colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        de.kjltowinkler.msapp.ui.components.WithTooltip("Fach auswählen") {
+                            IconButton(
+                                onClick = { showSubjectPicker = true },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor()
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_apps),
+                                    contentDescription = "Fach auswählen",
+                                    tint = if (selectedSubject.isNotBlank()) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
 
-                        // Icon 5: Stern / Markieren
-                        IconButton(
-                            onClick = { isStarred = !isStarred },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .handCursor()
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    if (isStarred) Res.drawable.ic_star_filled else Res.drawable.ic_star_outline
-                                ),
-                                contentDescription = "Als wichtig markieren",
-                                tint = if (isStarred) colorScheme.primary else colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                        // Icon 5: Bis zur nächsten Stunde (Event Upcoming)
+                        de.kjltowinkler.msapp.ui.components.WithTooltip("Bis zur nächsten Stunde") {
+                            IconButton(
+                                onClick = {
+                                    nextLesson?.let { lesson ->
+                                        if (isNextLessonSelected) {
+                                            selectedDate = null
+                                            selectedHour = null
+                                            selectedMinute = null
+                                        } else {
+                                            selectedDate = lesson.date
+                                            selectedHour = lesson.startHour
+                                            selectedMinute = lesson.startMinute
+                                        }
+                                    }
+                                },
+                                enabled = nextLesson != null,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor(nextLesson != null)
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_event_upcoming),
+                                    contentDescription = "Bis zur nächsten Stunde",
+                                    tint = when {
+                                        isNextLessonSelected -> colorScheme.primary
+                                        nextLesson != null -> colorScheme.onSurfaceVariant
+                                        else -> colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                    },
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        // Icon 6: Stern / Markieren
+                        de.kjltowinkler.msapp.ui.components.WithTooltip("Als wichtig markieren") {
+                            IconButton(
+                                onClick = { isStarred = !isStarred },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .handCursor()
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (isStarred) Res.drawable.ic_star_filled else Res.drawable.ic_star_outline
+                                    ),
+                                    contentDescription = "Als wichtig markieren",
+                                    tint = if (isStarred) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
                     }
 

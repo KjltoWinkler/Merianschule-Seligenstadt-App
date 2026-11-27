@@ -1,11 +1,13 @@
 package de.kjltowinkler.msapp.data.wear
 
+import android.net.Uri
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import de.kjltowinkler.msapp.data.auth.UserProfileDto
+import de.kjltowinkler.msapp.data.storage.PlatformStorage
 import de.kjltowinkler.msapp.util.AppContextProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -143,9 +145,20 @@ actual object PlatformWearPairing {
         activeAckDeferred = null
 
         return if (ackNodeId != null) {
-            val displayName = nodes.firstOrNull { it.id == ackNodeId }?.displayName
-                ?: nodes.firstOrNull()?.displayName
-                ?: "Smartwatch"
+            val matchedNode = nodes.firstOrNull { it.id == ackNodeId } ?: nodes.firstOrNull()
+            val displayName = matchedNode?.displayName ?: "Smartwatch"
+            if (matchedNode != null) {
+                savePairedWatch(
+                    PairedWatchInfo(
+                        nodeId = matchedNode.id,
+                        displayName = displayName,
+                        isNearby = matchedNode.isNearby,
+                        isConnected = true,
+                        isPairedInApp = true,
+                        lastSyncedAt = System.currentTimeMillis()
+                    )
+                )
+            }
             Result.success(displayName)
         } else {
             Result.failure(
@@ -206,6 +219,86 @@ actual object PlatformWearPairing {
                 }
             }
         }
+    }
+
+    private const val KEY_PAIRED_WATCHES = "paired_wear_devices_json"
+
+    private fun loadPersistedWatches(): List<PairedWatchInfo> {
+        val raw = PlatformStorage.getString(KEY_PAIRED_WATCHES) ?: return emptyList()
+        return runCatching { json.decodeFromString<List<PairedWatchInfo>>(raw) }.getOrDefault(emptyList())
+    }
+
+    private fun persistWatches(watches: List<PairedWatchInfo>) {
+        runCatching {
+            PlatformStorage.setString(KEY_PAIRED_WATCHES, json.encodeToString(watches))
+        }
+    }
+
+    private fun savePairedWatch(watch: PairedWatchInfo) {
+        val current = loadPersistedWatches().filterNot { it.nodeId == watch.nodeId }
+        persistWatches(listOf(watch) + current)
+    }
+
+    actual suspend fun getWatchDevices(): List<PairedWatchInfo> {
+        val persisted = loadPersistedWatches()
+        val context = runCatching { AppContextProvider.context }.getOrNull() ?: return persisted
+
+        val connectedNodes = runCatching {
+            Wearable.getNodeClient(context).connectedNodes.awaitTask()
+        }.getOrDefault(emptyList())
+
+        val persistedById = persisted.associateBy { it.nodeId }
+        val merged = mutableListOf<PairedWatchInfo>()
+        val seenIds = mutableSetOf<String>()
+
+        for (node in connectedNodes) {
+            seenIds.add(node.id)
+            val saved = persistedById[node.id]
+            merged.add(
+                PairedWatchInfo(
+                    nodeId = node.id,
+                    displayName = node.displayName.ifBlank { saved?.displayName ?: "Smartwatch" },
+                    isNearby = node.isNearby,
+                    isConnected = true,
+                    isPairedInApp = saved?.isPairedInApp == true,
+                    lastSyncedAt = saved?.lastSyncedAt ?: 0L
+                )
+            )
+        }
+
+        for (saved in persisted) {
+            if (saved.nodeId !in seenIds) {
+                merged.add(
+                    saved.copy(
+                        isConnected = false,
+                        isNearby = false
+                    )
+                )
+            }
+        }
+
+        return merged
+    }
+
+    actual suspend fun unpairWatch(nodeId: String): Result<Unit> {
+        val context = runCatching { AppContextProvider.context }.getOrNull()
+        val remaining = loadPersistedWatches().filterNot { it.nodeId == nodeId }
+        persistWatches(remaining)
+
+        if (context != null) {
+            runCatching {
+                Wearable.getMessageClient(context)
+                    .sendMessage(nodeId, WearPairingPaths.UNPAIR, ByteArray(0))
+                    .awaitTask()
+            }
+            if (remaining.isEmpty()) {
+                runCatching {
+                    val uri = Uri.parse("wear://*${WearPairingPaths.DATA_SESSION}")
+                    Wearable.getDataClient(context).deleteDataItems(uri).awaitTask()
+                }
+            }
+        }
+        return Result.success(Unit)
     }
 
     private suspend fun <T> Task<T>.awaitTask(): T = suspendCancellableCoroutine { cont ->

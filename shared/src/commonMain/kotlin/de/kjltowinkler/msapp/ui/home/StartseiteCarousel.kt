@@ -34,7 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.HorizontalCenteredHeroCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -80,14 +80,13 @@ fun StartseiteCarousel(
     val animationScope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        HorizontalMultiBrowseCarousel(
+        HorizontalCenteredHeroCarousel(
             state = state,
-            preferredItemWidth = preferredItemWidth,
-            itemSpacing = 8.dp,
-            contentPadding = PaddingValues(horizontal = 16.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(carouselHeight)
+                .height(carouselHeight),
+            itemSpacing = 8.dp,
+            contentPadding = PaddingValues(horizontal = 16.dp),
         ) { i ->
             val item = newsItems[i]
             StartseiteCarouselCard(
@@ -102,7 +101,8 @@ fun StartseiteCarousel(
                     }
                 },
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .height(carouselHeight)
                     .maskClip(MaterialTheme.shapes.extraLarge)
             )
         }

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +38,7 @@ import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
@@ -49,7 +53,7 @@ import de.kjltowinkler.msapp.ui.account.getAvatarColorForName
 import de.kjltowinkler.msapp.ui.account.getInitialsForName
 import de.kjltowinkler.msapp.ui.account.rememberAvatarBitmap
 import de.kjltowinkler.msapp.wear.R
-import de.kjltowinkler.msapp.wear.presentation.theme.RobotoFlex
+import de.kjltowinkler.msapp.wear.presentation.theme.GoogleSansRounded
 import de.kjltowinkler.msapp.wear.presentation.theme.WearAppTheme
 
 /**
@@ -87,13 +91,38 @@ fun WearHomeScreen(
     ScreenScaffold(
         scrollState = scrollState
     ) { contentPadding ->
+        val layoutDirection = LocalLayoutDirection.current
+        val listContentPadding = PaddingValues(
+            start = contentPadding.calculateStartPadding(layoutDirection),
+            // Zusätzlicher Abstand oben, damit der volle Account-Button unter TimeText nicht von der runden Display-Kante abgeschnitten wird
+            top = contentPadding.calculateTopPadding() + 20.dp,
+            end = contentPadding.calculateEndPadding(layoutDirection),
+            bottom = contentPadding.calculateBottomPadding()
+        )
+
         TransformingLazyColumn(
             state = scrollState,
-            contentPadding = contentPadding,
+            contentPadding = listContentPadding,
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Kopfzeile: Startseite
+            item(key = "header") {
+                ListHeader(
+                    transformation = SurfaceTransformation(transformationSpec),
+                    modifier = Modifier.transformedHeight(this, transformationSpec)
+                ) {
+                    Text(
+                        text = "Startseite",
+                        fontFamily = GoogleSansRounded,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
             // 1. Account Option
             item {
                 WearAccountButton(
@@ -186,7 +215,7 @@ fun WearHomeScreen(
 
 /**
  * Account-Button im Wear OS Material 3 Pill-Design mit rundem Avatar,
- * Haupttitel (Name) und Untertitel (E-Mail) in Roboto Flex.
+ * Haupttitel (Name) und Untertitel (E-Mail) in Google Sans Rounded.
  */
 @Composable
 fun WearAccountButton(
@@ -247,7 +276,7 @@ fun WearAccountButton(
                     Text(
                         text = initials,
                         color = Color.White,
-                        fontFamily = RobotoFlex,
+                        fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Medium,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center
@@ -263,7 +292,7 @@ fun WearAccountButton(
             ) {
                 Text(
                     text = name,
-                    fontFamily = RobotoFlex,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Normal,
                     fontSize = 15.sp,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -272,7 +301,7 @@ fun WearAccountButton(
                 )
                 Text(
                     text = email,
-                    fontFamily = RobotoFlex,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Normal,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -285,7 +314,7 @@ fun WearAccountButton(
 }
 
 /**
- * Menü-Button für Wear OS Material 3 mit linkem App-Icon und Label in Roboto Flex.
+ * Menü-Button für Wear OS Material 3 mit linkem App-Icon und Label in Google Sans Rounded.
  */
 @Composable
 fun WearMenuButton(
@@ -334,7 +363,7 @@ fun WearMenuButton(
 
             Text(
                 text = label,
-                fontFamily = RobotoFlex,
+                fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Normal,
                 fontSize = 15.sp,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -346,7 +375,7 @@ fun WearMenuButton(
             if (!badgeText.isNullOrBlank()) {
                 Text(
                     text = badgeText,
-                    fontFamily = RobotoFlex,
+                    fontFamily = GoogleSansRounded,
                     fontWeight = FontWeight.Normal,
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.primary,

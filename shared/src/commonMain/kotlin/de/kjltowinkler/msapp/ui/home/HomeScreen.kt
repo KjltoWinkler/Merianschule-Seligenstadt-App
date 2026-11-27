@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -12,7 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -22,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -33,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import de.kjltowinkler.msapp.PlatformBackHandler
 import de.kjltowinkler.msapp.ui.components.PredictiveBackContainer
 import de.kjltowinkler.msapp.ui.components.AppSnackbarManager
 import de.kjltowinkler.msapp.ui.components.handCursor
@@ -55,7 +62,7 @@ import org.jetbrains.compose.resources.painterResource
  *    mit Reitern: Startseite, Stundenpl., Vertretugspl., Aufgaben.
  * 3. Platzhalterbereich für den Hauptinhalt des gewählten Tabs.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     accountName: String = "Sebastian Wagner",
@@ -207,20 +214,23 @@ fun MobileHomeScreen(
                     modifier = Modifier.clearAndSetSemantics {},
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyLarge.copy(
+                        fontFamily = de.kjltowinkler.msapp.theme.getGoogleSansFlexBrandFontFamily(),
                         fontSynthesis = androidx.compose.ui.text.font.FontSynthesis.None
                     )
                 )
             },
             leadingIcon = {
                 if (searchBarState.currentValue == SearchBarValue.Expanded) {
-                    IconButton(
-                        onClick = { scope.launch { searchBarState.animateToCollapsed() } }
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_arrow_back),
-                            contentDescription = "Zurück",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                    de.kjltowinkler.msapp.ui.components.WithTooltip("Suche schließen") {
+                        IconButton(
+                            onClick = { scope.launch { searchBarState.animateToCollapsed() } }
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_arrow_back),
+                                contentDescription = "Zurück",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 } else {
                     Icon(
@@ -235,29 +245,31 @@ fun MobileHomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    IconButton(
-                        onClick = onNotificationsClicked,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .handCursor()
-                    ) {
-                        val unreadCount = de.kjltowinkler.msapp.data.notifications.NotificationRepository.unreadCount
-                        BadgedBox(
-                            badge = {
-                                if (unreadCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                }
-                            }
+                    de.kjltowinkler.msapp.ui.components.WithTooltip("Benachrichtigungen") {
+                        IconButton(
+                            onClick = onNotificationsClicked,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .handCursor()
                         ) {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_notifications),
-                                contentDescription = "Benachrichtigungen",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
+                            val unreadCount = de.kjltowinkler.msapp.data.notifications.NotificationRepository.unreadCount
+                            BadgedBox(
+                                badge = {
+                                    if (unreadCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_notifications),
+                                    contentDescription = "Benachrichtigungen",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
                     }
 
@@ -325,35 +337,6 @@ fun MobileHomeScreen(
                 SnackbarHost(
                     hostState = snackbarHostState
                 )
-            },
-            floatingActionButton = {
-                if (selectedTab == 0 && !showNeuigkeitenScreen) {
-                    FloatingActionButton(
-                        onClick = {
-                            if (isTeacherOrAdmin) {
-                                showFabMenu = true
-                            } else {
-                                isNewTaskStarred = false
-                                isNewTaskSchoolTask = false
-                                newTaskSubject = ""
-                                newTaskTargetListId = "my_tasks"
-                                showNewTaskBottomSheet = true
-                            }
-                        },
-                        containerColor = Color(0xFF395A3C),
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .padding(bottom = 8.dp)
-                            .handCursor()
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_add),
-                            contentDescription = "Hinzufügen",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
             },
             bottomBar = {
                 ShortNavigationBar(
@@ -701,6 +684,152 @@ fun MobileHomeScreen(
                     }
                 }
             }
+
+            if (selectedTab == 0 && !showNeuigkeitenScreen) {
+                if (isTeacherOrAdmin) {
+                    PlatformBackHandler(showFabMenu) { showFabMenu = false }
+
+                    if (showFabMenu) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    showFabMenu = false
+                                }
+                        )
+                    }
+
+                    val fabContainerColor = if (useMaterialYou) {
+                        ToggleFloatingActionButtonDefaults.containerColor()
+                    } else {
+                        ToggleFloatingActionButtonDefaults.containerColor(
+                            initialColor = Color(0xFF395A3C),
+                            finalColor = Color(0xFFABD0AA)
+                        )
+                    }
+                    val menuItemContainerColor = if (useMaterialYou) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        Color(0xFF395A3C)
+                    }
+                    val menuItemContentColor = if (useMaterialYou) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        Color.White
+                    }
+
+                    FloatingActionButtonMenu(
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                        expanded = showFabMenu,
+                        button = {
+                            de.kjltowinkler.msapp.ui.components.WithTooltip(
+                                label = if (showFabMenu) "Menü schließen" else "Hinzufügen",
+                                position = if (showFabMenu) TooltipAnchorPosition.Start else TooltipAnchorPosition.Above
+                            ) {
+                                ToggleFloatingActionButton(
+                                    modifier = Modifier.handCursor(),
+                                    checked = showFabMenu,
+                                    onCheckedChange = { showFabMenu = !showFabMenu },
+                                    containerColor = fabContainerColor
+                                ) {
+                                    val imageVector by remember {
+                                        derivedStateOf {
+                                            if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.Add
+                                        }
+                                    }
+                                    Icon(
+                                        painter = rememberVectorPainter(imageVector),
+                                        contentDescription = if (showFabMenu) "Menü schließen" else "Hinzufügen",
+                                        modifier = Modifier.animateIcon({ checkedProgress })
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        FloatingActionButtonMenuItem(
+                            modifier = Modifier.handCursor(),
+                            onClick = {
+                                showFabMenu = false
+                                isNewTaskStarred = false
+                                isNewTaskSchoolTask = false
+                                newTaskSubject = ""
+                                newTaskTargetListId = "my_tasks"
+                                showNewTaskBottomSheet = true
+                            },
+                            containerColor = menuItemContainerColor,
+                            contentColor = menuItemContentColor,
+                            icon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_add_task),
+                                    contentDescription = null
+                                )
+                            },
+                            text = {
+                                Text("Aufgabe erstellen", maxLines = 1)
+                            }
+                        )
+                        FloatingActionButtonMenuItem(
+                            modifier = Modifier.handCursor(),
+                            onClick = {
+                                showFabMenu = false
+                                showCreateNewsDialog = true
+                            },
+                            containerColor = menuItemContainerColor,
+                            contentColor = menuItemContentColor,
+                            icon = {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_tag_label),
+                                    contentDescription = null
+                                )
+                            },
+                            text = {
+                                Text("Neuigkeit / Event", maxLines = 1)
+                            }
+                        )
+                    }
+                } else {
+                    val fabContainerColor = if (useMaterialYou) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        Color(0xFF395A3C)
+                    }
+                    val fabContentColor = if (useMaterialYou) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        Color.White
+                    }
+                    Box(modifier = Modifier.align(Alignment.BottomEnd)) {
+                        de.kjltowinkler.msapp.ui.components.WithTooltip(
+                            label = "Aufgabe erstellen"
+                        ) {
+                            FloatingActionButton(
+                                onClick = {
+                                    isNewTaskStarred = false
+                                    isNewTaskSchoolTask = false
+                                    newTaskSubject = ""
+                                    newTaskTargetListId = "my_tasks"
+                                    showNewTaskBottomSheet = true
+                                },
+                                containerColor = fabContainerColor,
+                                contentColor = fabContentColor,
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .handCursor()
+                            ) {
+                                Icon(
+                                    painter = painterResource(Res.drawable.ic_add),
+                                    contentDescription = "Hinzufügen",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -797,77 +926,10 @@ fun MobileHomeScreen(
                 ) {
                     de.kjltowinkler.msapp.ui.news.NewsArticleScreen(
                         item = article,
+                        articles = de.kjltowinkler.msapp.data.news.NewsRepository.newsFlow.collectAsState().value,
                         onBackClicked = { selectedArticleItem = null },
                         modifier = Modifier.fillMaxSize()
                     )
-                }
-            }
-        }
-
-        // FAB Aktionsmenü für Lehrkräfte / Admins
-        if (showFabMenu) {
-            ModalBottomSheet(
-                onDismissRequest = { showFabMenu = false },
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Neu erstellen",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    ListItem(
-                        headlineContent = { Text("Aufgabe erstellen", fontWeight = FontWeight.Medium) },
-                        supportingContent = { Text("Private Aufgabe oder Schulaufgabe anlegen") },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_add_task),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                showFabMenu = false
-                                isNewTaskStarred = false
-                                isNewTaskSchoolTask = false
-                                newTaskSubject = ""
-                                newTaskTargetListId = "my_tasks"
-                                showNewTaskBottomSheet = true
-                            }
-                    )
-
-                    ListItem(
-                        headlineContent = { Text("Neuigkeit / Event verfassen", fontWeight = FontWeight.Medium) },
-                        supportingContent = { Text("Erscheint im Startseiten-Karussell und unter 'Das ist neu'") },
-                        leadingContent = {
-                            Icon(
-                                painter = painterResource(Res.drawable.ic_tag_label),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                showFabMenu = false
-                                showCreateNewsDialog = true
-                            }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

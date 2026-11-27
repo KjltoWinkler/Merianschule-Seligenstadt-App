@@ -236,7 +236,7 @@ fun AccountBottomSheet(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = getQuicksandFontFamily(),
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = textPrimaryColor
                         ),
                         maxLines = 1,
@@ -306,7 +306,7 @@ fun AccountBottomSheet(
                         text = "Klasse: $className",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = textSecondaryColor
                         )
                     )
@@ -325,7 +325,7 @@ fun AccountBottomSheet(
                         text = "Schulzweig: $schoolType",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = textSecondaryColor
                         )
                     )
@@ -344,7 +344,7 @@ fun AccountBottomSheet(
                         text = "Klassenleitung: $classTeacher",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = textSecondaryColor
                         )
                     )
@@ -374,7 +374,7 @@ fun AccountBottomSheet(
                             text = "Schüler-ID: $studentId",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontSize = 14.5.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.SemiBold,
                                 color = textSecondaryColor
                             )
                         )
@@ -516,7 +516,7 @@ private fun AccountBrickItem(
         Text(
             text = title,
             fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             color = textColor
         )
     }

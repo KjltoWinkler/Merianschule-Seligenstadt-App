@@ -274,7 +274,11 @@ fun SubstitutionPlanScreen(
     onHighlightHandled: () -> Unit = {}
 ) {
     val options = remember { SubstitutionFilter.entries }
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { options.size })
+    val pagerState = rememberPagerState(
+        initialPage = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.initialVirtualPage(options.size),
+        pageCount = { de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.virtualPageCount(options.size) }
+    )
+    val currentRealPage = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(pagerState.currentPage, options.size)
     val tabScrollState = rememberScrollState()
 
     var activeHighlightId by remember { mutableStateOf<String?>(null) }
@@ -315,10 +319,10 @@ fun SubstitutionPlanScreen(
 
     // Scrollt die Tab-Leiste nur dann nach, wenn die Tabs nicht alle gleichzeitig sichtbar sind.
     // Nutzt den tatsächlichen ScrollState.maxValue, damit Tab-Breitenunterschiede kein Problem sind.
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(currentRealPage) {
         draggingItemIds.clear()
         if (tabScrollState.maxValue > 0) {
-            val fraction = pagerState.currentPage.toFloat() / (options.size - 1).coerceAtLeast(1)
+            val fraction = currentRealPage.toFloat() / (options.size - 1).coerceAtLeast(1)
             val targetScroll = (fraction * tabScrollState.maxValue).toInt()
             tabScrollState.animateScrollTo(targetScroll)
         }
@@ -339,9 +343,15 @@ fun SubstitutionPlanScreen(
                 } else if (target.date == todayIso || target.date.isBlank()) {
                     SubstitutionRepository.isUpcomingFilter = false
                 }
-                if (pagerState.currentPage != 0) {
+                if (currentRealPage != 0) {
                     try {
-                        pagerState.animateScrollToPage(0)
+                        pagerState.animateScrollToPage(
+                            de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                pagerState.currentPage,
+                                0,
+                                options.size
+                            )
+                        )
                     } catch (_: Throwable) {}
                 }
             }
@@ -531,10 +541,16 @@ fun SubstitutionPlanScreen(
             ) {
                 options.forEachIndexed { index, filter ->
                     ToggleButton(
-                        checked = pagerState.currentPage == index,
+                        checked = currentRealPage == index,
                         onCheckedChange = {
                             coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
+                                pagerState.animateScrollToPage(
+                                    de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                        pagerState.currentPage,
+                                        index,
+                                        options.size
+                                    )
+                                )
                             }
                         },
                         shapes = when (index) {
@@ -584,7 +600,8 @@ fun SubstitutionPlanScreen(
                     beyondViewportPageCount = 1,
                     // Pager-Scrolling sperren, wenn der Nutzer gerade einen Eintrag wischt
                     userScrollEnabled = !isAnyItemDragging
-                ) { page ->
+                ) { virtualPage ->
+                    val page = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(virtualPage, options.size)
                     val pageFilter = options[page]
                     val userClass = remember { de.kjltowinkler.msapp.data.backend.BackendApiClient.currentUser?.className ?: "09AR" }
                     val entriesForTab = remember(allEntries, pageFilter, de.kjltowinkler.msapp.data.courses.CourseRepository.courses.size) {

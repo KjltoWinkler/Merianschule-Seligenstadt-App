@@ -31,13 +31,11 @@ private fun googleSansRoundedWearFont(weight: FontWeight, axisWeight: Int) = Fon
 
 val GoogleSansRounded = FontFamily(
     googleSansRoundedWearFont(FontWeight.Light, axisWeight = 250),
-    googleSansRoundedWearFont(FontWeight.Normal, axisWeight = 330),
-    googleSansRoundedWearFont(FontWeight.Medium, axisWeight = 420),
-    googleSansRoundedWearFont(FontWeight.SemiBold, axisWeight = 500),
-    googleSansRoundedWearFont(FontWeight.Bold, axisWeight = 600)
+    googleSansRoundedWearFont(FontWeight.Normal, axisWeight = 340),
+    googleSansRoundedWearFont(FontWeight.Medium, axisWeight = 460),
+    googleSansRoundedWearFont(FontWeight.SemiBold, axisWeight = 600),
+    googleSansRoundedWearFont(FontWeight.Bold, axisWeight = 700)
 )
-
-val RobotoFlex = GoogleSansRounded
 
 // Merianschule Material You Green Farbschema für Wear OS (AMOLED-optimiert)
 val WearMaterialYouGreenScheme = ColorScheme(
@@ -120,33 +118,33 @@ fun getDynamicWearColorScheme(context: Context): ColorScheme {
 }
 
 /**
- * Erstellt die Wear OS Typografie mit Roboto Flex (Standardgewicht Normal, schlank und nicht fett).
+ * Erstellt die Wear OS Typografie mit Google Sans Rounded (Standardgewicht Normal, schlank und nicht fett).
  */
 @Composable
 fun getWearTypography(): Typography {
     return Typography(
-        defaultFontFamily = RobotoFlex,
-        displayLarge = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 40.sp),
-        displayMedium = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 34.sp),
-        displaySmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 30.sp),
-        titleLarge = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 20.sp),
-        titleMedium = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 16.sp),
-        titleSmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 14.sp),
-        labelLarge = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 15.sp),
-        labelMedium = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 13.sp),
-        labelSmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 11.sp),
-        bodyLarge = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 16.sp),
-        bodyMedium = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 14.sp),
-        bodySmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 12.sp),
-        bodyExtraSmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 10.sp),
-        numeralExtraLarge = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 52.sp),
-        numeralLarge = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 44.sp),
-        numeralMedium = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 38.sp),
-        numeralSmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 30.sp),
-        numeralExtraSmall = TextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 24.sp),
-        arcLarge = CurvedTextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSize = 15.sp),
-        arcMedium = CurvedTextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSize = 13.sp),
-        arcSmall = CurvedTextStyle(fontFamily = RobotoFlex, fontWeight = FontWeight.Normal, fontSize = 11.sp)
+        defaultFontFamily = GoogleSansRounded,
+        displayLarge = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 40.sp),
+        displayMedium = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 34.sp),
+        displaySmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 30.sp),
+        titleLarge = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 20.sp),
+        titleMedium = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 16.sp),
+        titleSmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 14.sp),
+        labelLarge = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 15.sp),
+        labelMedium = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 13.sp),
+        labelSmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 11.sp),
+        bodyLarge = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 16.sp),
+        bodyMedium = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 14.sp),
+        bodySmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 12.sp),
+        bodyExtraSmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 10.sp),
+        numeralExtraLarge = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 52.sp),
+        numeralLarge = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 44.sp),
+        numeralMedium = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 38.sp),
+        numeralSmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 30.sp),
+        numeralExtraSmall = TextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSynthesis = FontSynthesis.None, fontSize = 24.sp),
+        arcLarge = CurvedTextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSize = 15.sp),
+        arcMedium = CurvedTextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSize = 13.sp),
+        arcSmall = CurvedTextStyle(fontFamily = GoogleSansRounded, fontWeight = FontWeight.Normal, fontSize = 11.sp)
     )
 }
 
@@ -165,9 +163,13 @@ fun WearAppTheme(
     }
     val typography = getWearTypography()
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography,
-        content = content
-    )
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.wear.compose.material3.LocalTextStyle provides typography.bodyMedium
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            content = content
+        )
+    }
 }

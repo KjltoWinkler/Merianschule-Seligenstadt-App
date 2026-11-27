@@ -41,6 +41,46 @@
                     android:pathPrefix="/msapp/" />
             </intent-filter>
         </service>
+
+        <!-- Wear OS Tiles (Google Material 3) -->
+        <service
+            android:name=".tiles.TimetableTileService"
+            android:exported="true"
+            android:label="Stundenplan"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_nav_schedule" />
+        </service>
+
+        <service
+            android:name=".tiles.SubstitutionTileService"
+            android:exported="true"
+            android:label="Vertretungsplan"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_nav_event_note" />
+        </service>
+
+        <service
+            android:name=".tiles.TasksTileService"
+            android:exported="true"
+            android:label="Aufgaben"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_nav_checklist_rtl" />
+        </service>
     </application>
 
 </manifest>

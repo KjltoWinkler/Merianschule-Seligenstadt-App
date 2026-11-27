@@ -45,7 +45,7 @@ fun DesktopTwoFactorAuthScreen(
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontSize = 34.sp,
                 lineHeight = 42.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Medium
             ),
             color = DesktopTextPrimary,
             modifier = Modifier.fillMaxWidth()

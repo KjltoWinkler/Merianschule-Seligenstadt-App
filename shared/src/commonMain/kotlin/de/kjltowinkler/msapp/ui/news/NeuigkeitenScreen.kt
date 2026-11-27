@@ -59,6 +59,14 @@ fun NeuigkeitenScreen(
     val scope = rememberCoroutineScope()
     val pullState = rememberPullToRefreshState()
 
+    val headerBannerImageUrl = remember(newsList) {
+        val targetArticle = newsList.firstOrNull {
+            it.title.contains("Schubladen sind für Dinge da", ignoreCase = true) ||
+                it.title.contains("Schubladen", ignoreCase = true)
+        }
+        targetArticle?.allImages?.getOrNull(1)
+    }
+
     var selectedNewsItem by remember { mutableStateOf<NewsItem?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
 
@@ -134,19 +142,28 @@ fun NeuigkeitenScreen(
                             .verticalScroll(scrollState),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // 1. Oberstes Bild (Hero-Banner entsprechend `neuigkeiten#fewup.png`)
+                        // 1. Oberstes Bild (Hero-Banner: zweites Bild des Artikels "Schubladen sind für Dinge da, nicht für Menschen")
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(bannerHeight)
                                 .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
                         ) {
-                            Image(
-                                painter = painterResource(Res.drawable.news_header_banner),
-                                contentDescription = "Schul-Neuigkeiten Header",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                            if (headerBannerImageUrl != null) {
+                                NewsImageView(
+                                    imageUrl = headerBannerImageUrl,
+                                    contentDescription = "Schul-Neuigkeiten Header",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(Res.drawable.news_header_banner),
+                                    contentDescription = "Schul-Neuigkeiten Header",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
 
                             // Subtiler Verlauf oben für Statusleiste / Zurück-Button
                             Box(
@@ -326,6 +343,7 @@ fun NeuigkeitenScreen(
         selectedNewsItem?.let { item ->
             NewsArticleScreen(
                 item = item,
+                articles = newsList,
                 onBackClicked = { selectedNewsItem = null },
                 modifier = Modifier.fillMaxSize()
             )

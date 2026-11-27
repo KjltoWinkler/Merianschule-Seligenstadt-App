@@ -17,6 +17,9 @@ actual object PlatformWearPairing {
         Result.failure(UnsupportedOperationException("Smartwatch-Pairing wird nur auf Android unterstützt."))
 
     actual suspend fun sendPairAckToPhone(sourceNodeId: String?) {}
+    actual suspend fun getWatchDevices(): List<PairedWatchInfo> = emptyList()
+    actual suspend fun unpairWatch(nodeId: String): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Smartwatch-Pairing wird nur auf Android unterstützt."))
     actual fun startListening() {}
     actual fun stopListening() {}
 }

@@ -130,7 +130,11 @@ fun TasksScreen(
         listOf(TasksTab.Starred, TasksTab.School) + privateLists.map { TasksTab.Private(it) }
     }
 
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
+    val pagerState = rememberPagerState(
+        initialPage = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.initialVirtualPage(tabs.size),
+        pageCount = { de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.virtualPageCount(tabs.size) }
+    )
+    val currentRealPage = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(pagerState.currentPage, tabs.size)
     val coroutineScope = rememberCoroutineScope()
 
     var previousListsSize by remember { mutableIntStateOf(privateLists.size) }
@@ -138,7 +142,13 @@ fun TasksScreen(
         if (privateLists.size > previousListsSize) {
             val newIndex = tabs.size - 1
             if (newIndex >= 0) {
-                pagerState.animateScrollToPage(newIndex)
+                pagerState.animateScrollToPage(
+                    de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                        pagerState.currentPage,
+                        newIndex,
+                        tabs.size
+                    )
+                )
             }
         }
         previousListsSize = privateLists.size
@@ -203,9 +213,15 @@ fun TasksScreen(
                         is TasksTab.Starred -> false
                     }
                 }
-                if (targetPageIndex >= 0 && targetPageIndex != pagerState.currentPage) {
+                if (targetPageIndex >= 0 && targetPageIndex != currentRealPage) {
                     try {
-                        pagerState.animateScrollToPage(targetPageIndex)
+                        pagerState.animateScrollToPage(
+                            de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                pagerState.currentPage,
+                                targetPageIndex,
+                                tabs.size
+                            )
+                        )
                     } catch (_: Throwable) {}
                 }
             }
@@ -240,9 +256,9 @@ fun TasksScreen(
     }
 
     // Automatisch zum ausgewählten Button scrollen und diesen mittig zentrieren
-    LaunchedEffect(pagerState.currentPage, rowViewportWidth, tabScrollState.maxValue, buttonWidths.size) {
+    LaunchedEffect(currentRealPage, rowViewportWidth, tabScrollState.maxValue, buttonWidths.size) {
         if (rowViewportWidth > 0 && tabScrollState.maxValue > 0) {
-            val targetScroll = calculateTargetScroll(pagerState.currentPage)
+            val targetScroll = calculateTargetScroll(currentRealPage)
             tabScrollState.animateScrollTo(targetScroll)
         }
     }
@@ -280,14 +296,20 @@ fun TasksScreen(
                             }
                     ) {
                         ToggleButton(
-                            checked = pagerState.currentPage == index,
+                            checked = currentRealPage == index,
                             onCheckedChange = {
                                 coroutineScope.launch {
                                     launch {
                                         val targetScroll = calculateTargetScroll(index)
                                         tabScrollState.animateScrollTo(targetScroll)
                                     }
-                                    pagerState.animateScrollToPage(index)
+                                    pagerState.animateScrollToPage(
+                                        de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                            pagerState.currentPage,
+                                            index,
+                                            tabs.size
+                                        )
+                                    )
                                 }
                             },
                             interactionSource = tabInteractionSource,
@@ -318,8 +340,8 @@ fun TasksScreen(
                                         if (schoolTasksCount > 0) {
                                             TaskCountBadge(
                                                 count = schoolTasksCount,
-                                                backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
-                                                textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                                backgroundColor = if (currentRealPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
+                                                textColor = if (currentRealPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
                                             )
                                         }
                                     }
@@ -337,7 +359,7 @@ fun TasksScreen(
                                                 painter = painterResource(Res.drawable.ic_groups),
                                                 contentDescription = "Geteilte Liste",
                                                 modifier = Modifier.size(16.dp),
-                                                tint = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
+                                                tint = if (currentRealPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
                                             )
                                         }
                                         Text(
@@ -347,8 +369,8 @@ fun TasksScreen(
                                         if (count > 0) {
                                             TaskCountBadge(
                                                 count = count,
-                                                backgroundColor = if (pagerState.currentPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
-                                                textColor = if (pagerState.currentPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
+                                                backgroundColor = if (currentRealPage == index) colorScheme.primaryContainer else colorScheme.surfaceContainerHighest,
+                                                textColor = if (currentRealPage == index) colorScheme.onPrimaryContainer else colorScheme.onSurface
                                             )
                                         }
                                     }
@@ -369,7 +391,13 @@ fun TasksScreen(
                                                 val targetScroll = calculateTargetScroll(index)
                                                 tabScrollState.animateScrollTo(targetScroll)
                                             }
-                                            pagerState.animateScrollToPage(index)
+                                            pagerState.animateScrollToPage(
+                                                de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                                    pagerState.currentPage,
+                                                    index,
+                                                    tabs.size
+                                                )
+                                            )
                                         }
                                     },
                                     onLongClick = {
@@ -407,7 +435,8 @@ fun TasksScreen(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
-                ) { page ->
+                ) { virtualPage ->
+                val page = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(virtualPage, tabs.size)
                 val tab = tabs.getOrElse(page) { TasksTab.Starred }
 
                 Column(
@@ -529,41 +558,45 @@ fun TasksScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
-                                    IconButton(
-                                        onClick = { showSortBottomSheet = true },
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .handCursor()
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(Res.drawable.ic_swap_vert),
-                                            contentDescription = "Sortieren",
-                                            tint = colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(26.dp)
-                                        )
+                                    de.kjltowinkler.msapp.ui.components.WithTooltip("Sortieren") {
+                                        IconButton(
+                                            onClick = { showSortBottomSheet = true },
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .handCursor()
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.ic_swap_vert),
+                                                contentDescription = "Sortieren",
+                                                tint = colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(26.dp)
+                                            )
+                                        }
                                     }
 
-                                    IconButton(
-                                        onClick = {
-                                            when (tab) {
-                                                TasksTab.Starred -> showStarredTasksSheet = true
-                                                TasksTab.School -> showSchoolTasksSheet = true
-                                                is TasksTab.Private -> {
-                                                    selectedListForEdit = tab.list
-                                                    showEditListSheet = true
+                                    de.kjltowinkler.msapp.ui.components.WithTooltip("Listen-Optionen") {
+                                        IconButton(
+                                            onClick = {
+                                                when (tab) {
+                                                    TasksTab.Starred -> showStarredTasksSheet = true
+                                                    TasksTab.School -> showSchoolTasksSheet = true
+                                                    is TasksTab.Private -> {
+                                                        selectedListForEdit = tab.list
+                                                        showEditListSheet = true
+                                                    }
                                                 }
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .handCursor()
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(Res.drawable.ic_more_vert),
-                                            contentDescription = "Weitere Optionen",
-                                            tint = colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(26.dp)
-                                        )
+                                            },
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .handCursor()
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(Res.drawable.ic_more_vert),
+                                                contentDescription = "Weitere Optionen",
+                                                tint = colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(26.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -1005,7 +1038,7 @@ fun TasksScreen(
         }
         }
 
-        val currentTab = tabs.getOrNull(pagerState.currentPage) ?: TasksTab.Starred
+        val currentTab = tabs.getOrNull(currentRealPage) ?: TasksTab.Starred
         val isCurrentTabStarred = currentTab is TasksTab.Starred
         val isCurrentTabSchool = currentTab is TasksTab.School
         val currentTargetListId = (currentTab as? TasksTab.Private)?.list?.id ?: "my_tasks"
@@ -1094,7 +1127,7 @@ fun TasksScreen(
                                 paneTitle = "Toggle menu"
                             }
                         ) {
-                            Text("Toggle menu")
+                            Text(if (fabMenuExpanded) "Menü schließen" else "Hinzufügen")
                         }
                     },
                     state = rememberTooltipState(),
@@ -1285,19 +1318,31 @@ fun TasksScreen(
                 },
                 onDeleteList = if (isCustomList && (list.role == TaskMemberRole.OWNER || !list.isShared)) {
                     {
+                        val targetReal = (currentRealPage - 1).coerceAtLeast(0)
                         TasksRepository.deletePrivateList(list.id)
                         coroutineScope.launch {
-                            val newPageIndex = (pagerState.currentPage - 1).coerceAtLeast(0)
-                            pagerState.animateScrollToPage(newPageIndex)
+                            pagerState.animateScrollToPage(
+                                de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                    pagerState.currentPage,
+                                    targetReal,
+                                    tabs.size
+                                )
+                            )
                         }
                     }
                 } else null,
                 onLeaveList = if (list.isShared && list.role != TaskMemberRole.OWNER) {
                     {
+                        val targetReal = (currentRealPage - 1).coerceAtLeast(0)
                         coroutineScope.launch {
                             TasksRepository.leaveSharedList(list.id)
-                            val newPageIndex = (pagerState.currentPage - 1).coerceAtLeast(0)
-                            pagerState.animateScrollToPage(newPageIndex)
+                            pagerState.animateScrollToPage(
+                                de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                    pagerState.currentPage,
+                                    targetReal,
+                                    tabs.size
+                                )
+                            )
                         }
                     }
                 } else null
@@ -1339,7 +1384,13 @@ fun TasksScreen(
                             tab is TasksTab.Private && tab.list.id == joinedListId
                         }
                         if (targetIndex >= 0) {
-                            pagerState.animateScrollToPage(targetIndex)
+                            pagerState.animateScrollToPage(
+                                de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                    pagerState.currentPage,
+                                    targetIndex,
+                                    tabs.size
+                                )
+                            )
                             val targetScroll = calculateTargetScroll(targetIndex)
                             tabScrollState.animateScrollTo(targetScroll)
                         }
@@ -1359,7 +1410,13 @@ fun TasksScreen(
                         delay(120)
                         val newIndex = tabs.indexOfFirst { (it as? TasksTab.Private)?.list?.id == created.id }
                         val targetIndex = if (newIndex >= 0) newIndex else (tabs.size.coerceAtLeast(1) - 1)
-                        pagerState.animateScrollToPage(targetIndex)
+                        pagerState.animateScrollToPage(
+                            de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                pagerState.currentPage,
+                                targetIndex,
+                                tabs.size
+                            )
+                        )
                         val targetScroll = calculateTargetScroll(targetIndex)
                         tabScrollState.animateScrollTo(targetScroll)
                     }
@@ -1436,7 +1493,13 @@ fun TasksScreen(
                         delay(50)
                         val targetIndex = tabs.indexOfFirst { (it as? TasksTab.Private)?.list?.id == selectedList.id }
                         if (targetIndex >= 0) {
-                            pagerState.animateScrollToPage(targetIndex)
+                            pagerState.animateScrollToPage(
+                                de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                    pagerState.currentPage,
+                                    targetIndex,
+                                    tabs.size
+                                )
+                            )
                         }
                     }
                 },

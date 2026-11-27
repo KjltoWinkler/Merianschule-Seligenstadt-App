@@ -119,7 +119,7 @@ fun EditListBottomSheet(
             title = {
                 Text(
                     text = "Liste umbenennen",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -147,7 +147,7 @@ fun EditListBottomSheet(
                         showRenameDialog = false
                     }
                 ) {
-                    Text("Speichern", color = colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Text("Speichern", color = colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -166,7 +166,7 @@ fun EditListBottomSheet(
             title = {
                 Text(
                     text = "Erledigte Aufgaben löschen?",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -184,7 +184,7 @@ fun EditListBottomSheet(
                         onDismissRequest()
                     }
                 ) {
-                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -203,7 +203,7 @@ fun EditListBottomSheet(
             title = {
                 Text(
                     text = "Alle Aufgaben löschen?",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -221,7 +221,7 @@ fun EditListBottomSheet(
                         onDismissRequest()
                     }
                 ) {
-                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -240,7 +240,7 @@ fun EditListBottomSheet(
             title = {
                 Text(
                     text = "Liste löschen?",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -258,7 +258,7 @@ fun EditListBottomSheet(
                         onDismissRequest()
                     }
                 ) {
-                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                    Text("Löschen", color = Color(0xFFE57373), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -277,7 +277,7 @@ fun EditListBottomSheet(
             title = {
                 Text(
                     text = "Liste verlassen?",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -295,7 +295,7 @@ fun EditListBottomSheet(
                         onDismissRequest()
                     }
                 ) {
-                    Text("Verlassen", color = Color(0xFFE57373), fontWeight = FontWeight.Bold)
+                    Text("Verlassen", color = Color(0xFFE57373), fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -339,7 +339,7 @@ fun EditListBottomSheet(
                 text = listTitle,
                 fontFamily = getQuicksandFontFamily(),
                 fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = colorScheme.onSurface
             )
 
@@ -378,7 +378,7 @@ fun EditListBottomSheet(
                             Text(
                                 text = "Liste teilen",
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 color = colorScheme.onSurface
                             )
                         }
@@ -391,7 +391,7 @@ fun EditListBottomSheet(
                                 Text(
                                     text = "Geteilt",
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = colorScheme.onPrimaryContainer,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
@@ -420,7 +420,7 @@ fun EditListBottomSheet(
                     Text(
                         text = "Liste umbenennen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -448,7 +448,7 @@ fun EditListBottomSheet(
                     Text(
                         text = "Listen neu anordnen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -491,7 +491,7 @@ fun EditListBottomSheet(
                     Text(
                         text = if (areAllCompleted) "Alle als unerledigt markieren" else "Alle als erledigt markieren",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -526,7 +526,7 @@ fun EditListBottomSheet(
                     Text(
                         text = if (areAllStarred) "Alle Markierungen entfernen" else "Alle mit Stern markieren",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -560,7 +560,7 @@ fun EditListBottomSheet(
                     Text(
                         text = "Erledigte Aufgaben löschen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -586,7 +586,7 @@ fun EditListBottomSheet(
                     Text(
                         text = "Alle Aufgaben löschen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = destructiveIconTint
                     )
                 }
@@ -613,7 +613,7 @@ fun EditListBottomSheet(
                         Text(
                             text = "Liste verlassen",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = destructiveIconTint
                         )
                     }
@@ -641,7 +641,7 @@ fun EditListBottomSheet(
                         Text(
                             text = "Liste löschen",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = destructiveIconTint
                         )
                     }

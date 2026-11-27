@@ -62,6 +62,7 @@ object AppRoutes {
     const val SETTINGS = "settings"
     const val SETTINGS_SCHOOL_WAY = "settings_school_way"
     const val SETTINGS_COURSES = "settings_courses"
+    const val SETTINGS_WEAR_DEVICES = "settings_wear_devices"
 
     // Smartwatch-Pairing
     const val PAIR_SMARTWATCH_PROCEED = "pair_smartwatch_proceed"
@@ -1087,7 +1088,7 @@ fun App() {
                         navController.navigate(AppRoutes.SETTINGS_COURSES)
                     },
                     onPairSmartwatchClicked = {
-                        navController.navigate(AppRoutes.PAIR_SMARTWATCH_PROCEED)
+                        navController.navigate(AppRoutes.SETTINGS_WEAR_DEVICES)
                     },
                     isTwoFactorEnabled = currentAccount.isTwoFactorEnabled,
                     onNavigateTo2FaSetup = {
@@ -1122,6 +1123,18 @@ fun App() {
                         navController.popBackStack()
                     },
                     useMaterialYou = isDynamicColor
+                )
+            }
+
+            // --- EINSTELLUNGEN: SMARTWATCHES VERWALTEN ---
+            composable(AppRoutes.SETTINGS_WEAR_DEVICES) {
+                de.kjltowinkler.msapp.ui.wear.WearDevicesScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    },
+                    onPairNewWatchClicked = {
+                        navController.navigate(AppRoutes.PAIR_SMARTWATCH_PROCEED)
+                    }
                 )
             }
 

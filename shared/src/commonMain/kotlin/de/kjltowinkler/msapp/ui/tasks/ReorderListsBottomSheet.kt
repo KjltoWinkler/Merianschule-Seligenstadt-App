@@ -299,7 +299,7 @@ fun ReorderListsBottomSheet(
                             text = list.title,
                             fontFamily = getQuicksandFontFamily(),
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textColor,
                             modifier = Modifier
                                 .weight(1f)

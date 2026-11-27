@@ -157,6 +157,7 @@ fun SubstitutionShareCard(
                     Column {
                         Text(
                             text = "Notes+",
+                            fontFamily = de.kjltowinkler.msapp.theme.getGoogleSansFlexBrandFontFamily(),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFE4EDE0),

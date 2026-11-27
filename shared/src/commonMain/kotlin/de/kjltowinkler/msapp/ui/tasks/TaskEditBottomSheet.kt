@@ -242,7 +242,7 @@ fun TaskEditBottomSheet(
                         Text(
                             text = "Erstellt: $createdDate",
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = colorScheme.onSurfaceVariant
                         )
                     }
@@ -267,7 +267,7 @@ fun TaskEditBottomSheet(
                             Text(
                                 text = "Erledigt: $displayCompleted",
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 color = colorScheme.onSurfaceVariant
                             )
                         }
@@ -288,7 +288,7 @@ fun TaskEditBottomSheet(
                             Text(
                                 text = "Fristende: $deadlineDate",
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 color = colorScheme.onSurfaceVariant
                             )
                         }
@@ -328,7 +328,7 @@ fun TaskEditBottomSheet(
                             Text(
                                 text = if (description.isNotBlank()) "Details bearbeiten" else "Details hinzufügen",
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                                 color = colorScheme.onSurface
                             )
                         }
@@ -398,7 +398,7 @@ fun TaskEditBottomSheet(
                                 Text(
                                     text = if (dueDate.isNotBlank()) "Datum: $dueDate" else "Datum hinzufügen",
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Medium,
                                     color = colorScheme.onSurface
                                 )
                             }
@@ -452,7 +452,7 @@ fun TaskEditBottomSheet(
                                 Text(
                                     text = if (dueTime.isNotBlank()) "Zeit: $dueTime Uhr" else "Zeit hinzufügen",
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Medium,
                                     color = colorScheme.onSurface
                                 )
                             }
@@ -506,7 +506,7 @@ fun TaskEditBottomSheet(
                                 Text(
                                     text = if (subject.isNotBlank()) "Fach: $subject" else "Fach hinzufügen",
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Medium,
                                     color = colorScheme.onSurface
                                 )
                             }
@@ -568,7 +568,7 @@ fun TaskEditBottomSheet(
                         Text(
                             text = if (isStarred) "Markierung entfernen" else "Aufgabe markieren",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = colorScheme.onSurface
                         )
                     }
@@ -597,7 +597,7 @@ fun TaskEditBottomSheet(
                         Text(
                             text = "Teilen",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = colorScheme.onSurface
                         )
                     }
@@ -638,7 +638,7 @@ fun TaskEditBottomSheet(
                         Text(
                             text = if (isCompleted) "Als nicht erledigt markieren" else "Als erledigt markieren",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = colorScheme.onSurface
                         )
                     }
@@ -671,7 +671,7 @@ fun TaskEditBottomSheet(
                         Text(
                             text = "Löschen",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = destructiveIconTint
                         )
                     }
@@ -694,7 +694,7 @@ fun TaskEditBottomSheet(
             title = {
                 Text(
                     text = "Aufgabe löschen?",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.SemiBold
                 )
             },
             text = {
@@ -725,7 +725,7 @@ fun TaskEditBottomSheet(
                     Text(
                         text = "Löschen",
                         color = Color(0xFFE57373),
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             },

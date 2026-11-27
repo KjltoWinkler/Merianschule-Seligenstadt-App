@@ -115,3 +115,79 @@ private fun parseEndMinutesFromTimeRange(timeRange: String): Int? {
     }
     return null
 }
+
+private fun parseStartTimeFromTimeRange(timeRange: String): Pair<Int, Int>? {
+    val parts = timeRange.split("-")
+    val startPart = parts.firstOrNull()?.trim() ?: return null
+    val timeSegments = startPart.split(":")
+    if (timeSegments.size >= 2) {
+        val h = timeSegments[0].trim().toIntOrNull() ?: return null
+        val m = timeSegments[1].trim().take(2).toIntOrNull() ?: return null
+        if (h in 0..23 && m in 0..59) {
+            return h to m
+        }
+    }
+    return null
+}
+
+/**
+ * Ergebnis der Suche nach der nächsten Unterrichtsstunde.
+ */
+data class NextLessonResult(
+    val date: de.kjltowinkler.msapp.data.task.SimpleDate,
+    val lesson: TimetableLesson,
+    val startHour: Int,
+    val startMinute: Int
+) {
+    val startTimeFormatted: String
+        get() = "${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}"
+}
+
+/**
+ * Findet die nächste anstehende Unterrichtsstunde im Stundenplan ab dem aktuellen Zeitpunkt.
+ * Wenn [subject] angegeben ist, wird die nächste Stunde dieses Fachs gesucht;
+ * andernfalls die nächste anstehende Stunde insgesamt.
+ */
+fun findNextLesson(
+    subject: String = "",
+    today: de.kjltowinkler.msapp.data.task.SimpleDate = de.kjltowinkler.msapp.data.task.getTodayDate(),
+    now: de.kjltowinkler.msapp.data.task.SimpleTime = de.kjltowinkler.msapp.data.task.getCurrentTime(),
+    getLessonsForDay: (TimetableDay) -> List<TimetableLesson> = { TimetableRepository.getLessonsForDay(it) },
+    resolveSubject: (String) -> String = { TimetableRepository.resolveSubjectName(it) }
+): NextLessonResult? {
+    val currentMinutes = now.hour * 60 + now.minute
+    val targetSubject = resolveSubject(subject).trim()
+
+    for (offset in 0..7) {
+        val candidateDate = today.plusDays(offset)
+        val timetableDay = when (candidateDate.dayOfWeek) {
+            1 -> TimetableDay.MONTAG
+            2 -> TimetableDay.DIENSTAG
+            3 -> TimetableDay.MITTWOCH
+            4 -> TimetableDay.DONNERSTAG
+            5 -> TimetableDay.FREITAG
+            else -> null
+        } ?: continue
+
+        val lessons = getLessonsForDay(timetableDay).sortedBy { it.periodNumber }
+        for (lesson in lessons) {
+            val (startHour, startMinute) = parseStartTimeFromTimeRange(lesson.timeRange) ?: continue
+            val startMinutes = startHour * 60 + startMinute
+            if (offset == 0 && startMinutes <= currentMinutes) continue
+
+            if (targetSubject.isNotBlank()) {
+                val lessonSubject = resolveSubject(lesson.subject).trim()
+                if (!lessonSubject.equals(targetSubject, ignoreCase = true)) continue
+            }
+
+            return NextLessonResult(
+                date = candidateDate,
+                lesson = lesson,
+                startHour = startHour,
+                startMinute = startMinute
+            )
+        }
+    }
+
+    return null
+}

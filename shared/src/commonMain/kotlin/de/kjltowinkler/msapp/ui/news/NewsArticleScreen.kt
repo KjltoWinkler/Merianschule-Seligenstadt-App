@@ -4,8 +4,11 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -47,13 +50,17 @@ import org.jetbrains.compose.resources.painterResource
 fun NewsArticleScreen(
     item: NewsItem,
     onBackClicked: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    articles: List<NewsItem> = listOf(item)
 ) {
-    val scrollState = rememberScrollState()
-    val images = remember(item) { item.allImages }
-    val pagerState = rememberPagerState { images.size }
-    val coroutineScope = rememberCoroutineScope()
-    var fullscreenImageIndex by remember { mutableStateOf<Int?>(null) }
+    val articleList = remember(item, articles) {
+        if (articles.any { it.id == item.id }) articles else listOf(item) + articles
+    }
+    val initialPage = remember(item, articleList) {
+        articleList.indexOfFirst { it.id == item.id }.coerceAtLeast(0)
+    }
+    val articlePagerState = rememberPagerState(initialPage = initialPage) { articleList.size }
+    var fullscreenGalleryState by remember { mutableStateOf<Pair<List<String>, Int>?>(null) }
 
     Scaffold(
         topBar = {
@@ -77,6 +84,23 @@ fun NewsArticleScreen(
                         )
                     }
                 },
+                actions = {
+                    if (articleList.size > 1) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Text(
+                                text = "${articlePagerState.currentPage + 1} / ${articleList.size}",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -87,13 +111,50 @@ fun NewsArticleScreen(
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Column(
+        HorizontalPager(
+            state = articlePagerState,
+            beyondViewportPageCount = 1,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(scrollState)
-                .padding(bottom = 40.dp)
-        ) {
+        ) { pageIndex ->
+            NewsArticlePageContent(
+                item = articleList[pageIndex],
+                onBackClicked = onBackClicked,
+                onOpenFullscreenImage = { imgs, startIndex ->
+                    fullscreenGalleryState = imgs to startIndex
+                }
+            )
+        }
+    }
+
+    // 5. Vollbild-Galerie-Dialog beim Klick auf ein Bild mit Zoom & Durchblättern
+    fullscreenGalleryState?.let { (images, startIndex) ->
+        FullscreenImageGalleryDialog(
+            images = images,
+            initialIndex = startIndex,
+            onDismissRequest = { fullscreenGalleryState = null }
+        )
+    }
+}
+
+@Composable
+private fun NewsArticlePageContent(
+    item: NewsItem,
+    onBackClicked: () -> Unit,
+    onOpenFullscreenImage: (List<String>, Int) -> Unit
+) {
+    val scrollState = rememberScrollState()
+    val images = remember(item) { item.allImages }
+    val pagerState = rememberPagerState { images.size }
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(bottom = 40.dp)
+    ) {
             // 1. Bilder-Bereich (Karussell bei mehreren Bildern oder Einzelbild)
             if (images.isNotEmpty()) {
                 Box(
@@ -119,7 +180,7 @@ fun NewsArticleScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .clickable { fullscreenImageIndex = page }
+                                            .clickable { onOpenFullscreenImage(images, page) }
                                             .handCursor()
                                     ) {
                                         NewsImageView(
@@ -186,7 +247,7 @@ fun NewsArticleScreen(
                                 .fillMaxWidth()
                                 .height(260.dp)
                                 .clip(RoundedCornerShape(24.dp))
-                                .clickable { fullscreenImageIndex = 0 }
+                                .clickable { onOpenFullscreenImage(images, 0) }
                                 .handCursor()
                         ) {
                             NewsImageView(
@@ -318,16 +379,6 @@ fun NewsArticleScreen(
         }
     }
 
-    // 5. Vollbild-Galerie-Dialog beim Klick auf ein Bild mit Zoom & Durchblättern
-    fullscreenImageIndex?.let { startIndex ->
-        FullscreenImageGalleryDialog(
-            images = images,
-            initialIndex = startIndex,
-            onDismissRequest = { fullscreenImageIndex = null }
-        )
-    }
-}
-
 /**
  * Vollbild-Bildergalerie mit Durchblättern per Swipe (HorizontalPager), Klickpfeilen
  * und Zoom-Unterstützung (Pinch-to-Zoom, Doppel-Tap, Drag/Pan und Reset).
@@ -378,16 +429,33 @@ fun FullscreenImageGalleryDialog(
                         .fillMaxSize()
                         .clipToBounds()
                         .pointerInput(page) {
-                            detectTransformGestures { _, pan, zoom, _ ->
-                                val targetScale = (scale * zoom).coerceIn(1f, 5f)
-                                scale = targetScale
-                                if (targetScale > 1.05f) {
-                                    offsetX += pan.x
-                                    offsetY += pan.y
-                                } else {
-                                    offsetX = 0f
-                                    offsetY = 0f
-                                }
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val pointerCount = event.changes.count { it.pressed }
+                                    val zoom = event.calculateZoom()
+                                    val pan = event.calculatePan()
+
+                                    // Nur konsumieren, wenn gezoomt wird (2+ Finger) oder Bild bereits gezoomt ist.
+                                    // Bei 1 Finger im Normalzustand (scale == 1f) bleibt das Event für HorizontalPager frei!
+                                    if (pointerCount > 1 || zoom != 1f || scale > 1.05f) {
+                                        val targetScale = (scale * zoom).coerceIn(1f, 5f)
+                                        scale = targetScale
+                                        if (targetScale > 1.05f) {
+                                            offsetX += pan.x
+                                            offsetY += pan.y
+                                        } else {
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        }
+                                        event.changes.forEach { change ->
+                                            if (change.pressed) {
+                                                change.consume()
+                                            }
+                                        }
+                                    }
+                                } while (event.changes.any { it.pressed })
                             }
                         }
                         .pointerInput(page) {

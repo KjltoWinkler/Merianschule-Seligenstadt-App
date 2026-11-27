@@ -128,6 +128,7 @@ fun DesktopNavigationSidebar(
                 Text(
                     text = "Notes+",
                     style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = de.kjltowinkler.msapp.theme.getGoogleSansFlexBrandFontFamily(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         color = DesktopTextPrimary

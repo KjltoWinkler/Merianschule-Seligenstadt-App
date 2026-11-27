@@ -444,6 +444,7 @@ fun DesktopStartseiteDashboard(
             ) {
                 de.kjltowinkler.msapp.ui.news.NewsArticleScreen(
                     item = article,
+                    articles = de.kjltowinkler.msapp.data.news.NewsRepository.newsFlow.collectAsState().value,
                     onBackClicked = { selectedNewsItem = null },
                     modifier = Modifier.fillMaxSize()
                 )

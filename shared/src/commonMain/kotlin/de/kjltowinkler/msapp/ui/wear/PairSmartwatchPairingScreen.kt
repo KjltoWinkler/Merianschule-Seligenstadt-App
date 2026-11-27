@@ -102,7 +102,7 @@ fun PairSmartwatchPairingScreen(
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontSize = 32.sp,
                         lineHeight = 38.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium
                     ),
                     color = MaterialTheme.colorScheme.onBackground
                 )

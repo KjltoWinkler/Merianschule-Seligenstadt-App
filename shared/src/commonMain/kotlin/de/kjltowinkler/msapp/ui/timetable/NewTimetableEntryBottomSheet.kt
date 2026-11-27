@@ -153,7 +153,7 @@ fun NewTimetableEntryBottomSheet(
                     text = "Stunde hinzufügen",
                     fontFamily = getQuicksandFontFamily(),
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = textPrimaryColor
                 )
 
@@ -210,7 +210,7 @@ fun NewTimetableEntryBottomSheet(
                         Text(
                             text = day.shortName,
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                                 else textPrimaryColor
                             )
@@ -413,7 +413,7 @@ fun NewTimetableEntryBottomSheet(
             ) {
                 Text(
                     text = "Speichern",
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 16.sp
                 )
             }

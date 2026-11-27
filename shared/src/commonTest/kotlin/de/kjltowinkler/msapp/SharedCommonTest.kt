@@ -984,4 +984,68 @@ class SharedCommonTest {
             details = listOf("Klasse: 09AR", "Gültig ab: 2026/7")
         )
     }
+
+    @Test
+    fun testFindNextLesson() {
+        val sampleTimetable = mapOf(
+            TimetableDay.MONTAG to listOf(
+                TimetableLesson("m1", 1, "07:40 - 08:25", "Deutsch", "B208", "Af"),
+                TimetableLesson("m2", 2, "08:30 - 09:15", "Mathematik", "B208", "Kne")
+            ),
+            TimetableDay.FREITAG to listOf(
+                TimetableLesson("f1", 1, "07:40 - 08:25", "Englisch", "B208", "Rd"),
+                TimetableLesson("f2", 2, "08:30 - 09:15", "Biologie", "BIO1", "Tho")
+            )
+        )
+        val getter: (TimetableDay) -> List<TimetableLesson> = { sampleTimetable[it] ?: emptyList() }
+
+        // 1. Donnerstag 20:00 -> nächste Stunde allgemein ist Freitag 07:40 Englisch
+        val thursday = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 26)
+        val evening = de.kjltowinkler.msapp.data.task.SimpleTime(20, 0)
+        val nextAny = de.kjltowinkler.msapp.data.timetable.findNextLesson(
+            subject = "",
+            today = thursday,
+            now = evening,
+            getLessonsForDay = getter
+        )
+        assertNotNull(nextAny)
+        assertEquals(de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 27), nextAny.date)
+        assertEquals("Englisch", nextAny.lesson.subject)
+        assertEquals("07:40", nextAny.startTimeFormatted)
+
+        // 2. Donnerstag 20:00, Fach "Mathematik" -> überspringt Freitag & Wochenende -> Montag 08:30
+        val nextMath = de.kjltowinkler.msapp.data.timetable.findNextLesson(
+            subject = "Mathematik",
+            today = thursday,
+            now = evening,
+            getLessonsForDay = getter
+        )
+        assertNotNull(nextMath)
+        assertEquals(de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 30), nextMath.date)
+        assertEquals(8, nextMath.startHour)
+        assertEquals(30, nextMath.startMinute)
+
+        // 3. Freitag 07:45 (Englisch läuft bereits) -> nächste Stunde allgemein ist Biologie 08:30 am selben Tag
+        val friday = de.kjltowinkler.msapp.data.task.SimpleDate(2026, 11, 27)
+        val duringFirst = de.kjltowinkler.msapp.data.task.SimpleTime(7, 45)
+        val nextSameDay = de.kjltowinkler.msapp.data.timetable.findNextLesson(
+            subject = "",
+            today = friday,
+            now = duringFirst,
+            getLessonsForDay = getter
+        )
+        assertNotNull(nextSameDay)
+        assertEquals(friday, nextSameDay.date)
+        assertEquals("Biologie", nextSameDay.lesson.subject)
+        assertEquals("08:30", nextSameDay.startTimeFormatted)
+
+        // 4. Nicht im Stundenplan vorhandenes Fach -> null
+        val notFound = de.kjltowinkler.msapp.data.timetable.findNextLesson(
+            subject = "Physik",
+            today = thursday,
+            now = evening,
+            getLessonsForDay = getter
+        )
+        assertNull(notFound)
+    }
 }

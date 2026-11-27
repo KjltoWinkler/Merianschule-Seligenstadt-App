@@ -83,7 +83,7 @@ fun StarredTasksBottomSheet(
             title = {
                 Text(
                     text = "Alle markierten Aufgaben löschen?",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -101,7 +101,7 @@ fun StarredTasksBottomSheet(
                         onDismissRequest()
                     }
                 ) {
-                    Text("Löschen", color = colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text("Löschen", color = colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -120,7 +120,7 @@ fun StarredTasksBottomSheet(
             title = {
                 Text(
                     text = "Erledigte Aufgaben löschen?",
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = colorScheme.onSurface
                 )
             },
@@ -138,7 +138,7 @@ fun StarredTasksBottomSheet(
                         onDismissRequest()
                     }
                 ) {
-                    Text("Löschen", color = colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text("Löschen", color = colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -223,7 +223,7 @@ fun StarredTasksBottomSheet(
                     Text(
                         text = if (areAllCompleted) "Alle als unerledigt markieren" else "Alle als erledigt markieren",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -252,7 +252,7 @@ fun StarredTasksBottomSheet(
                     Text(
                         text = "Alle Markierungen entfernen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -286,7 +286,7 @@ fun StarredTasksBottomSheet(
                     Text(
                         text = "Erledigte Aufgaben löschen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -312,7 +312,7 @@ fun StarredTasksBottomSheet(
                     Text(
                         text = "Alle privaten Aufgaben löschen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = destructiveIconTint
                     )
                 }

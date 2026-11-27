@@ -139,7 +139,7 @@ fun SchoolTasksBottomSheet(
                     Text(
                         text = if (areAllCompleted) "Alle als unerledigt markieren" else "Alle als erledigt markieren",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }
@@ -174,7 +174,7 @@ fun SchoolTasksBottomSheet(
                     Text(
                         text = if (areAllStarred) "Alle Markierungen entfernen" else "Alle mit Stern markieren",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = colorScheme.onSurface
                     )
                 }

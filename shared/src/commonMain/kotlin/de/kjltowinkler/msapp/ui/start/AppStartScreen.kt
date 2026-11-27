@@ -75,7 +75,7 @@ fun AppStartScreen(
         onFinished()
     }
 
-    val googleSansFont = de.kjltowinkler.msapp.theme.getGoogleSansFlexFontFamily()
+    val googleSansFont = de.kjltowinkler.msapp.theme.getGoogleSansFlexBrandFontFamily()
 
     Box(
         modifier = Modifier

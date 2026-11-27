@@ -76,7 +76,7 @@ fun OnboardingNotificationPermissionScreen(
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontSize = 34.sp,
                         lineHeight = 40.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium
                     ),
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.fillMaxWidth()

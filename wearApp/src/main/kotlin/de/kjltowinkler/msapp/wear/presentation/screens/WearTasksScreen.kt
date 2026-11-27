@@ -50,7 +50,7 @@ import de.kjltowinkler.msapp.data.backend.BackendApiClient
 import de.kjltowinkler.msapp.data.task.TaskItem
 import de.kjltowinkler.msapp.data.task.TasksRepository
 import de.kjltowinkler.msapp.wear.R
-import de.kjltowinkler.msapp.wear.presentation.theme.RobotoFlex
+import de.kjltowinkler.msapp.wear.presentation.theme.GoogleSansRounded
 import de.kjltowinkler.msapp.wear.presentation.theme.WearAppTheme
 import kotlinx.coroutines.launch
 
@@ -150,7 +150,7 @@ fun WearTasksScreenContent(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Aufgabe",
-                        fontFamily = RobotoFlex,
+                        fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -173,7 +173,7 @@ fun WearTasksScreenContent(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = listTitle,
-                            fontFamily = RobotoFlex,
+                            fontFamily = GoogleSansRounded,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -181,7 +181,7 @@ fun WearTasksScreenContent(
                         if (hasMultipleLists) {
                             Text(
                                 text = "Tippen zum Wechseln",
-                                fontFamily = RobotoFlex,
+                                fontFamily = GoogleSansRounded,
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -201,7 +201,7 @@ fun WearTasksScreenContent(
                     ) {
                         Text(
                             text = "Liste wechseln",
-                            fontFamily = RobotoFlex,
+                            fontFamily = GoogleSansRounded,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -230,7 +230,7 @@ fun WearTasksScreenContent(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Neue Aufgabe",
-                        fontFamily = RobotoFlex,
+                        fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1
                     )
@@ -250,14 +250,14 @@ fun WearTasksScreenContent(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Nicht gekoppelt",
-                                fontFamily = RobotoFlex,
+                                fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.error
                             )
                             Text(
                                 text = "Tippen zum Anmelden",
-                                fontFamily = RobotoFlex,
+                                fontFamily = GoogleSansRounded,
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -276,14 +276,14 @@ fun WearTasksScreenContent(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Sync-Fehler (Tippen)",
-                                fontFamily = RobotoFlex,
+                                fontFamily = GoogleSansRounded,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.error
                             )
                             Text(
                                 text = syncError,
-                                fontFamily = RobotoFlex,
+                                fontFamily = GoogleSansRounded,
                                 fontSize = 11.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -298,7 +298,7 @@ fun WearTasksScreenContent(
                 item(key = "syncing") {
                     Text(
                         text = "Synchronisiere…",
-                        fontFamily = RobotoFlex,
+                        fontFamily = GoogleSansRounded,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 2.dp)
@@ -311,7 +311,7 @@ fun WearTasksScreenContent(
                 item(key = "empty") {
                     Text(
                         text = "Keine Aufgaben vorhanden.\nTippe oben auf + Neue Aufgabe.",
-                        fontFamily = RobotoFlex,
+                        fontFamily = GoogleSansRounded,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -337,7 +337,7 @@ fun WearTasksScreenContent(
                     item(key = "completed_header") {
                         Text(
                             text = "Erledigt (${completedTasks.size})",
-                            fontFamily = RobotoFlex,
+                            fontFamily = GoogleSansRounded,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -397,7 +397,7 @@ private fun WearTaskCheckboxItem(
             {
                 Text(
                     text = subtitle,
-                    fontFamily = RobotoFlex,
+                    fontFamily = GoogleSansRounded,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -421,7 +421,7 @@ private fun WearTaskCheckboxItem(
             }
             Text(
                 text = task.title,
-                fontFamily = RobotoFlex,
+                fontFamily = GoogleSansRounded,
                 fontWeight = FontWeight.Normal,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

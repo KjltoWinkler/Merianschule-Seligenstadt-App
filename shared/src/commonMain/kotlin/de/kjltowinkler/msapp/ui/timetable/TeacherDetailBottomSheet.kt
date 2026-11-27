@@ -152,7 +152,7 @@ fun TeacherDetailBottomSheet(
                         Text(
                             text = teacher.code.take(2).uppercase(),
                             style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.SemiBold,
                                 color = avatarTextColor
                             )
                         )
@@ -163,7 +163,7 @@ fun TeacherDetailBottomSheet(
                             text = teacher.fullName,
                             fontFamily = getQuicksandFontFamily(),
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = textPrimaryColor
                         )
                         Spacer(modifier = Modifier.height(2.dp))
@@ -220,7 +220,7 @@ fun TeacherDetailBottomSheet(
                     Text(
                         text = teacher.subjects.joinToString(", "),
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = textPrimaryColor
                     )
                 }
@@ -255,7 +255,7 @@ fun TeacherDetailBottomSheet(
                         Text(
                             text = teacher.email,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                     }
@@ -300,7 +300,7 @@ fun TeacherDetailBottomSheet(
                     Text(
                         text = teacher.officeHours,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = textPrimaryColor
                     )
                 }

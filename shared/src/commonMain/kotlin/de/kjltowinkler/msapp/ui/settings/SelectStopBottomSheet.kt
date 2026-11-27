@@ -200,7 +200,7 @@ fun SelectStopBottomSheet(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontFamily = getQuicksandFontFamily(),
                         fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = textPrimary
                     )
                 )

@@ -21,6 +21,7 @@ import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import de.kjltowinkler.msapp.data.backend.BackendApiClient
+import de.kjltowinkler.msapp.data.settings.SettingsRepository
 import de.kjltowinkler.msapp.data.task.TasksRepository
 import de.kjltowinkler.msapp.data.wear.PlatformWearPairing
 import de.kjltowinkler.msapp.wear.presentation.screens.FailureConfirmationScreen
@@ -28,9 +29,13 @@ import de.kjltowinkler.msapp.wear.presentation.screens.OnboardingPairingScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.OnboardingPromptScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.OpenOnPhoneScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.SuccessConfirmationScreen
+import de.kjltowinkler.msapp.wear.presentation.screens.WearAccountsScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.WearCreateTaskScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.WearHomeScreen
+import de.kjltowinkler.msapp.wear.presentation.screens.WearSettingsScreen
+import de.kjltowinkler.msapp.wear.presentation.screens.WearSubstitutionScreen
 import de.kjltowinkler.msapp.wear.presentation.screens.WearTasksScreen
+import de.kjltowinkler.msapp.wear.presentation.screens.WearTimetableScreen
 import de.kjltowinkler.msapp.wear.presentation.theme.WearAppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -46,6 +51,7 @@ enum class WearAppState {
 
 class MainActivity : ComponentActivity() {
     private var currentScreenState = mutableStateOf(WearAppState.HOME)
+    private var pendingRoute = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,10 +64,12 @@ class MainActivity : ComponentActivity() {
         }
         updateScreenFromIntent(intent)
         setContent {
-            WearAppTheme {
+            WearAppTheme(useDynamicColors = SettingsRepository.settings.isDynamicColor) {
                 WearApp(
                     appState = currentScreenState.value,
-                    onStateChange = { currentScreenState.value = it }
+                    onStateChange = { currentScreenState.value = it },
+                    pendingRoute = pendingRoute.value,
+                    onRouteConsumed = { pendingRoute.value = null }
                 )
             }
         }
@@ -73,6 +81,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun updateScreenFromIntent(intent: android.content.Intent?) {
+        val route = intent?.getStringExtra("route")
+        if (!route.isNullOrBlank()) {
+            currentScreenState.value = WearAppState.HOME
+            pendingRoute.value = route
+        }
         val screenName = intent?.getStringExtra("screen") ?: return
         try {
             currentScreenState.value = WearAppState.valueOf(screenName)
@@ -83,7 +96,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WearApp(
     appState: WearAppState,
-    onStateChange: (WearAppState) -> Unit
+    onStateChange: (WearAppState) -> Unit,
+    pendingRoute: String? = null,
+    onRouteConsumed: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -179,6 +194,15 @@ fun WearApp(
 
                 WearAppState.HOME -> {
                     val navController = rememberSwipeDismissableNavController()
+                    LaunchedEffect(pendingRoute) {
+                        if (!pendingRoute.isNullOrBlank()) {
+                            navController.navigate(pendingRoute) {
+                                popUpTo("home") { inclusive = false }
+                                launchSingleTop = true
+                            }
+                            onRouteConsumed()
+                        }
+                    }
                     SwipeDismissableNavHost(
                         navController = navController,
                         startDestination = "home"
@@ -186,15 +210,43 @@ fun WearApp(
                         composable("home") {
                             WearHomeScreen(
                                 onAccountClick = {
-                                    // Bei Klick auf Account z. B. Onboarding/Koppeln aufrufen
-                                    onStateChange(WearAppState.PROMPT)
+                                    navController.navigate("accounts")
                                 },
-                                onTimetableClick = { /* Später: Navigation Stundenplan */ },
-                                onSubstitutionClick = { /* Später: Navigation Vertretungsplan */ },
+                                onTimetableClick = {
+                                    navController.navigate("timetable")
+                                },
+                                onSubstitutionClick = {
+                                    navController.navigate("substitution")
+                                },
                                 onTasksClick = {
                                     navController.navigate("tasks")
                                 },
-                                onSettingsClick = { /* Später: Navigation Einstellungen */ }
+                                onSettingsClick = {
+                                    navController.navigate("settings")
+                                }
+                            )
+                        }
+                        composable("accounts") {
+                            WearAccountsScreen(
+                                onActiveAccountClick = {
+                                    navController.popBackStack()
+                                },
+                                onAddAccountClick = {
+                                    onStateChange(WearAppState.PROMPT)
+                                }
+                            )
+                        }
+                        composable("timetable") {
+                            WearTimetableScreen()
+                        }
+                        composable("substitution") {
+                            WearSubstitutionScreen()
+                        }
+                        composable("settings") {
+                            WearSettingsScreen(
+                                onPairPhoneClick = {
+                                    onStateChange(WearAppState.PROMPT)
+                                }
                             )
                         }
                         composable("tasks") {

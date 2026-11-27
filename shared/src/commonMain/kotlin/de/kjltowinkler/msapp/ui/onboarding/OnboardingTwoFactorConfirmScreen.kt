@@ -155,7 +155,7 @@ fun OnboardingTwoFactorConfirmScreen(
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontSize = 36.sp,
                         lineHeight = 44.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium
                     ),
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.fillMaxWidth()

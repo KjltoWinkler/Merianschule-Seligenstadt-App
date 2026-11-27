@@ -243,7 +243,7 @@ fun TaskSortBottomSheet(
                         Text(
                             text = option.label,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = textColor
                         )
                     }

@@ -36,6 +36,7 @@ import merianschuleseligenstadtapp.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 
 import de.kjltowinkler.msapp.data.task.TasksRepository
+import de.kjltowinkler.msapp.data.timetable.findNextLesson
 
 /**
  * Moderner Desktop-Modal-Dialog für die Erstellung neuer Aufgaben.
@@ -53,6 +54,7 @@ fun DesktopNewTaskDialog(
     var description by remember { mutableStateOf("") }
     var isStarred by remember(initialIsStarred) { mutableStateOf(initialIsStarred) }
     var selectedDateText by remember { mutableStateOf("Heute") }
+    val nextLesson = remember { findNextLesson() }
 
     val titleFocusRequester = remember { FocusRequester() }
 
@@ -62,13 +64,20 @@ fun DesktopNewTaskDialog(
 
     val submitTask: () -> Unit = {
         if (title.isNotBlank()) {
+            val useNextLesson = selectedDateText == "Nächste Stunde" && nextLesson != null
             val newTask = TaskItem(
                 id = "task_${getCurrentEpochMillis()}",
                 title = title.trim(),
                 description = description.trim(),
+                dueDate = if (useNextLesson) nextLesson!!.date.formattedCompletedGerman() else "",
+                dueTime = if (useNextLesson) nextLesson!!.startTimeFormatted else "",
                 isCompleted = false,
                 createdDate = "Heute",
-                deadlineDate = selectedDateText,
+                deadlineDate = if (useNextLesson) {
+                    "${nextLesson!!.date.formattedCompletedGerman()}, ${nextLesson.startTimeFormatted} Uhr"
+                } else {
+                    selectedDateText
+                },
                 isStarred = isStarred,
                 isSchoolTask = initialIsSchoolTask,
                 listId = if (initialIsSchoolTask) "my_tasks" else targetListId
@@ -232,9 +241,21 @@ fun DesktopNewTaskDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     // Datum Chips
-                    val dates = listOf("Heute", "Morgen", "Nächste Woche")
+                    val dates = buildList {
+                        add("Heute")
+                        add("Morgen")
+                        add("Nächste Woche")
+                        if (nextLesson != null) {
+                            add("Nächste Stunde")
+                        }
+                    }
                     dates.forEach { dateLabel ->
                         val isDateSelected = selectedDateText == dateLabel
+                        val displayLabel = if (dateLabel == "Nächste Stunde" && nextLesson != null) {
+                            "Nächste Stunde (${nextLesson.lesson.subject}, ${nextLesson.startTimeFormatted})"
+                        } else {
+                            dateLabel
+                        }
                         Box(
                             modifier = Modifier
                                 .padding(end = 8.dp)
@@ -252,7 +273,7 @@ fun DesktopNewTaskDialog(
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = dateLabel,
+                                text = displayLabel,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 11.5.sp,
                                     fontWeight = if (isDateSelected) FontWeight.SemiBold else FontWeight.Normal,

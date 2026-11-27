@@ -62,7 +62,11 @@ fun TimetableScreen(
     val days = TimetableDay.entries
     val initialDay = remember { getInitialTimetableDay() }
     val initialPageIndex = remember(initialDay) { days.indexOf(initialDay).coerceAtLeast(0) }
-    val pagerState = rememberPagerState(initialPage = initialPageIndex, pageCount = { days.size })
+    val pagerState = rememberPagerState(
+        initialPage = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.initialVirtualPage(days.size, initialPageIndex),
+        pageCount = { de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.virtualPageCount(days.size) }
+    )
+    val currentRealPage = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(pagerState.currentPage, days.size)
 
     val density = androidx.compose.ui.platform.LocalDensity.current
     val estimatedScrollPx = remember(initialPageIndex) {
@@ -94,7 +98,7 @@ fun TimetableScreen(
 
     val isFabExpanded by remember {
         derivedStateOf {
-            val currentListState = listStates.getOrNull(pagerState.currentPage)
+            val currentListState = listStates.getOrNull(currentRealPage)
             currentListState?.let {
                 it.firstVisibleItemIndex == 0 && it.firstVisibleItemScrollOffset <= 10
             } ?: true
@@ -110,9 +114,9 @@ fun TimetableScreen(
     var showNewEntrySheet by remember { mutableStateOf(false) }
 
     // Automatisch zum ausgewählten Button scrollen und diesen mittig zentrieren
-    LaunchedEffect(pagerState.currentPage, buttonWidths.size, rowViewportWidth, tabScrollState.maxValue) {
+    LaunchedEffect(currentRealPage, buttonWidths.size, rowViewportWidth, tabScrollState.maxValue) {
         if (buttonWidths.size >= days.size && rowViewportWidth > 0 && tabScrollState.maxValue > 0) {
-            val targetScroll = calculateTargetScroll(pagerState.currentPage)
+            val targetScroll = calculateTargetScroll(currentRealPage)
             if (!hasInitialCentered) {
                 hasInitialCentered = true
                 tabScrollState.scrollTo(targetScroll)
@@ -178,10 +182,16 @@ fun TimetableScreen(
             ) {
                 days.forEachIndexed { index, day ->
                     ToggleButton(
-                        checked = pagerState.currentPage == index,
+                        checked = currentRealPage == index,
                         onCheckedChange = {
                             coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
+                                pagerState.animateScrollToPage(
+                                    de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                        pagerState.currentPage,
+                                        index,
+                                        days.size
+                                    )
+                                )
                             }
                         },
                         shapes = when (index) {
@@ -215,8 +225,14 @@ fun TimetableScreen(
                             val minTimeJob = async { delay(400) }
                             val targetDay = getInitialTimetableDay()
                             val targetIndex = days.indexOf(targetDay).coerceAtLeast(0)
-                            if (pagerState.currentPage != targetIndex) {
-                                pagerState.animateScrollToPage(targetIndex)
+                            if (currentRealPage != targetIndex) {
+                                pagerState.animateScrollToPage(
+                                    de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.nearestVirtualTarget(
+                                        pagerState.currentPage,
+                                        targetIndex,
+                                        days.size
+                                    )
+                                )
                             } else {
                                 val targetScroll = calculateTargetScroll(targetIndex)
                                 tabScrollState.animateScrollTo(targetScroll)
@@ -250,7 +266,8 @@ fun TimetableScreen(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
                     beyondViewportPageCount = 1
-                ) { page ->
+                ) { virtualPage ->
+                    val page = de.kjltowinkler.msapp.ui.components.InfinitePagerHelper.realIndex(virtualPage, days.size)
                     val day = days[page]
                     val lessons = TimetableRepository.getLessonsForDay(day)
 
@@ -374,7 +391,7 @@ fun TimetableScreen(
     }
 
     selectedLessonForDetail?.let { lesson ->
-        val currentDay = days[pagerState.currentPage]
+        val currentDay = days[currentRealPage]
         val matchingSub = remember(lesson, substitutions, currentDay) {
             TimetableRepository.findMatchingSubstitution(currentDay, lesson, substitutions)
         }
@@ -401,7 +418,7 @@ fun TimetableScreen(
     }
 
     if (showNewEntrySheet) {
-        val currentDay = days[pagerState.currentPage]
+        val currentDay = days[currentRealPage]
         NewTimetableEntryBottomSheet(
             initialDay = currentDay,
             onDismissRequest = { showNewEntrySheet = false },

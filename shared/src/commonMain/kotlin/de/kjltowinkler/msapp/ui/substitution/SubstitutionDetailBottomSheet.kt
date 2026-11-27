@@ -167,20 +167,22 @@ fun SubstitutionDetailBottomSheet(
                         color = textPrimaryColor
                     )
 
-                    IconButton(
-                        onClick = onDismissRequest,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(closeButtonBg)
-                            .handCursor()
-                    ) {
-                        Icon(
-                            painter = painterResource(Res.drawable.ic_close),
-                            contentDescription = "Schließen",
-                            tint = closeIconTint,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    de.kjltowinkler.msapp.ui.components.WithTooltip("Schließen") {
+                        IconButton(
+                            onClick = onDismissRequest,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(closeButtonBg)
+                                .handCursor()
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_close),
+                                contentDescription = "Schließen",
+                                tint = closeIconTint,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
 
@@ -318,7 +320,7 @@ fun SubstitutionDetailBottomSheet(
                         Text(
                             text = teacherMain,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                         if (teacherSub.isNotBlank()) {
@@ -355,7 +357,7 @@ fun SubstitutionDetailBottomSheet(
                         Text(
                             text = roomMain,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                     }
@@ -383,7 +385,7 @@ fun SubstitutionDetailBottomSheet(
                         Text(
                             text = "Aufgaben & Notizen",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                         Text(
@@ -428,7 +430,7 @@ fun SubstitutionDetailBottomSheet(
                     Text(
                         text = if (entry.isMarked) "Markierung entfernen" else "Eintrag merken",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = textPrimaryColor
                     )
                 }
@@ -469,7 +471,7 @@ fun SubstitutionDetailBottomSheet(
                     Text(
                         text = "Als Bild teilen",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = textPrimaryColor
                     )
                 }
@@ -495,7 +497,7 @@ fun SubstitutionDetailBottomSheet(
                     Text(
                         text = "Als Aufgabe speichern",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = textPrimaryColor
                     )
                 }

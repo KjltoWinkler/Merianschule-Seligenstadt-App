@@ -25,6 +25,14 @@ dependencies {
     implementation(libs.wear.tooling.preview)
     implementation("androidx.compose.material3:material3:1.4.0-alpha08")
 
+    // Wear OS Tiles & ProtoLayout Material 3
+    implementation(libs.wear.tiles)
+    implementation(libs.wear.protolayout)
+    implementation(libs.wear.protolayout.material3)
+    implementation(libs.wear.protolayout.expression)
+    debugImplementation(libs.wear.tiles.tooling)
+    implementation(libs.wear.tiles.tooling.preview)
+
     // Compose Tooling & Preview
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
@@ -67,5 +75,12 @@ android {
 
     buildFeatures {
         compose = true
+    }
+}
+
+// Verhindert INSTALL_BASELINE_PROFILE_FAILED beim direkten Deploy auf Wear OS Uhren
+tasks.configureEach {
+    if (name.endsWith("ArtProfile")) {
+        enabled = false
     }
 }

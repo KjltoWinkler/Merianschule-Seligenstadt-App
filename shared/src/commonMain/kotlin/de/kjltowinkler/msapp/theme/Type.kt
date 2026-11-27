@@ -13,12 +13,16 @@ import merianschuleseligenstadtapp.shared.generated.resources.google_sans_flex
 import org.jetbrains.compose.resources.Font
 
 @Composable
-private fun googleSansRoundedFont(weight: FontWeight, axisWeight: Int) = Font(
+private fun googleSansFlexFont(
+    weight: FontWeight,
+    axisWeight: Int,
+    rond: Float = 100f
+) = Font(
     resource = Res.font.google_sans_flex,
     weight = weight,
     variationSettings = FontVariation.Settings(
         FontVariation.weight(axisWeight),
-        FontVariation.Setting("ROND", 100f)
+        FontVariation.Setting("ROND", rond)
     )
 )
 
@@ -30,11 +34,22 @@ fun getQuicksandFontFamily(): FontFamily {
 @Composable
 fun getGoogleSansFlexFontFamily(): FontFamily {
     return FontFamily(
-        googleSansRoundedFont(FontWeight.Light, axisWeight = 250),
-        googleSansRoundedFont(FontWeight.Normal, axisWeight = 330),
-        googleSansRoundedFont(FontWeight.Medium, axisWeight = 420),
-        googleSansRoundedFont(FontWeight.SemiBold, axisWeight = 500),
-        googleSansRoundedFont(FontWeight.Bold, axisWeight = 600)
+        googleSansFlexFont(FontWeight.Light, axisWeight = 250, rond = 100f),
+        googleSansFlexFont(FontWeight.Normal, axisWeight = 340, rond = 100f),
+        googleSansFlexFont(FontWeight.Medium, axisWeight = 460, rond = 100f),
+        googleSansFlexFont(FontWeight.SemiBold, axisWeight = 600, rond = 100f),
+        googleSansFlexFont(FontWeight.Bold, axisWeight = 700, rond = 100f)
+    )
+}
+
+@Composable
+fun getGoogleSansFlexBrandFontFamily(): FontFamily {
+    return FontFamily(
+        googleSansFlexFont(FontWeight.Light, axisWeight = 250, rond = 0f),
+        googleSansFlexFont(FontWeight.Normal, axisWeight = 340, rond = 0f),
+        googleSansFlexFont(FontWeight.Medium, axisWeight = 460, rond = 0f),
+        googleSansFlexFont(FontWeight.SemiBold, axisWeight = 600, rond = 0f),
+        googleSansFlexFont(FontWeight.Bold, axisWeight = 700, rond = 0f)
     )
 }
 
@@ -66,7 +81,7 @@ fun getAppTypography(): Typography {
         ),
         headlineLarge = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSynthesis = FontSynthesis.None,
             fontSize = 32.sp,
             lineHeight = 40.sp,
@@ -74,7 +89,7 @@ fun getAppTypography(): Typography {
         ),
         headlineMedium = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSynthesis = FontSynthesis.None,
             fontSize = 28.sp,
             lineHeight = 36.sp,
@@ -82,14 +97,14 @@ fun getAppTypography(): Typography {
         ),
         headlineSmall = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSynthesis = FontSynthesis.None,
             fontSize = 24.sp,
             lineHeight = 32.sp
         ),
         titleLarge = TextStyle(
             fontFamily = googleSans,
-            fontWeight = FontWeight.Normal,
+            fontWeight = FontWeight.SemiBold,
             fontSynthesis = FontSynthesis.None,
             fontSize = 22.sp,
             lineHeight = 28.sp,

@@ -208,7 +208,7 @@ fun TimetableDetailBottomSheet(
                     Text(
                         text = if (lesson.room.startsWith("Raum", ignoreCase = true)) lesson.room else "Raum ${lesson.room}",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         color = textPrimaryColor
                     )
                 }
@@ -249,7 +249,7 @@ fun TimetableDetailBottomSheet(
                         Text(
                             text = teacherText,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                     }
@@ -283,7 +283,7 @@ fun TimetableDetailBottomSheet(
                         Text(
                             text = lesson.breakLabel,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                     }
@@ -322,7 +322,7 @@ fun TimetableDetailBottomSheet(
                         Text(
                             text = "${matchingSubstitution.type} im Vertretungsplan ansehen",
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
                             color = textPrimaryColor
                         )
                         if (matchingSubstitution.details.isNotBlank()) {
@@ -363,7 +363,7 @@ fun TimetableDetailBottomSheet(
                 Text(
                     text = "Aufgabe für ${TimetableRepository.resolveSubjectName(lesson.subject)} anlegen",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = textPrimaryColor
                 )
             }
